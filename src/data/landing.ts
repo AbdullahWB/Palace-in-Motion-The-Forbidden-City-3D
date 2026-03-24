@@ -1,55 +1,83 @@
-import type { FeatureCard } from "@/types/content";
+import type {
+  AIGuidePreviewPoint,
+  HeroAction,
+  LandingFeaturePreview,
+  LandingHero,
+} from "@/types/content";
 
-export const featureCards: FeatureCard[] = [
+export const landingHero: LandingHero = {
+  eyebrow: "Forbidden City digital heritage experience",
+  titleLines: ["Palace", "in Motion"],
+  subtitle:
+    "Enter a refined interactive journey through imperial architecture, guided storytelling, and cultural interpretation.",
+};
+
+export const landingHeroActions: HeroAction[] = [
   {
-    title: "Explore the palace grounds",
-    body: "A live React Three Fiber canvas already runs on this route, giving the project a safe baseline for future spatial storytelling.",
+    label: "Start Exploring",
     href: "/explore",
+    variant: "primary",
   },
   {
-    title: "Guide visitors through a narrative path",
-    body: "The tour route holds the narrative shell, stop selection state, and future AI-guide insertion points without fake orchestration logic.",
+    label: "Take Guided Tour",
     href: "/tour",
+    variant: "secondary",
   },
   {
-    title: "Frame a memory as a postcard",
-    body: "The selfie route focuses on presentation scaffolding, postcard styling, and route-specific state that can later power capture and export.",
-    href: "/selfie",
+    label: "Meet the AI Guide",
+    href: "#ai-guide",
+    variant: "ghost",
   },
 ];
 
-export const landingMetrics = [
+export const landingFeaturePreviews: LandingFeaturePreview[] = [
   {
-    value: "4",
-    label: "Primary routes",
-    description: "Each route is scaffolded and renders from the App Router.",
+    eyebrow: "Spatial exploration",
+    title: "Walk the palace at architectural scale",
+    description:
+      "Move through courtyards, gates, and ceremonial spaces in an elegant browser-native experience.",
+    href: "/explore",
+    ctaLabel: "Start Exploring",
   },
   {
-    value: "1",
-    label: "Live 3D scene",
-    description: "Only `/explore` mounts the canvas so scope stays controlled.",
+    eyebrow: "Guided storytelling",
+    title: "Follow a curated route through key moments",
+    description:
+      "Step through a narrative sequence that connects architecture, ritual, and imperial life with clarity.",
+    href: "/tour",
+    ctaLabel: "Take Guided Tour",
   },
   {
-    value: "0",
-    label: "Fake backends",
-    description: "No APIs, persistence, or mock business logic were introduced.",
+    eyebrow: "AI cultural guide",
+    title: "Meet interpretation designed for context",
+    description:
+      "Future AI guidance is shaped to explain spaces and significance with a calm, museum-like voice.",
+    href: "#ai-guide",
+    ctaLabel: "Meet the AI Guide",
   },
-] as const;
+];
 
-export const landingHighlights = [
+export const aiGuidePreview = {
+  eyebrow: "AI cultural guide",
+  title: "A thoughtful interpretive layer, not a novelty overlay.",
+  description:
+    "The guide is planned as a calm companion that adds context precisely where curiosity appears.",
+} as const;
+
+export const aiGuidePreviewPoints: AIGuidePreviewPoint[] = [
   {
-    title: "Shared shell",
+    title: "Context anchored to place",
     description:
-      "Header, mobile navigation, footer, typography, and layout primitives establish a consistent base for future sections.",
+      "Interpretation can stay tied to courtyards, halls, objects, and the visitor's current viewpoint.",
   },
   {
-    title: "Typed placeholders",
+    title: "Multilingual cultural framing",
     description:
-      "Navigation links, tour stops, and postcard frames live in dedicated data modules so the routes stay declarative.",
+      "Designed to support broader access without flattening nuance, tone, or historical meaning.",
   },
   {
-    title: "Composable features",
+    title: "Story paths that adapt",
     description:
-      "Route-specific UI is kept inside feature folders, which gives later work a clean place for scene logic, storytelling, and media workflows.",
+      "Future guidance can respond to visitor choices while preserving a clear curatorial structure.",
   },
-] as const;
+];

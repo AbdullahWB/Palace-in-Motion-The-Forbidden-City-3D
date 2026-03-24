@@ -11,9 +11,9 @@ export function SiteFooter() {
           <div>
             <p className="font-display text-3xl text-foreground">{APP_NAME}</p>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">
-              Scaffolded for a medium-sized experience: immersive exploration,
-              guided storytelling, and future AI interpretation layers without
-              premature backend complexity.
+              A contemporary cultural interface for exploring imperial
+              architecture, guided storytelling, and future AI interpretation
+              with a calm museum-like tone.
             </p>
           </div>
 

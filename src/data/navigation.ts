@@ -4,21 +4,21 @@ export const navigationItems: NavItem[] = [
   {
     label: "Home",
     href: "/",
-    description: "Overview, positioning, and scaffold entry points.",
+    description: "Cinematic introduction and experience overview.",
   },
   {
     label: "Explore",
     href: "/explore",
-    description: "Client-only 3D placeholder scene and scene notes.",
+    description: "Step into the evolving interactive palace environment.",
   },
   {
     label: "Tour",
     href: "/tour",
-    description: "Guided tour structure and active stop placeholder.",
+    description: "Follow a curated route through key spaces and stories.",
   },
   {
     label: "Selfie",
     href: "/selfie",
-    description: "Postcard framing shell for future capture workflows.",
+    description: "Compose a keepsake postcard inspired by the visit.",
   },
 ];

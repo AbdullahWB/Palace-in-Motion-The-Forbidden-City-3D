@@ -27,7 +27,7 @@ export function SiteHeader() {
               {APP_NAME}
             </p>
             <p className="mt-1 truncate text-[11px] font-semibold uppercase tracking-[0.26em] text-accent-soft">
-              Forbidden City heritage scaffold
+              Forbidden City digital heritage
             </p>
           </Link>
 

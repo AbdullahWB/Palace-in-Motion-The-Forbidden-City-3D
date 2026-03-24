@@ -83,6 +83,49 @@ button:focus-visible {
   box-shadow: 0 24px 70px rgba(74, 37, 28, 0.12);
 }
 
+.museum-surface {
+  background:
+    linear-gradient(180deg, rgba(255, 250, 243, 0.88), rgba(255, 244, 232, 0.72)),
+    linear-gradient(135deg, rgba(183, 138, 76, 0.05), transparent 48%);
+  box-shadow:
+    0 32px 80px rgba(64, 31, 22, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(18px);
+}
+
+.hero-vignette {
+  background:
+    radial-gradient(circle at 50% 30%, transparent 0%, transparent 42%, rgba(40, 22, 18, 0.16) 100%),
+    linear-gradient(180deg, rgba(255, 247, 238, 0.36), rgba(244, 235, 221, 0.12) 36%, rgba(87, 38, 28, 0.08) 100%);
+}
+
+.hero-lattice {
+  background-image:
+    linear-gradient(rgba(138, 34, 48, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(138, 34, 48, 0.055) 1px, transparent 1px);
+  background-position: center;
+  background-size: 88px 88px;
+  mask-image: radial-gradient(circle at center, black, transparent 82%);
+}
+
+.hero-orb {
+  border-radius: 9999px;
+  filter: blur(72px);
+}
+
+.hero-sheen {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.02) 25%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.02) 75%,
+    transparent 100%
+  );
+  transform: rotate(16deg);
+  filter: blur(10px);
+}
+
 .text-wrap-balance {
   text-wrap: balance;
 }
