@@ -1,0 +1,57 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { MainNav } from "@/components/layout/main-nav";
+import { MobileNav } from "@/components/layout/mobile-nav";
+import { PageContainer } from "@/components/layout/page-container";
+import { APP_NAME } from "@/lib/constants";
+import { useAppStore } from "@/store/use-app-store";
+
+export function SiteHeader() {
+  const pathname = usePathname();
+  const isNavOpen = useAppStore((state) => state.isNavOpen);
+  const setNavOpen = useAppStore((state) => state.setNavOpen);
+
+  useEffect(() => {
+    setNavOpen(false);
+  }, [pathname, setNavOpen]);
+
+  return (
+    <header className="sticky top-0 z-50 border-b border-border/70 bg-background/80 backdrop-blur-xl">
+      <PageContainer>
+        <div className="flex h-20 items-center justify-between gap-4">
+          <Link href="/" className="min-w-0">
+            <p className="font-display text-2xl leading-none text-foreground md:text-3xl">
+              {APP_NAME}
+            </p>
+            <p className="mt-1 truncate text-[11px] font-semibold uppercase tracking-[0.26em] text-accent-soft">
+              Forbidden City heritage scaffold
+            </p>
+          </Link>
+
+          <MainNav pathname={pathname} />
+
+          <button
+            type="button"
+            onClick={() => setNavOpen(!isNavOpen)}
+            className="inline-flex items-center justify-center rounded-full border border-border bg-white/75 px-4 py-2 text-sm font-semibold text-foreground md:hidden"
+            aria-expanded={isNavOpen}
+            aria-controls="mobile-nav"
+          >
+            {isNavOpen ? "Close" : "Menu"}
+          </button>
+        </div>
+      </PageContainer>
+
+      <div id="mobile-nav">
+        <MobileNav
+          pathname={pathname}
+          isOpen={isNavOpen}
+          onNavigate={() => setNavOpen(false)}
+        />
+      </div>
+    </header>
+  );
+}

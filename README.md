@@ -1,36 +1,109 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Palace in Motion
 
-## Getting Started
+Production-ready scaffold for "Palace in Motion: A 3D Interactive Heritage Tour of the Forbidden City with an AI Cultural Guide".
 
-First, run the development server:
+## Stack
+
+- Next.js App Router
+- TypeScript
+- Tailwind CSS v4
+- React Three Fiber
+- `@react-three/drei`
+- Zustand
+- Framer Motion
+
+## Routes
+
+- `/` landing page
+- `/explore` interactive 3D exploration placeholder
+- `/tour` guided tour placeholder
+- `/selfie` selfie and postcard placeholder
+
+## Project Structure
+
+```text
+src/
+  app/                 App Router routes and layout
+  components/
+    layout/            Shared shell components
+    ui/                Reusable presentational primitives
+  data/                Placeholder content modules
+  features/
+    explore/           3D scene placeholder and route-specific UI
+    selfie/            Postcard placeholder UI
+    tour/              Guided tour placeholder UI
+  lib/                 Shared constants and utilities
+  store/               Zustand store
+  types/               Shared TypeScript types
+```
+
+## Prerequisites
+
+- Node.js 22+
+- npm 11+
+
+## Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+If PowerShell blocks `npm` because of script execution policy, use:
+
+```bash
+npm.cmd install
+```
+
+Start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+PowerShell fallback:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm.cmd run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Then open `http://localhost:3000`.
 
-## Learn More
+## Quality Checks
 
-To learn more about Next.js, take a look at the following resources:
+Run lint:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run lint
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Run a production build:
 
-## Deploy on Vercel
+```bash
+npm run build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+PowerShell fallback:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm.cmd run lint
+npm.cmd run build
+```
+
+## Current Scope
+
+This scaffold intentionally stops at foundation work:
+
+- shared layout, theme, typography, and navigation
+- typed placeholder content for each route
+- a minimal Zustand store for UI state
+- a safe client-only React Three Fiber scene on `/explore`
+
+It does not yet include:
+
+- backend or API integrations
+- AI guide orchestration
+- content management
+- real 3D assets or scene streaming
+- selfie upload, export, or persistence
