@@ -6,7 +6,7 @@ import { ScenePanel } from "@/features/explore/scene-panel";
 
 export const metadata: Metadata = {
   title: "Explore",
-  description: "A client-only 3D exploration placeholder for the Forbidden City experience.",
+  description: "A stylized Forbidden City-inspired 3D route with axial zones and interactive storytelling metadata.",
 };
 
 export default function ExplorePage() {
@@ -14,8 +14,8 @@ export default function ExplorePage() {
     <PageContainer className="py-12 md:py-16">
       <SectionHeading
         eyebrow="3D exploration"
-        title="A spatial MVP for the Forbidden City experience."
-        description="This first scene proves the 3D foundation with a lightweight architectural blockout, smooth camera controls, and clickable cultural hotspots."
+        title="A stylized axial reading of the Forbidden City."
+        description="This scene emphasizes ceremonial progression, symmetry, and the shift from outer court grandeur toward the inner court threshold."
       />
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_24rem]">

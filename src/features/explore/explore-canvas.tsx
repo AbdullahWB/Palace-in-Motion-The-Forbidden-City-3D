@@ -9,10 +9,10 @@ export default function ExploreCanvas() {
       <div className="flex items-center justify-between border-b border-border/80 px-5 py-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent-soft">
-            Exploration MVP
+            Stylized ceremonial axis
           </p>
           <p className="mt-1 text-sm text-muted">
-            Orbit the blockout scene and click a glowing marker to inspect a key landmark.
+            Orbit a simplified Forbidden City-inspired layout and inspect each zone along the north-south procession.
           </p>
         </div>
       </div>
@@ -20,7 +20,8 @@ export default function ExploreCanvas() {
       <div className="h-[34rem] w-full">
         <Canvas
           dpr={[1, 1.5]}
-          camera={{ position: [9.5, 6.1, 10.4], fov: 36 }}
+          shadows
+          camera={{ position: [11.2, 7.2, 13.4], fov: 34 }}
         >
           <ExploreScene />
         </Canvas>

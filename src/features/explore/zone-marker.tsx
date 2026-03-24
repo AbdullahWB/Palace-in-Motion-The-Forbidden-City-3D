@@ -2,19 +2,19 @@
 
 import { useState } from "react";
 import { useCursor } from "@react-three/drei";
-import type { ExploreHotspot } from "@/types/content";
+import type { ExploreZone } from "@/types/content";
 
-type HotspotMarkerProps = {
-  hotspot: ExploreHotspot;
+type ZoneMarkerProps = {
+  zone: ExploreZone;
   isSelected: boolean;
-  onSelect: (id: ExploreHotspot["id"]) => void;
+  onSelect: (id: ExploreZone["id"]) => void;
 };
 
-export function HotspotMarker({
-  hotspot,
+export function ZoneMarker({
+  zone,
   isSelected,
   onSelect,
-}: HotspotMarkerProps) {
+}: ZoneMarkerProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   useCursor(isHovered);
@@ -24,11 +24,11 @@ export function HotspotMarker({
   const ringScale = isHovered || isSelected ? 1.22 : 1;
 
   return (
-    <group position={hotspot.position}>
+    <group position={zone.markerPosition}>
       <mesh
         onClick={(event) => {
           event.stopPropagation();
-          onSelect(hotspot.id);
+          onSelect(zone.id);
         }}
         onPointerOver={(event) => {
           event.stopPropagation();

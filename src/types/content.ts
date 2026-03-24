@@ -39,11 +39,24 @@ export type AIGuidePreviewPoint = {
   description: string;
 };
 
-export type ExploreHotspot = {
-  id: TourStop["id"];
-  title: string;
-  description: string;
+export type ExploreCourt = "outer" | "inner-threshold";
+
+export type ExploreCameraStop = {
   position: [number, number, number];
+  target: [number, number, number];
+  fov?: number;
+};
+
+export type ExploreZone = {
+  id: string;
+  title: string;
+  shortLabel: string;
+  description: string;
+  sequence: number;
+  court: ExploreCourt;
+  markerPosition: [number, number, number];
+  axisPosition: number;
+  cameraStop: ExploreCameraStop;
 };
 
 export type TourStop = {
