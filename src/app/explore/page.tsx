@@ -14,8 +14,8 @@ export default function ExplorePage() {
     <PageContainer className="py-12 md:py-16">
       <SectionHeading
         eyebrow="3D exploration"
-        title="A safe scene shell for future palace environments."
-        description="This route already mounts a React Three Fiber canvas on the client, with modular scene notes beside it and no external assets yet."
+        title="A spatial MVP for the Forbidden City experience."
+        description="This first scene proves the 3D foundation with a lightweight architectural blockout, smooth camera controls, and clickable cultural hotspots."
       />
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_24rem]">

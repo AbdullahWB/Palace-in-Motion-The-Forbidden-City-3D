@@ -39,6 +39,13 @@ export type AIGuidePreviewPoint = {
   description: string;
 };
 
+export type ExploreHotspot = {
+  id: TourStop["id"];
+  title: string;
+  description: string;
+  position: [number, number, number];
+};
+
 export type TourStop = {
   id: string;
   title: string;
