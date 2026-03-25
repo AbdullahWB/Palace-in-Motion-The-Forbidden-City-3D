@@ -108,4 +108,7 @@ export type PostcardFrame = {
   id: string;
   title: string;
   accentToken: "imperial-red" | "sunlit-bronze" | "jade-ink";
+  description: string;
+  ribbonLabel: string;
+  defaultTitle?: string;
 };

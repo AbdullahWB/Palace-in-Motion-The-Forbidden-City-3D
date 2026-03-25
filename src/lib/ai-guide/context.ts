@@ -5,6 +5,7 @@ import {
   getSiteQuickFacts,
   siteOverview,
 } from "@/data/heritage";
+import { getSelfieFocusById } from "@/data/selfie";
 import { HERITAGE_SCENE_ID } from "@/lib/constants";
 import type { GuideRequest, ResolvedGuideContext } from "@/types/ai-guide";
 import type { QuickFact } from "@/types/content";
@@ -27,35 +28,52 @@ function dedupeSourceIds(ids: string[]) {
 }
 
 export function resolveGuideContext(
-  input: Pick<GuideRequest, "sceneId" | "hotspotId" | "tourStepId">
+  input: Pick<GuideRequest, "sceneId" | "hotspotId" | "tourStepId" | "focusId">
 ): ResolvedGuideContext {
   const sceneId = input.sceneId === HERITAGE_SCENE_ID ? HERITAGE_SCENE_ID : null;
   const tourStep = getResolvedTourStepById(input.tourStepId);
+  const focusOption = getSelfieFocusById(input.focusId);
+  const focusHotspot =
+    focusOption && focusOption.id !== "central-axis"
+      ? getHotspotContentById(focusOption.id)
+      : null;
   const directHotspot = input.hotspotId
     ? getHotspotContentById(input.hotspotId)
     : null;
   const derivedHotspot =
     directHotspot ??
+    focusHotspot ??
     (tourStep?.focusZoneId ? getHotspotContentById(tourStep.focusZoneId) : null);
+  const focusQuickFacts =
+    focusOption?.id === "central-axis"
+      ? getQuickFactsByIds(["central-axis", "axial-symmetry", "ceremonial-meaning"])
+      : [];
   const quickFacts = dedupeQuickFacts([
     ...(tourStep?.quickFacts ?? []),
     ...(derivedHotspot ? getQuickFactsByIds(derivedHotspot.quickFactIds) : []),
-    ...(!tourStep && !derivedHotspot ? getSiteQuickFacts() : []),
+    ...focusQuickFacts,
+    ...(!tourStep && !derivedHotspot && !focusOption ? getSiteQuickFacts() : []),
   ]);
+  const resolvedFocusId = focusOption?.id ?? derivedHotspot?.id ?? null;
+  const resolvedFocusLabel = focusOption?.label ?? derivedHotspot?.title ?? null;
 
   return {
     sceneId,
     hotspotId: derivedHotspot?.id ?? null,
     tourStepId: tourStep?.id ?? null,
-    contextLabel: tourStep?.title ?? derivedHotspot?.title ?? siteOverview.headline,
+    focusId: resolvedFocusId,
+    focusLabel: resolvedFocusLabel,
+    contextLabel:
+      tourStep?.title ?? resolvedFocusLabel ?? derivedHotspot?.title ?? siteOverview.headline,
     sourceIds: dedupeSourceIds([
       "site-overview",
       ...(sceneId ? [sceneId] : []),
       ...(tourStep ? [tourStep.id] : []),
+      ...(focusOption ? [focusOption.id] : []),
       ...(derivedHotspot ? [derivedHotspot.id] : []),
       ...quickFacts.map((fact) => fact.id),
     ]),
-    hasSpecificContext: Boolean(tourStep || derivedHotspot),
+    hasSpecificContext: Boolean(tourStep || derivedHotspot || focusOption),
     site: {
       headline: siteOverview.headline,
       summary: siteOverview.summary,

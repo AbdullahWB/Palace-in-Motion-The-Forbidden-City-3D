@@ -1,4 +1,5 @@
-import type { GuideMode, ResolvedGuideContext } from "@/types/ai-guide";
+import { getPostcardFrameById } from "@/data/selfie";
+import type { GuideMode, GuideRequest, ResolvedGuideContext } from "@/types/ai-guide";
 
 function pickRelevantFact(context: ResolvedGuideContext, question: string) {
   const lowerQuestion = question.toLowerCase();
@@ -12,7 +13,45 @@ function pickRelevantFact(context: ResolvedGuideContext, question: string) {
   );
 }
 
-export function buildFallbackAnswer({
+function buildFallbackCaption({
+  context,
+  mode,
+  postcardThemeId,
+  title,
+  question,
+}: Pick<
+  GuideRequest,
+  "mode" | "postcardThemeId" | "title" | "question"
+> & {
+  context: ResolvedGuideContext;
+}) {
+  const frame = postcardThemeId ? getPostcardFrameById(postcardThemeId) : null;
+  const focusLabel = context.focusLabel ?? context.contextLabel;
+  const focusSummary =
+    context.hotspot?.hotspotDescription ??
+    context.tourStep?.explanation ??
+    context.site.summary;
+  const relevantFact = pickRelevantFact(context, question);
+  const anchor = relevantFact?.body ?? focusSummary;
+  const prefix = title?.trim() ? `${title.trim()} - ` : "";
+
+  switch (mode) {
+    case "short":
+      return `${prefix}${focusLabel} framed by symmetry, threshold, and ceremonial order.`;
+    case "detailed":
+      return [
+        `${prefix}${focusLabel} holds the eye along the Forbidden City's ceremonial route.`,
+        anchor,
+      ].join(" ");
+    default:
+      return [
+        `${prefix}${frame?.title ?? "Palace in Motion"} catches ${focusLabel} in a moment shaped by imperial sequence.`,
+        anchor,
+      ].join(" ");
+  }
+}
+
+function buildFallbackAnswer({
   context,
   question,
   mode,
@@ -59,4 +98,28 @@ export function buildFallbackAnswer({
         .filter(Boolean)
         .join(" ");
   }
+}
+
+export function buildFallbackGuideResult({
+  context,
+  request,
+}: {
+  context: ResolvedGuideContext;
+  request: GuideRequest;
+}) {
+  if (request.intent === "caption") {
+    return buildFallbackCaption({
+      context,
+      mode: request.mode,
+      postcardThemeId: request.postcardThemeId,
+      title: request.title,
+      question: request.question,
+    });
+  }
+
+  return buildFallbackAnswer({
+    context,
+    question: request.question,
+    mode: request.mode,
+  });
 }
