@@ -2,10 +2,12 @@
 
 import dynamic from "next/dynamic";
 import { getExploreZoneById } from "@/data/explore";
+import { GuidePanel } from "@/features/ai-guide/guide-panel";
 import { TourCompletion } from "@/features/tour/tour-completion";
 import { tourSteps } from "@/features/tour/tour-data";
 import { TourSidebar } from "@/features/tour/tour-sidebar";
 import { useTourController } from "@/features/tour/use-tour-controller";
+import { HERITAGE_SCENE_ID } from "@/lib/constants";
 
 const TourScene = dynamic(() => import("@/features/tour/tour-scene"), {
   ssr: false,
@@ -33,18 +35,27 @@ export function TourShell() {
         focusZoneId={sceneStep.focusZoneId ?? null}
       />
 
-      {isComplete ? (
-        <TourCompletion onRestart={restart} />
-      ) : (
-        <TourSidebar
-          steps={tourSteps}
-          activeIndex={activeIndex}
-          activeZone={activeZone}
-          onStepSelect={goToStep}
-          onNext={goNext}
-          onPrevious={goPrevious}
+      <div className="space-y-6">
+        {isComplete ? (
+          <TourCompletion onRestart={restart} />
+        ) : (
+          <TourSidebar
+            steps={tourSteps}
+            activeIndex={activeIndex}
+            activeZone={activeZone}
+            onStepSelect={goToStep}
+            onNext={goNext}
+            onPrevious={goPrevious}
+          />
+        )}
+
+        <GuidePanel
+          sceneId={HERITAGE_SCENE_ID}
+          hotspotId={sceneStep.focusZoneId ?? null}
+          tourStepId={sceneStep.id}
+          contextLabel={sceneStep.title}
         />
-      )}
+      </div>
     </div>
   );
 }

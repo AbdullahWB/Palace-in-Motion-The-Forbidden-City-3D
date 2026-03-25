@@ -15,8 +15,8 @@ Production-ready scaffold for "Palace in Motion: A 3D Interactive Heritage Tour 
 ## Routes
 
 - `/` landing page
-- `/explore` interactive 3D exploration placeholder
-- `/tour` guided tour placeholder
+- `/explore` interactive 3D exploration route
+- `/tour` guided tour route
 - `/selfie` selfie and postcard placeholder
 
 ## Project Structure
@@ -27,11 +27,12 @@ src/
   components/
     layout/            Shared shell components
     ui/                Reusable presentational primitives
-  data/                Placeholder content modules
+  data/                Local heritage content and UI data modules
   features/
     explore/           3D scene placeholder and route-specific UI
     selfie/            Postcard placeholder UI
-    tour/              Guided tour placeholder UI
+    tour/              Guided tour scene and UI
+    ai-guide/          Scene-aware AI helper panel
   lib/                 Shared constants and utilities
   store/               Zustand store
   types/               Shared TypeScript types
@@ -70,6 +71,20 @@ npm.cmd run dev
 
 Then open `http://localhost:3000`.
 
+## AI Guide Configuration
+
+The AI cultural guide uses a server-side route handler at `/api/chat`.
+
+Create a local `.env.local` file if you want to enable DeepSeek:
+
+```bash
+DEEPSEEK_API_KEY=your_server_only_key
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-chat
+```
+
+If `DEEPSEEK_API_KEY` is not set, the guide still works using a conservative local fallback grounded in the heritage content files.
+
 ## Quality Checks
 
 Run lint:
@@ -102,8 +117,5 @@ This scaffold intentionally stops at foundation work:
 
 It does not yet include:
 
-- backend or API integrations
-- AI guide orchestration
-- content management
 - real 3D assets or scene streaming
 - selfie upload, export, or persistence

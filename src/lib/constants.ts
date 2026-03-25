@@ -5,3 +5,5 @@ export const APP_TAGLINE =
 
 export const APP_DESCRIPTION =
   "A cinematic digital heritage experience for exploring the Forbidden City through immersive navigation, guided storytelling, and an AI cultural guide.";
+
+export const HERITAGE_SCENE_ID = "forbidden-city-axis";

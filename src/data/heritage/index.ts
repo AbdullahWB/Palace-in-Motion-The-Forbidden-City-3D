@@ -11,3 +11,7 @@ export {
   getHotspotContentById,
 } from "@/data/heritage/hotspots";
 export { tourStopDefinitions } from "@/data/heritage/tour-stops";
+export {
+  resolvedTourSteps,
+  getResolvedTourStepById,
+} from "@/data/heritage/resolved-tour";

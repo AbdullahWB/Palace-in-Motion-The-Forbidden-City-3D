@@ -3,7 +3,7 @@ import { PageContainer } from "@/components/layout/page-container";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { siteOverview } from "@/data/heritage/site-overview";
 import { ExploreStage } from "@/features/explore/explore-stage";
-import { ScenePanel } from "@/features/explore/scene-panel";
+import { ExploreSidebar } from "@/features/explore/explore-sidebar";
 
 export const metadata: Metadata = {
   title: "Explore",
@@ -21,7 +21,7 @@ export default function ExplorePage() {
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_24rem]">
         <ExploreStage />
-        <ScenePanel />
+        <ExploreSidebar />
       </div>
     </PageContainer>
   );
