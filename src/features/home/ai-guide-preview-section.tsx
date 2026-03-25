@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageContainer } from "@/components/layout/page-container";
 import { MotionReveal } from "@/components/ui/motion-reveal";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { siteOverview } from "@/data/heritage/site-overview";
 import { aiGuidePreview, aiGuidePreviewPoints } from "@/data/landing";
 
 export function AIGuidePreviewSection() {
@@ -17,9 +18,7 @@ export function AIGuidePreviewSection() {
             />
 
             <p className="mt-6 max-w-xl text-sm leading-7 text-muted">
-              Rather than simulating chatter, the guide is intended to deliver
-              contextual interpretation with precision, restraint, and cultural
-              care.
+              {siteOverview.summary}
             </p>
 
             <Link

@@ -1,14 +1,20 @@
-import type { ExploreZone } from "@/types/content";
+import { getHotspotContentById } from "@/data/heritage/hotspots";
+import type {
+  ExploreCameraStop,
+  ExploreZone,
+  HeritageZoneId,
+} from "@/types/content";
 
-export const exploreZones: ExploreZone[] = [
+type ExploreSpatialData = {
+  id: HeritageZoneId;
+  markerPosition: [number, number, number];
+  axisPosition: number;
+  cameraStop: ExploreCameraStop;
+};
+
+const exploreSpatialData: ExploreSpatialData[] = [
   {
     id: "meridian-gate",
-    title: "Meridian Gate",
-    shortLabel: "Southern threshold",
-    description:
-      "The formal entry on the central axis establishes procession, orientation, and the first sense of imperial scale.",
-    sequence: 1,
-    court: "outer",
     markerPosition: [0, 2.5, 7.2],
     axisPosition: 7.2,
     cameraStop: {
@@ -19,12 +25,6 @@ export const exploreZones: ExploreZone[] = [
   },
   {
     id: "taihe-gate",
-    title: "Taihe Gate",
-    shortLabel: "Outer court gateway",
-    description:
-      "A second threshold compresses and releases movement toward the main ceremonial precinct, clarifying hierarchy along the axis.",
-    sequence: 2,
-    court: "outer",
     markerPosition: [0, 2.6, 2.6],
     axisPosition: 2.6,
     cameraStop: {
@@ -35,12 +35,6 @@ export const exploreZones: ExploreZone[] = [
   },
   {
     id: "hall-of-supreme-harmony",
-    title: "Hall of Supreme Harmony",
-    shortLabel: "Ceremonial climax",
-    description:
-      "The dominant hall sits on elevated terraces at the center of the outer court, expressing ritual authority through mass and elevation.",
-    sequence: 3,
-    court: "outer",
     markerPosition: [0, 4.4, -2.6],
     axisPosition: -2.6,
     cameraStop: {
@@ -51,12 +45,6 @@ export const exploreZones: ExploreZone[] = [
   },
   {
     id: "inner-court-threshold",
-    title: "Transition toward the Inner Court",
-    shortLabel: "Threshold of intimacy",
-    description:
-      "Beyond the grand ceremonial core, the axis tightens into a more inward spatial register that prepares the shift toward residential court life.",
-    sequence: 4,
-    court: "inner-threshold",
     markerPosition: [0, 2.55, -8.3],
     axisPosition: -8.3,
     cameraStop: {
@@ -66,6 +54,27 @@ export const exploreZones: ExploreZone[] = [
     },
   },
 ];
+
+export const exploreZones: ExploreZone[] = exploreSpatialData.map((spatialZone) => {
+  const content = getHotspotContentById(spatialZone.id);
+
+  if (!content) {
+    throw new Error(`Missing hotspot content for explore zone: ${spatialZone.id}`);
+  }
+
+  return {
+    id: content.id,
+    title: content.title,
+    shortLabel: content.shortLabel,
+    description: content.hotspotDescription,
+    sequence: content.sequence,
+    court: content.court,
+    quickFactIds: content.quickFactIds,
+    markerPosition: spatialZone.markerPosition,
+    axisPosition: spatialZone.axisPosition,
+    cameraStop: spatialZone.cameraStop,
+  };
+});
 
 export function getExploreZoneById(zoneId: ExploreZone["id"]) {
   return exploreZones.find((zone) => zone.id === zoneId) ?? null;

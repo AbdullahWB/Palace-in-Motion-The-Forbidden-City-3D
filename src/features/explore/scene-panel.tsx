@@ -1,6 +1,12 @@
 "use client";
 
 import { exploreZones } from "@/data/explore";
+import {
+  getQuickFactsByIds,
+  getSiteQuickFacts,
+} from "@/data/heritage/quick-facts";
+import { siteOverview } from "@/data/heritage/site-overview";
+import { QuickFactList } from "@/components/ui/quick-fact-list";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/use-app-store";
 
@@ -16,6 +22,9 @@ export function ScenePanel() {
 
   const selectedZone =
     exploreZones.find((zone) => zone.id === selectedExploreZoneId) ?? null;
+  const panelQuickFacts = selectedZone
+    ? getQuickFactsByIds(selectedZone.quickFactIds)
+    : getSiteQuickFacts();
 
   return (
     <aside className="paper-panel rounded-[1.8rem] border border-border p-6">
@@ -30,7 +39,7 @@ export function ScenePanel() {
       <p className="mt-3 text-sm leading-7 text-muted">
         {selectedZone
           ? selectedZone.description
-          : "The scene is organized as a stylized north-south procession: thresholds in the outer court build ceremonial hierarchy before the axis compresses toward the Inner Court."}
+          : siteOverview.exploreIntro}
       </p>
 
       <div className="mt-6 rounded-[1.45rem] border border-accent/15 bg-accent/8 p-5">
@@ -68,10 +77,12 @@ export function ScenePanel() {
         ) : (
           <p className="mt-3 text-sm leading-7 text-muted">
             Select one of the four markers to inspect its title, court category,
-            and future camera-stop metadata target.
+            and related interpretive facts.
           </p>
         )}
       </div>
+
+      <QuickFactList facts={panelQuickFacts} className="mt-6" />
 
       <div className="mt-6 space-y-3">
         {exploreZones.map((zone) => {

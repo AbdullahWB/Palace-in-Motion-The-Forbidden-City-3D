@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { siteOverview } from "@/data/heritage/site-overview";
 
 type TourCompletionProps = {
   onRestart: () => void;
@@ -14,12 +15,11 @@ export function TourCompletion({ onRestart }: TourCompletionProps) {
       </p>
 
       <h2 className="mt-3 font-display text-4xl leading-tight text-foreground">
-        The ceremonial axis now reads as a story of thresholds and hierarchy.
+        The guided route is complete.
       </h2>
 
       <p className="mt-4 text-sm leading-7 text-muted">
-        From the first gate to the inner threshold, the route stages entry,
-        release, elevation, and finally a more intimate spatial register.
+        {siteOverview.completionSummary}
       </p>
 
       <div className="mt-6 rounded-[1.45rem] border border-accent/15 bg-accent/8 p-5">

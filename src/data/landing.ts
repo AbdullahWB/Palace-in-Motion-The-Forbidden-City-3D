@@ -4,6 +4,7 @@ import type {
   LandingFeaturePreview,
   LandingHero,
 } from "@/types/content";
+import { siteOverview } from "@/data/heritage/site-overview";
 
 export const landingHero: LandingHero = {
   eyebrow: "Forbidden City digital heritage experience",
@@ -60,8 +61,7 @@ export const landingFeaturePreviews: LandingFeaturePreview[] = [
 export const aiGuidePreview = {
   eyebrow: "AI cultural guide",
   title: "A thoughtful interpretive layer, not a novelty overlay.",
-  description:
-    "The guide is planned as a calm companion that adds context precisely where curiosity appears.",
+  description: siteOverview.aiGuideIntro,
 } as const;
 
 export const aiGuidePreviewPoints: AIGuidePreviewPoint[] = [

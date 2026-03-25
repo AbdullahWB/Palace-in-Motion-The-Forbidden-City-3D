@@ -1,8 +1,9 @@
 "use client";
 
+import { QuickFactList } from "@/components/ui/quick-fact-list";
 import { cn } from "@/lib/utils";
-import type { ExploreZone } from "@/types/content";
-import type { TourStep, TourStepKind } from "@/features/tour/tour-data";
+import type { ExploreZone, TourStepKind } from "@/types/content";
+import type { TourStep } from "@/features/tour/tour-data";
 
 type TourSidebarProps = {
   steps: TourStep[];
@@ -86,6 +87,8 @@ export function TourSidebar({
           </div>
         ) : null}
       </div>
+
+      <QuickFactList facts={activeStep.quickFacts} className="mt-6" />
 
       <div className="mt-6 space-y-3">
         {steps.map((step, index) => {
