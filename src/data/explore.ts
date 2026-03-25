@@ -66,3 +66,7 @@ export const exploreZones: ExploreZone[] = [
     },
   },
 ];
+
+export function getExploreZoneById(zoneId: ExploreZone["id"]) {
+  return exploreZones.find((zone) => zone.id === zoneId) ?? null;
+}

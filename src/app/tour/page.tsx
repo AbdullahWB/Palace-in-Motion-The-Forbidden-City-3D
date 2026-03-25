@@ -5,7 +5,8 @@ import { TourShell } from "@/features/tour/tour-shell";
 
 export const metadata: Metadata = {
   title: "Tour",
-  description: "Placeholder guided-tour route for the Palace in Motion scaffold.",
+  description:
+    "A six-stop guided walkthrough of the Forbidden City's ceremonial axis with camera-driven storytelling.",
 };
 
 export default function TourPage() {
@@ -13,8 +14,8 @@ export default function TourPage() {
     <PageContainer className="py-12 md:py-16">
       <SectionHeading
         eyebrow="Guided tour"
-        title="Narrative structure without premature tour logic."
-        description="The layout is ready for stop sequencing, guide prompts, synced camera moves, and future AI narration without inventing those systems yet."
+        title="Walk the ceremonial axis as a paced narrative."
+        description="This route reuses the stylized Forbidden City scene but trades free exploration for a guided camera, concise interpretation, and a stable six-stop sequence."
       />
       <div className="mt-8">
         <TourShell />

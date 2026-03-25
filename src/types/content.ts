@@ -59,13 +59,6 @@ export type ExploreZone = {
   cameraStop: ExploreCameraStop;
 };
 
-export type TourStop = {
-  id: string;
-  title: string;
-  zoneLabel: string;
-  summary: string;
-};
-
 export type PostcardFrame = {
   id: string;
   title: string;
