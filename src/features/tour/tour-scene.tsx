@@ -83,11 +83,16 @@ export default function TourScene({
             ceremonial sequence.
           </p>
         </div>
+        <span className="rounded-full border border-accent/15 bg-white/75 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-soft">
+          Guided framing
+        </span>
       </div>
 
       <div className="h-[34rem] w-full xl:h-[42rem]">
         <Canvas
-          dpr={[1, 1.5]}
+          dpr={[1, 1.4]}
+          gl={{ antialias: true, powerPreference: "high-performance" }}
+          performance={{ min: 0.9 }}
           shadows
           camera={{ position: cameraStop.position, fov: cameraStop.fov ?? 34 }}
         >

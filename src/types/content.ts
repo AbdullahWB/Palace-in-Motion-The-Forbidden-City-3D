@@ -39,6 +39,26 @@ export type AIGuidePreviewPoint = {
   description: string;
 };
 
+export type DemoFlowStepId = "explore" | "tour" | "ai-guide" | "selfie";
+
+export type DemoFlowStep = {
+  id: DemoFlowStepId;
+  label: string;
+  description: string;
+  href?: AppRoute;
+};
+
+export type LandingSummaryCard = {
+  eyebrow: string;
+  title: string;
+  description: string;
+};
+
+export type FooterTheme = {
+  label: string;
+  description: string;
+};
+
 export type HeritageZoneId =
   | "meridian-gate"
   | "taihe-gate"

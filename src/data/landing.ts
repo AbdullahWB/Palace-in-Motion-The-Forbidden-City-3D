@@ -1,6 +1,9 @@
 import type {
   AIGuidePreviewPoint,
+  DemoFlowStep,
+  FooterTheme,
   HeroAction,
+  LandingSummaryCard,
   LandingFeaturePreview,
   LandingHero,
 } from "@/types/content";
@@ -79,5 +82,78 @@ export const aiGuidePreviewPoints: AIGuidePreviewPoint[] = [
     title: "Story paths that adapt",
     description:
       "Future guidance can respond to visitor choices while preserving a clear curatorial structure.",
+  },
+];
+
+export const demoFlowSteps: DemoFlowStep[] = [
+  {
+    id: "explore",
+    label: "Explore",
+    description: "Inspect the stylized palace axis and its four major zones.",
+    href: "/explore",
+  },
+  {
+    id: "tour",
+    label: "Tour",
+    description: "Follow the six-stop narrative through ceremonial sequence and meaning.",
+    href: "/tour",
+  },
+  {
+    id: "ai-guide",
+    label: "AI Guide",
+    description: "Ask scene-aware questions from the current stop without leaving the route.",
+  },
+  {
+    id: "selfie",
+    label: "Selfie",
+    description: "Generate a souvenir postcard and complete the demo badge path.",
+    href: "/selfie",
+  },
+];
+
+export const projectSummary = {
+  eyebrow: "Project summary",
+  title: "A coherent heritage demo built to move from atmosphere into action.",
+  description:
+    "This submission is designed as a single flow: spatial exploration, guided interpretation, grounded AI assistance, and a playful postcard finish.",
+} as const;
+
+export const projectSummaryCards: LandingSummaryCard[] = [
+  {
+    eyebrow: "What the demo proves",
+    title: "The architecture can carry the story",
+    description:
+      "A stylized 3D blockout, structured local content, and guided camera stops already support a museum-like heritage narrative in the browser.",
+  },
+  {
+    eyebrow: "Demo flow",
+    title: "The experience has a clear beginning, middle, and finish",
+    description:
+      "Visitors move from the landing page into free exploration, continue into a guided walkthrough, consult the AI helper, and finish with a postcard keepsake.",
+  },
+  {
+    eyebrow: "Cultural framing",
+    title: "Interpretation stays tied to space and meaning",
+    description:
+      "The core themes remain consistent across the app: central axis, symmetry, court hierarchy, and the ceremonial logic of movement through the palace.",
+  },
+];
+
+export const footerThemes: FooterTheme[] = [
+  {
+    label: "Central axis",
+    description: "The north-south spine orders sequence, sightlines, and procession.",
+  },
+  {
+    label: "Symmetry",
+    description: "Mirrored masses reinforce balance, discipline, and imperial authority.",
+  },
+  {
+    label: "Outer and inner court",
+    description: "The route shifts from public ceremony toward a more inward court register.",
+  },
+  {
+    label: "Ceremonial meaning",
+    description: "Thresholds, terraces, and scale turn movement into ritual theater.",
   },
 ];

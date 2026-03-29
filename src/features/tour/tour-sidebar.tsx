@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { QuickFactList } from "@/components/ui/quick-fact-list";
 import { cn } from "@/lib/utils";
 import type { ExploreZone, TourStepKind } from "@/types/content";
@@ -43,6 +44,7 @@ export function TourSidebar({
   const progress = ((activeIndex + 1) / steps.length) * 100;
   const isFirstStep = activeIndex === 0;
   const isLastStep = activeIndex === steps.length - 1;
+  const reduceMotion = useReducedMotion() ?? false;
 
   return (
     <aside className="paper-panel h-fit rounded-[1.8rem] border border-border p-6 xl:sticky xl:top-28">
@@ -63,32 +65,51 @@ export function TourSidebar({
 
       <div className="mt-5 h-2 overflow-hidden rounded-full bg-accent/10">
         <div
+          role="progressbar"
+          aria-label="Guided tour progress"
+          aria-valuemin={1}
+          aria-valuemax={steps.length}
+          aria-valuenow={activeIndex + 1}
           className="h-full rounded-full bg-gradient-to-r from-accent to-accent-soft"
           style={{ width: `${progress}%` }}
         />
       </div>
 
-      <div className="mt-6 rounded-[1.45rem] border border-accent/15 bg-accent/8 p-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent-soft">
-          {formatKindLabel(activeStep.kind)}
-        </p>
-        <p className="mt-3 text-sm leading-7 text-muted">
-          {activeStep.explanation}
-        </p>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={activeStep.id}
+          initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+          transition={
+            reduceMotion
+              ? undefined
+              : { duration: 0.34, ease: [0.22, 1, 0.36, 1] }
+          }
+        >
+          <div className="mt-6 rounded-[1.45rem] border border-accent/15 bg-accent/8 p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent-soft">
+              {formatKindLabel(activeStep.kind)}
+            </p>
+            <p className="mt-3 text-sm leading-7 text-muted">
+              {activeStep.explanation}
+            </p>
 
-        {activeZone ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <span className="rounded-full border border-accent/15 bg-white/72 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-soft">
-              {formatCourtLabel(activeZone.court)}
-            </span>
-            <span className="rounded-full border border-accent/15 bg-white/72 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-soft">
-              {activeZone.shortLabel}
-            </span>
+            {activeZone ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="rounded-full border border-accent/15 bg-white/72 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-soft">
+                  {formatCourtLabel(activeZone.court)}
+                </span>
+                <span className="rounded-full border border-accent/15 bg-white/72 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-soft">
+                  {activeZone.shortLabel}
+                </span>
+              </div>
+            ) : null}
           </div>
-        ) : null}
-      </div>
 
-      <QuickFactList facts={activeStep.quickFacts} className="mt-6" />
+          <QuickFactList facts={activeStep.quickFacts} className="mt-6" />
+        </motion.div>
+      </AnimatePresence>
 
       <div className="mt-6 space-y-3">
         {steps.map((step, index) => {
@@ -99,6 +120,7 @@ export function TourSidebar({
               key={step.id}
               type="button"
               onClick={() => onStepSelect(index)}
+              aria-pressed={isActive}
               className={cn(
                 "w-full rounded-[1.3rem] border p-4 text-left",
                 isActive

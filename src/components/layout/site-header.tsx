@@ -22,7 +22,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/80 backdrop-blur-xl">
       <PageContainer>
         <div className="flex h-20 items-center justify-between gap-4">
-          <Link href="/" className="min-w-0">
+          <Link href="/" className="min-w-0" aria-label={`${APP_NAME} home`}>
             <p className="font-display text-2xl leading-none text-foreground md:text-3xl">
               {APP_NAME}
             </p>
@@ -36,9 +36,10 @@ export function SiteHeader() {
           <button
             type="button"
             onClick={() => setNavOpen(!isNavOpen)}
-            className="inline-flex items-center justify-center rounded-full border border-border bg-white/75 px-4 py-2 text-sm font-semibold text-foreground md:hidden"
+            className="inline-flex items-center justify-center rounded-full border border-border bg-white/78 px-4 py-2 text-sm font-semibold text-foreground md:hidden"
             aria-expanded={isNavOpen}
             aria-controls="mobile-nav"
+            aria-label={isNavOpen ? "Close navigation menu" : "Open navigation menu"}
           >
             {isNavOpen ? "Close" : "Menu"}
           </button>

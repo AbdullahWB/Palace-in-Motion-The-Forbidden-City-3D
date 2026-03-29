@@ -1,4 +1,58 @@
 [browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
 
 - A server/client branch `if (typeof window !== 'undefined')`.
-- Variable input su
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html
+                          lang="en"
+                          className="inter_fe8b9d92-module__LINzvG__variable cormorant_garamond_e0daf49b-module__iVEqI..."
+-                         data-darkreader-mode="dynamic"
+-                         data-darkreader-scheme="dark"
+-                         data-darkreader-proxy-injected="true"
+                        >
+                  ...
+ 
+    at <unknown> (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:3439:25)
+    at runWithFiberInDEV (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:965:74)
+    at emitPendingHydrationWarnings (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:3438:13)
+    at completeWork (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:6885:102)
+    at runWithFiberInDEV (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:965:131)
+    at completeUnitOfWork (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9622:23)
+    at performUnitOfWork (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9557:28)
+    at workLoopConcurrentByScheduler (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9551:58)
+    at renderRootConcurrent (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9534:71)
+    at performWorkOnRoot (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:9061:150)
+    at performWorkOnRootViaSchedulerTask (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10255:9)
+    at MessagePort.performWorkUntilDeadline (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_compiled_0rpq4pf._.js:2647:64) (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:3439:25)
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] THREE.THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] THREE.THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] THREE.THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] THREE.THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+[browser] THREE.THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. (file://C:/Users/abdul/Desktop/project_file/Palace in Motion/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2431:13)
+^C

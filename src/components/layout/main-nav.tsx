@@ -17,11 +17,12 @@ export function MainNav({ pathname }: MainNavProps) {
             <li key={item.href}>
               <Link
                 href={item.href}
+                aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "inline-flex rounded-full px-4 py-2 text-sm font-medium",
+                  "inline-flex rounded-full border px-4 py-2 text-sm font-semibold",
                   isActive
-                    ? "bg-accent text-white"
-                    : "text-foreground/80 hover:bg-white/70 hover:text-foreground"
+                    ? "border-accent bg-accent text-white shadow-[0_12px_28px_rgba(138,34,48,0.18)]"
+                    : "border-border/80 bg-white/78 text-foreground/82 hover:border-accent/15 hover:bg-white hover:text-foreground"
                 )}
               >
                 {item.label}

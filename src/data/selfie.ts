@@ -10,6 +10,12 @@ export type SelfieFocusOption = {
   description: string;
 };
 
+export type SelfieBackdropOption = {
+  id: string;
+  label: string;
+  imageUrl: string;
+};
+
 export const postcardFrames: PostcardFrame[] = [
   {
     id: "palace-explorer",
@@ -57,6 +63,27 @@ export const selfieFocusOptions: SelfieFocusOption[] = [
 
 export const defaultPostcardFrameId = postcardFrames[0].id;
 export const defaultSelfieFocusId = selfieFocusOptions[0].id;
+export const selfieBackdropOptions: SelfieBackdropOption[] = [
+  {
+    id: "forbidden-city",
+    label: "Forbidden City Axis",
+    imageUrl:
+      "https://images.pexels.com/photos/2412603/pexels-photo-2412603.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=2000",
+  },
+  {
+    id: "mountain-temple",
+    label: "Mountain Temple Courtyard",
+    imageUrl:
+      "https://images.pexels.com/photos/2166553/pexels-photo-2166553.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=2000",
+  },
+  {
+    id: "historic-city",
+    label: "Historic City Square",
+    imageUrl:
+      "https://images.pexels.com/photos/338515/pexels-photo-338515.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=2000",
+  },
+];
+export const defaultSelfieBackdropId = selfieBackdropOptions[0].id;
 
 export function getPostcardFrameById(frameId: string | null | undefined) {
   return postcardFrames.find((frame) => frame.id === frameId) ?? postcardFrames[0];
@@ -64,4 +91,11 @@ export function getPostcardFrameById(frameId: string | null | undefined) {
 
 export function getSelfieFocusById(focusId: string | null | undefined) {
   return selfieFocusOptions.find((focus) => focus.id === focusId) ?? null;
+}
+
+export function getSelfieBackdropById(backdropId: string | null | undefined) {
+  return (
+    selfieBackdropOptions.find((backdrop) => backdrop.id === backdropId) ??
+    selfieBackdropOptions[0]
+  );
 }

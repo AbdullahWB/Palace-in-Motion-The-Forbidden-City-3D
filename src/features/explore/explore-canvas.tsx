@@ -15,11 +15,17 @@ export default function ExploreCanvas() {
             Orbit a simplified Forbidden City-inspired layout and inspect each zone along the north-south procession.
           </p>
         </div>
+        <span className="rounded-full border border-accent/15 bg-white/75 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-soft">
+          Interactive markers
+        </span>
       </div>
 
       <div className="h-[34rem] w-full">
         <Canvas
-          dpr={[1, 1.5]}
+          dpr={[1, 1.35]}
+          frameloop="demand"
+          gl={{ antialias: true, powerPreference: "high-performance" }}
+          performance={{ min: 0.85 }}
           shadows
           camera={{ position: [11.2, 7.2, 13.4], fov: 34 }}
         >

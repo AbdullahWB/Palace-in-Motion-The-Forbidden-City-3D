@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { GuideMode, GuideRequest, GuideResponse } from "@/types/ai-guide";
 import type { HeritageZoneId } from "@/types/content";
@@ -19,6 +20,12 @@ const guideModes: Array<{ value: GuideMode; label: string }> = [
   { value: "fun", label: "Fun" },
 ];
 
+const starterQuestions = [
+  "How does symmetry shape this part of the palace?",
+  "Why is this stop important in ceremonial terms?",
+  "What changes as the route moves toward the inner court?",
+];
+
 export function GuidePanel({
   sceneId,
   contextLabel,
@@ -31,6 +38,19 @@ export function GuidePanel({
   const [response, setResponse] = useState<GuideResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const reduceMotion = useReducedMotion() ?? false;
+
+  useEffect(() => {
+    setResponse(null);
+    setError(null);
+  }, [contextLabel, hotspotId, sceneId, tourStepId]);
+
+  function applyStarterQuestion(nextQuestion: string) {
+    setQuestion(nextQuestion);
+    setError(null);
+    textareaRef.current?.focus();
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -146,6 +166,7 @@ export function GuidePanel({
             Your question
           </span>
           <textarea
+            ref={textareaRef}
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
             rows={4}
@@ -168,35 +189,84 @@ export function GuidePanel({
         </button>
       </form>
 
-      {error ? (
-        <p className="mt-4 rounded-[1.1rem] border border-accent/15 bg-accent/8 px-4 py-3 text-sm leading-6 text-muted">
-          {error}
-        </p>
-      ) : null}
+      <div aria-live="polite" className="mt-4">
+        {error ? (
+          <p className="rounded-[1.1rem] border border-accent/15 bg-accent/8 px-4 py-3 text-sm leading-6 text-muted">
+            {error}
+          </p>
+        ) : null}
 
-      {response ? (
-        <div className="mt-6 rounded-[1.45rem] border border-accent/15 bg-accent/8 p-5">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent-soft">
-              Latest answer
-            </p>
-            <span className="rounded-full border border-accent/15 bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-soft">
-              {response.fallback ? "Local fallback" : "AI response"}
-            </span>
-          </div>
+        <AnimatePresence mode="wait" initial={false}>
+          {response ? (
+            <motion.div
+              key="response"
+              initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -10 }}
+              transition={
+                reduceMotion
+                  ? undefined
+                  : { duration: 0.34, ease: [0.22, 1, 0.36, 1] }
+              }
+              className="rounded-[1.45rem] border border-accent/15 bg-accent/8 p-5"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent-soft">
+                  Latest answer
+                </p>
+                <span className="rounded-full border border-accent/15 bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-soft">
+                  {response.fallback ? "Local fallback" : "AI response"}
+                </span>
+              </div>
 
-          <p className="mt-3 text-sm leading-7 text-muted">{response.answer}</p>
+              <p className="mt-3 text-sm leading-7 text-muted">{response.answer}</p>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <span className="rounded-full border border-accent/15 bg-white/72 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-soft">
-              {response.contextLabel}
-            </span>
-            <span className="rounded-full border border-accent/15 bg-white/72 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-soft">
-              {response.mode}
-            </span>
-          </div>
-        </div>
-      ) : null}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="rounded-full border border-accent/15 bg-white/72 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-soft">
+                  {response.contextLabel}
+                </span>
+                <span className="rounded-full border border-accent/15 bg-white/72 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-soft">
+                  {response.mode}
+                </span>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="empty"
+              initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -10 }}
+              transition={
+                reduceMotion
+                  ? undefined
+                  : { duration: 0.34, ease: [0.22, 1, 0.36, 1] }
+              }
+              className="rounded-[1.45rem] border border-accent/15 bg-accent/8 p-5"
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent-soft">
+                Starter questions
+              </p>
+              <p className="mt-3 text-sm leading-7 text-muted">
+                Use the current scene as your anchor. The guide answers best when
+                the question stays tied to symmetry, hierarchy, thresholds, or
+                the meaning of the selected stop.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {starterQuestions.map((starterQuestion) => (
+                  <button
+                    key={starterQuestion}
+                    type="button"
+                    onClick={() => applyStarterQuestion(starterQuestion)}
+                    className="rounded-full border border-accent/15 bg-white/78 px-4 py-2 text-left text-sm font-medium text-foreground hover:border-accent/25 hover:bg-white"
+                  >
+                    {starterQuestion}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </aside>
   );
 }

@@ -2,6 +2,7 @@
 
 import type { RefObject } from "react";
 import Image from "next/image";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { PostcardCompositionResult } from "@/lib/selfie/compose-postcard";
 import type { PostcardFrame } from "@/types/content";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,14 @@ export function PostcardPreview({
   videoRef,
 }: PostcardPreviewProps) {
   const activeStyle = frameStyles[frame.accentToken];
+  const reduceMotion = useReducedMotion() ?? false;
+  const previewStateKey = composition
+    ? "composition"
+    : isCameraActive
+      ? "camera"
+      : sourceImage
+        ? "source"
+        : "empty";
 
   return (
     <section
@@ -84,44 +93,61 @@ export function PostcardPreview({
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.08fr)_17rem]">
           <div className="rounded-[1.5rem] border border-white/70 bg-white/72 p-5">
             <div className="relative flex h-[24rem] items-center justify-center overflow-hidden rounded-[1.2rem] border border-white/70 bg-gradient-to-br from-white/80 to-white/40">
-              {composition ? (
-                <Image
-                  src={composition.dataUrl}
-                  alt="Generated Forbidden City postcard preview"
-                  fill
-                  unoptimized
-                  className="object-cover"
-                />
-              ) : isCameraActive ? (
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className="h-full w-full object-cover"
-                />
-              ) : sourceImage ? (
-                <Image
-                  src={sourceImage}
-                  alt="Selected source photo"
-                  fill
-                  unoptimized
-                  className="object-cover"
-                />
-              ) : (
-                <div className="max-w-sm px-6 text-center">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent-soft">
-                    Ready for capture
-                  </p>
-                  <p className="mt-3 font-display text-3xl text-foreground">
-                    Add a portrait or scene snapshot
-                  </p>
-                  <p className="mt-3 text-sm leading-7 text-muted">
-                    Start the camera or upload an image, then generate a themed
-                    souvenir card for the Forbidden City.
-                  </p>
-                </div>
-              )}
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={previewStateKey}
+                  initial={reduceMotion ? false : { opacity: 0, scale: 0.985 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={reduceMotion ? undefined : { opacity: 0, scale: 1.015 }}
+                  transition={
+                    reduceMotion
+                      ? undefined
+                      : { duration: 0.3, ease: [0.22, 1, 0.36, 1] }
+                  }
+                  className="absolute inset-0"
+                >
+                  {composition ? (
+                    <Image
+                      src={composition.dataUrl}
+                      alt="Generated Forbidden City postcard preview"
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
+                  ) : isCameraActive ? (
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      muted
+                      playsInline
+                      className="h-full w-full object-cover"
+                    />
+                  ) : sourceImage ? (
+                    <Image
+                      src={sourceImage}
+                      alt="Selected source photo"
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center px-6 text-center">
+                      <div className="max-w-sm">
+                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent-soft">
+                          Ready for capture
+                        </p>
+                        <p className="mt-3 font-display text-3xl text-foreground">
+                          Add a portrait or scene snapshot
+                        </p>
+                        <p className="mt-3 text-sm leading-7 text-muted">
+                          Start the camera or upload an image, then generate a themed
+                          souvenir card for the Forbidden City.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
 
               {isGenerating ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-[#201612]/35 backdrop-blur-[2px]">

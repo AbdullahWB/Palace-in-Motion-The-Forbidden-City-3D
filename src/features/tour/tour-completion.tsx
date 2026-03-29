@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { DemoBadgePanel } from "@/components/ui/demo-badge-panel";
 import { siteOverview } from "@/data/heritage/site-overview";
 
 type TourCompletionProps = {
@@ -27,13 +28,29 @@ export function TourCompletion({ onRestart }: TourCompletionProps) {
           Completion
         </p>
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-accent/10">
-          <div className="h-full w-full rounded-full bg-gradient-to-r from-accent to-accent-soft" />
+          <div
+            role="progressbar"
+            aria-label="Guided tour completion"
+            aria-valuemin={0}
+            aria-valuemax={1}
+            aria-valuenow={1}
+            className="h-full w-full rounded-full bg-gradient-to-r from-accent to-accent-soft"
+          />
         </div>
         <p className="mt-4 text-sm leading-7 text-muted">
-          Restart to revisit the six stops or return to the free exploration
-          view to inspect the same scene without guided pacing.
+          The guided route is the first half of the final competition badge.
+          Restart to revisit the six stops or move into the postcard studio to
+          finish the flow.
         </p>
       </div>
+
+      <DemoBadgePanel
+        announce
+        compact
+        className="mt-6"
+        title="Completion badge"
+        description="The badge unlocks once the tour and postcard steps are both complete."
+      />
 
       <div className="mt-6 flex flex-col gap-3">
         <button
@@ -49,6 +66,13 @@ export function TourCompletion({ onRestart }: TourCompletionProps) {
           className="inline-flex items-center justify-center rounded-full border border-border bg-white/82 px-4 py-3 text-sm font-semibold text-foreground hover:-translate-y-0.5 hover:bg-white"
         >
           Back to explore
+        </Link>
+
+        <Link
+          href="/selfie"
+          className="inline-flex items-center justify-center rounded-full border border-border bg-white/82 px-4 py-3 text-sm font-semibold text-foreground hover:-translate-y-0.5 hover:bg-white"
+        >
+          Continue to selfie
         </Link>
       </div>
     </aside>

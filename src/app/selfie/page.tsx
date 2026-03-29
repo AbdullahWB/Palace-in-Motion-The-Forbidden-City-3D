@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { PageContainer } from "@/components/layout/page-container";
-import { SectionHeading } from "@/components/ui/section-heading";
 import { SelfieStudio } from "@/features/selfie/selfie-studio";
 
 export const metadata: Metadata = {
@@ -11,15 +9,8 @@ export const metadata: Metadata = {
 
 export default function SelfiePage() {
   return (
-    <PageContainer className="py-12 md:py-16">
-      <SectionHeading
-        eyebrow="Selfie and postcard"
-        title="Build a polished Forbidden City souvenir card."
-        description="Capture a live image or upload a photo, pair it with a themed postcard frame, and let the AI cultural guide suggest a concise caption grounded in the same heritage content used across the experience."
-      />
-      <div className="mt-8">
-        <SelfieStudio />
-      </div>
-    </PageContainer>
+    <section className="min-h-[calc(100svh-5rem)]">
+      <SelfieStudio />
+    </section>
   );
 }

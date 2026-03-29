@@ -1,0 +1,30 @@
+
+> palace-in-motion@0.1.0 dev
+> next dev --hostname 127.0.0.1 --port 3000
+
+▲ Next.js 16.2.1 (Turbopack)
+- Local:         http://127.0.0.1:3000
+- Network:       http://127.0.0.1:3000
+- Environments: .env.local
+✓ Ready in 1388ms
+Creating turbopack project {
+  dir: 'C:\\Users\\abdul\\Desktop\\project_file\\Palace in Motion',
+  testMode: true
+}
+
+ GET / 200 in 3.0s (next.js: 1834ms, application-code: 1164ms)
+ GET / 200 in 3.1s (next.js: 2.2s, application-code: 925ms)
+ GET / 200 in 244ms (next.js: 10ms, application-code: 234ms)
+ GET /explore 200 in 253ms (next.js: 147ms, application-code: 106ms)
+ GET / 200 in 252ms (next.js: 9ms, application-code: 243ms)
+ GET /tour 200 in 199ms (next.js: 110ms, application-code: 89ms)
+ GET /selfie 200 in 261ms (next.js: 158ms, application-code: 104ms)
+ GET / 200 in 80ms (next.js: 9ms, application-code: 71ms)
+ GET /tour 200 in 78ms (next.js: 10ms, application-code: 68ms)
+ GET /explore 200 in 89ms (next.js: 8ms, application-code: 81ms)
+ GET /explore 200 in 61ms (next.js: 8ms, application-code: 54ms)
+ GET /selfie 200 in 97ms (next.js: 10ms, application-code: 87ms)
+ GET / 200 in 85ms (next.js: 6ms, application-code: 79ms)
+ GET / 200 in 25ms (next.js: 7ms, application-code: 18ms)
+ GET / 200 in 92ms (next.js: 8ms, application-code: 84ms)
+ GET /tour 200 in 58ms (next.js: 6ms, application-code: 52ms)
