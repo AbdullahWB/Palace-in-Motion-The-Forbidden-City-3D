@@ -7,8 +7,18 @@ export type PostcardCompositionResult = {
   height: number;
 };
 
+export type SubjectTransform = {
+  scale: number;
+  offsetX: number;
+  offsetY: number;
+};
+
 export type ComposePostcardInput = {
   photoSrc: string;
+  photoIsCutout?: boolean;
+  backdropSrc: string;
+  backdropLabel: string;
+  subjectTransform?: SubjectTransform;
   frame: PostcardFrame;
   title: string;
   caption: string;
@@ -195,10 +205,159 @@ function drawPhotoCover({
   context.drawImage(image, sx, sy, sWidth, sHeight, x, y, width, height);
 }
 
+function drawPhotoContain({
+  context,
+  image,
+  x,
+  y,
+  width,
+  height,
+}: {
+  context: CanvasRenderingContext2D;
+  image: HTMLImageElement;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}) {
+  const sourceAspect = image.width / image.height;
+  const targetAspect = width / height;
+
+  let drawWidth = width;
+  let drawHeight = height;
+  let drawX = x;
+  let drawY = y;
+
+  if (sourceAspect > targetAspect) {
+    drawHeight = width / sourceAspect;
+    drawY = y + (height - drawHeight) / 2;
+  } else {
+    drawWidth = height * sourceAspect;
+    drawX = x + (width - drawWidth) / 2;
+  }
+
+  context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+}
+
+function getOpaqueBounds(
+  image: HTMLImageElement,
+  alphaThreshold = 8
+): { sx: number; sy: number; sw: number; sh: number } | null {
+  const canvas = document.createElement("canvas");
+  canvas.width = image.width;
+  canvas.height = image.height;
+
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+
+  if (!context) {
+    return null;
+  }
+
+  context.drawImage(image, 0, 0);
+  const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+  const { data } = imageData;
+  const width = imageData.width;
+  const height = imageData.height;
+
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const alpha = data[(y * width + x) * 4 + 3];
+
+      if (alpha <= alphaThreshold) {
+        continue;
+      }
+
+      if (x < minX) {
+        minX = x;
+      }
+      if (y < minY) {
+        minY = y;
+      }
+      if (x > maxX) {
+        maxX = x;
+      }
+      if (y > maxY) {
+        maxY = y;
+      }
+    }
+  }
+
+  if (maxX < minX || maxY < minY) {
+    return null;
+  }
+
+  const padding = 10;
+  const sx = Math.max(0, minX - padding);
+  const sy = Math.max(0, minY - padding);
+  const sw = Math.min(width - sx, maxX - minX + 1 + padding * 2);
+  const sh = Math.min(height - sy, maxY - minY + 1 + padding * 2);
+
+  return { sx, sy, sw, sh };
+}
+
+function drawCutoutForeground({
+  context,
+  image,
+  x,
+  y,
+  width,
+  height,
+  subjectTransform,
+}: {
+  context: CanvasRenderingContext2D;
+  image: HTMLImageElement;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  subjectTransform: SubjectTransform;
+}) {
+  const bounds = getOpaqueBounds(image);
+
+  if (!bounds) {
+    drawPhotoContain({ context, image, x, y, width, height });
+    return;
+  }
+
+  const availableWidth = width * 0.86;
+  const availableHeight = height * 0.9;
+  const scaleBase = Math.min(availableWidth / bounds.sw, availableHeight / bounds.sh);
+  const scale = scaleBase * subjectTransform.scale;
+
+  const drawWidth = bounds.sw * scale;
+  const drawHeight = bounds.sh * scale;
+  const offsetX = (subjectTransform.offsetX / 100) * width;
+  const offsetY = (subjectTransform.offsetY / 100) * height;
+  const desiredX = x + (width - drawWidth) / 2 + offsetX;
+  const desiredY = y + height - drawHeight - 14 + offsetY;
+  const drawX = Math.min(Math.max(desiredX, x - drawWidth * 0.2), x + width - drawWidth * 0.8);
+  const drawY = Math.min(Math.max(desiredY, y - drawHeight * 0.2), y + height - drawHeight * 0.5);
+
+  context.drawImage(
+    image,
+    bounds.sx,
+    bounds.sy,
+    bounds.sw,
+    bounds.sh,
+    drawX,
+    drawY,
+    drawWidth,
+    drawHeight
+  );
+}
+
 async function loadImage(source: string) {
   const image = new Image();
 
   image.decoding = "async";
+  if (source.startsWith("http://") || source.startsWith("https://")) {
+    image.crossOrigin = "anonymous";
+  }
 
   const loadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
     image.onload = () => resolve(image);
@@ -224,13 +383,20 @@ function canvasToBlob(canvas: HTMLCanvasElement) {
 
 export async function composePostcard({
   photoSrc,
+  photoIsCutout = false,
+  backdropSrc,
+  backdropLabel,
+  subjectTransform = { scale: 1, offsetX: 0, offsetY: 0 },
   frame,
   title,
   caption,
   focusLabel,
 }: ComposePostcardInput): Promise<PostcardCompositionResult> {
   const palette = paletteByAccentToken[frame.accentToken];
-  const sourceImage = await loadImage(photoSrc);
+  const [sourceImage, backdropImage] = await Promise.all([
+    loadImage(photoSrc),
+    loadImage(backdropSrc).catch(() => null),
+  ]);
   const canvas = document.createElement("canvas");
 
   canvas.width = POSTCARD_WIDTH;
@@ -242,94 +408,260 @@ export async function composePostcard({
     throw new Error("Canvas is not available in this browser.");
   }
 
-  const outerPadding = 44;
-  const innerPadding = 74;
-  const photoX = innerPadding;
-  const photoY = innerPadding;
-  const photoWidth = 860;
-  const photoHeight = POSTCARD_HEIGHT - innerPadding * 2;
-  const panelX = photoX + photoWidth + 48;
-  const panelY = innerPadding;
-  const panelWidth = POSTCARD_WIDTH - panelX - innerPadding;
-  const panelHeight = POSTCARD_HEIGHT - innerPadding * 2;
+  const outerPadding = 30;
+  const cardX = 72;
+  const cardY = 160;
+  const cardWidth = 620;
+  const cardHeight = 760;
+  const cardImageInset = 28;
+  const cardImageWidth = cardWidth - cardImageInset * 2;
+  const cardImageHeight = cardHeight - cardImageInset * 2 - 110;
+  const detailsX = cardX + cardWidth + 58;
+  const detailsY = 160;
+  const detailsWidth = POSTCARD_WIDTH - detailsX - 72;
+  const detailsHeight = 760;
 
-  const backgroundGradient = context.createLinearGradient(0, 0, 0, POSTCARD_HEIGHT);
-  backgroundGradient.addColorStop(0, palette.paper);
-  backgroundGradient.addColorStop(1, "#fdf8f1");
+  if (backdropImage) {
+    drawPhotoCover({
+      context,
+      image: backdropImage,
+      x: 0,
+      y: 0,
+      width: POSTCARD_WIDTH,
+      height: POSTCARD_HEIGHT,
+    });
+  } else {
+    const fallbackGradient = context.createLinearGradient(0, 0, 0, POSTCARD_HEIGHT);
+    fallbackGradient.addColorStop(0, "#3b5a7d");
+    fallbackGradient.addColorStop(1, "#7d5a3b");
+    context.fillStyle = fallbackGradient;
+    context.fillRect(0, 0, POSTCARD_WIDTH, POSTCARD_HEIGHT);
+  }
 
-  context.fillStyle = backgroundGradient;
+  const moodGradient = context.createLinearGradient(0, 0, 0, POSTCARD_HEIGHT);
+  moodGradient.addColorStop(0, "rgba(8, 10, 16, 0.28)");
+  moodGradient.addColorStop(0.45, "rgba(8, 10, 16, 0.1)");
+  moodGradient.addColorStop(1, "rgba(8, 10, 16, 0.55)");
+  context.fillStyle = moodGradient;
   context.fillRect(0, 0, POSTCARD_WIDTH, POSTCARD_HEIGHT);
 
-  context.strokeStyle = palette.frame;
-  context.lineWidth = 4;
+  context.fillStyle = "rgba(245, 236, 222, 0.08)";
   roundedRectPath(
     context,
     outerPadding,
     outerPadding,
     POSTCARD_WIDTH - outerPadding * 2,
     POSTCARD_HEIGHT - outerPadding * 2,
-    32
-  );
-  context.stroke();
-
-  const surfaceGradient = context.createLinearGradient(0, 0, POSTCARD_WIDTH, POSTCARD_HEIGHT);
-  surfaceGradient.addColorStop(0, "rgba(255, 255, 255, 0.4)");
-  surfaceGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
-  context.fillStyle = surfaceGradient;
-  roundedRectPath(
-    context,
-    outerPadding + 8,
-    outerPadding + 8,
-    POSTCARD_WIDTH - (outerPadding + 8) * 2,
-    POSTCARD_HEIGHT - (outerPadding + 8) * 2,
-    28
+    34
   );
   context.fill();
 
-  context.save();
-  roundedRectPath(context, photoX, photoY, photoWidth, photoHeight, 42);
-  context.clip();
-  drawPhotoCover({
+  context.strokeStyle = "rgba(239, 224, 191, 0.64)";
+  context.lineWidth = 3;
+  roundedRectPath(
     context,
-    image: sourceImage,
-    x: photoX,
-    y: photoY,
-    width: photoWidth,
-    height: photoHeight,
-  });
+    outerPadding,
+    outerPadding,
+    POSTCARD_WIDTH - outerPadding * 2,
+    POSTCARD_HEIGHT - outerPadding * 2,
+    34
+  );
+  context.stroke();
 
-  const photoGradient = context.createLinearGradient(photoX, photoY, photoX, photoY + photoHeight);
-  photoGradient.addColorStop(0, "rgba(21, 14, 10, 0.08)");
-  photoGradient.addColorStop(0.58, "rgba(21, 14, 10, 0)");
-  photoGradient.addColorStop(1, palette.photoGlow);
-  context.fillStyle = photoGradient;
-  context.fillRect(photoX, photoY, photoWidth, photoHeight);
+  context.fillStyle = "rgba(18, 16, 14, 0.52)";
+  roundedRectPath(context, 52, 52, 520, 78, 38);
+  context.fill();
+  context.fillStyle = "#f4e0c1";
+  context.font = "600 28px Inter, sans-serif";
+  context.textBaseline = "middle";
+  context.fillText(backdropLabel, 88, 91);
+
+  const cardImageX = cardX + cardImageInset;
+  const cardImageY = cardY + cardImageInset;
+
+  context.save();
+  context.shadowColor = "rgba(0, 0, 0, 0.44)";
+  context.shadowBlur = 28;
+  context.shadowOffsetY = 14;
+  context.fillStyle = palette.paper;
+  roundedRectPath(context, cardX, cardY, cardWidth, cardHeight, 34);
+  context.fill();
   context.restore();
 
   context.lineWidth = 3;
-  context.strokeStyle = "rgba(255, 255, 255, 0.68)";
-  roundedRectPath(context, photoX, photoY, photoWidth, photoHeight, 42);
+  context.strokeStyle = palette.frame;
+  roundedRectPath(context, cardX, cardY, cardWidth, cardHeight, 34);
   context.stroke();
 
-  const panelGradient = context.createLinearGradient(panelX, panelY, panelX, panelY + panelHeight);
-  panelGradient.addColorStop(0, palette.panel);
-  panelGradient.addColorStop(1, palette.panelSoft);
-  context.fillStyle = panelGradient;
-  roundedRectPath(context, panelX, panelY, panelWidth, panelHeight, 42);
+  if (photoIsCutout) {
+    context.save();
+    roundedRectPath(context, cardImageX, cardImageY, cardImageWidth, cardImageHeight, 24);
+    context.clip();
+
+    if (backdropImage) {
+      drawPhotoCover({
+        context,
+        image: backdropImage,
+        x: cardImageX,
+        y: cardImageY,
+        width: cardImageWidth,
+        height: cardImageHeight,
+      });
+    } else {
+      const fallbackSurface = context.createLinearGradient(
+        cardImageX,
+        cardImageY,
+        cardImageX,
+        cardImageY + cardImageHeight
+      );
+      fallbackSurface.addColorStop(0, "rgba(255, 255, 255, 0.22)");
+      fallbackSurface.addColorStop(1, "rgba(255, 255, 255, 0.12)");
+      context.fillStyle = fallbackSurface;
+      context.fillRect(cardImageX, cardImageY, cardImageWidth, cardImageHeight);
+    }
+
+    const sceneGrade = context.createLinearGradient(
+      cardImageX,
+      cardImageY,
+      cardImageX,
+      cardImageY + cardImageHeight
+    );
+    sceneGrade.addColorStop(0, "rgba(16, 12, 10, 0.12)");
+    sceneGrade.addColorStop(1, "rgba(16, 12, 10, 0.36)");
+    context.fillStyle = sceneGrade;
+    context.fillRect(cardImageX, cardImageY, cardImageWidth, cardImageHeight);
+
+    context.restore();
+
+    const shadowCenterX = cardImageX + cardImageWidth / 2;
+    const shadowCenterY = cardImageY + cardImageHeight - 42;
+    const shadowRadiusX = cardImageWidth * 0.35;
+    const shadowRadiusY = 36;
+
+    context.save();
+    context.beginPath();
+    context.ellipse(
+      shadowCenterX,
+      shadowCenterY,
+      shadowRadiusX,
+      shadowRadiusY,
+      0,
+      0,
+      Math.PI * 2
+    );
+    const floorShadow = context.createRadialGradient(
+      shadowCenterX,
+      shadowCenterY,
+      10,
+      shadowCenterX,
+      shadowCenterY,
+      shadowRadiusX
+    );
+    floorShadow.addColorStop(0, "rgba(0, 0, 0, 0.34)");
+    floorShadow.addColorStop(1, "rgba(0, 0, 0, 0)");
+    context.fillStyle = floorShadow;
+    context.fill();
+    context.restore();
+
+    context.save();
+    context.shadowColor = "rgba(0, 0, 0, 0.3)";
+    context.shadowBlur = 14;
+    context.shadowOffsetY = 6;
+    drawCutoutForeground({
+      context,
+      image: sourceImage,
+      x: cardImageX + 20,
+      y: cardImageY + 14,
+      width: cardImageWidth - 40,
+      height: cardImageHeight - 16,
+      subjectTransform,
+    });
+    context.restore();
+  } else {
+    context.save();
+    roundedRectPath(
+      context,
+      cardImageX,
+      cardImageY,
+      cardImageWidth,
+      cardImageHeight,
+      24
+    );
+    context.clip();
+    drawPhotoCover({
+      context,
+      image: sourceImage,
+      x: cardImageX,
+      y: cardImageY,
+      width: cardImageWidth,
+      height: cardImageHeight,
+    });
+    const selfieGradient = context.createLinearGradient(
+      cardImageX,
+      cardImageY,
+      cardImageX,
+      cardImageY + cardImageHeight
+    );
+    selfieGradient.addColorStop(0, "rgba(12, 8, 6, 0.08)");
+    selfieGradient.addColorStop(0.55, "rgba(12, 8, 6, 0)");
+    selfieGradient.addColorStop(1, palette.photoGlow);
+    context.fillStyle = selfieGradient;
+    context.fillRect(cardImageX, cardImageY, cardImageWidth, cardImageHeight);
+    context.restore();
+  }
+
+  context.lineWidth = 2;
+  context.strokeStyle = "rgba(255, 255, 255, 0.72)";
+  roundedRectPath(
+    context,
+    cardImageX,
+    cardImageY,
+    cardImageWidth,
+    cardImageHeight,
+    24
+  );
+  context.stroke();
+
+  context.fillStyle = "rgba(39, 29, 21, 0.9)";
+  context.font = "500 26px Inter, sans-serif";
+  context.textBaseline = "alphabetic";
+  context.fillText(
+    photoIsCutout ? "Foreground cutout" : "Captured memory",
+    cardImageX,
+    cardY + cardHeight - 56
+  );
+
+  const detailsGradient = context.createLinearGradient(
+    detailsX,
+    detailsY,
+    detailsX,
+    detailsY + detailsHeight
+  );
+  detailsGradient.addColorStop(0, "rgba(20, 16, 13, 0.62)");
+  detailsGradient.addColorStop(1, "rgba(20, 16, 13, 0.44)");
+  context.fillStyle = detailsGradient;
+  roundedRectPath(context, detailsX, detailsY, detailsWidth, detailsHeight, 34);
   context.fill();
 
-  context.strokeStyle = "rgba(255, 255, 255, 0.14)";
+  context.strokeStyle = "rgba(239, 224, 191, 0.42)";
   context.lineWidth = 2;
-  roundedRectPath(context, panelX + 12, panelY + 12, panelWidth - 24, panelHeight - 24, 34);
+  roundedRectPath(
+    context,
+    detailsX + 12,
+    detailsY + 12,
+    detailsWidth - 24,
+    detailsHeight - 24,
+    28
+  );
   context.stroke();
 
-  const ribbonX = panelX + 56;
-  const ribbonY = panelY + 54;
-  const ribbonWidth = Math.min(250 + frame.ribbonLabel.length * 3, panelWidth - 112);
+  const ribbonX = detailsX + 44;
+  const ribbonY = detailsY + 42;
+  const ribbonWidth = Math.min(260 + frame.ribbonLabel.length * 5, detailsWidth - 88);
   const ribbonHeight = 48;
 
   context.fillStyle = palette.ribbon;
-  roundedRectPath(context, ribbonX, ribbonY, ribbonWidth, ribbonHeight, 24);
+  roundedRectPath(context, ribbonX, ribbonY, ribbonWidth, ribbonHeight, 22);
   context.fill();
 
   context.fillStyle = palette.ribbonText;
@@ -337,60 +669,60 @@ export async function composePostcard({
   context.textBaseline = "middle";
   context.fillText(frame.ribbonLabel, ribbonX + 24, ribbonY + ribbonHeight / 2);
 
-  const headingX = panelX + 56;
-  let cursorY = ribbonY + 108;
+  const headingX = detailsX + 44;
+  let cursorY = ribbonY + 104;
 
-  context.fillStyle = palette.textSoft;
+  context.fillStyle = "rgba(255, 245, 228, 0.86)";
   context.font = "600 20px Inter, sans-serif";
   context.textBaseline = "alphabetic";
   context.fillText("Palace in Motion souvenir", headingX, cursorY);
 
-  cursorY += 48;
-  context.fillStyle = palette.text;
-  context.font = "600 60px 'Cormorant Garamond', serif";
+  cursorY += 46;
+  context.fillStyle = "#fff7ee";
+  context.font = "600 66px 'Cormorant Garamond', serif";
   cursorY = drawWrappedText({
     context,
     text: title.trim() || frame.defaultTitle || frame.title,
     x: headingX,
     y: cursorY,
-    maxWidth: panelWidth - 112,
-    lineHeight: 66,
+    maxWidth: detailsWidth - 88,
+    lineHeight: 68,
     maxLines: 3,
   });
 
-  cursorY += 18;
+  cursorY += 20;
   context.strokeStyle = palette.line;
   context.lineWidth = 2;
   context.beginPath();
   context.moveTo(headingX, cursorY);
-  context.lineTo(panelX + panelWidth - 56, cursorY);
+  context.lineTo(detailsX + detailsWidth - 44, cursorY);
   context.stroke();
 
-  cursorY += 52;
-  context.fillStyle = palette.textSoft;
-  context.font = "500 30px Inter, sans-serif";
+  cursorY += 50;
+  context.fillStyle = "rgba(255, 245, 228, 0.84)";
+  context.font = "500 31px Inter, sans-serif";
   cursorY = drawWrappedText({
     context,
     text: caption.trim(),
     x: headingX,
     y: cursorY,
-    maxWidth: panelWidth - 112,
-    lineHeight: 42,
-    maxLines: 7,
+    maxWidth: detailsWidth - 88,
+    lineHeight: 44,
+    maxLines: 6,
   });
 
-  const footerY = panelY + panelHeight - 130;
+  const footerY = detailsY + detailsHeight - 148;
   context.fillStyle = palette.line;
   context.font = "600 18px Inter, sans-serif";
   context.fillText("HERITAGE FOCUS", headingX, footerY);
 
-  context.fillStyle = palette.text;
-  context.font = "600 34px 'Cormorant Garamond', serif";
+  context.fillStyle = "#fff7ee";
+  context.font = "600 36px 'Cormorant Garamond', serif";
   context.fillText(focusLabel, headingX, footerY + 42);
 
-  context.fillStyle = palette.textSoft;
+  context.fillStyle = "rgba(255, 245, 228, 0.8)";
   context.font = "500 18px Inter, sans-serif";
-  context.fillText("Forbidden City digital heritage keepsake", headingX, footerY + 92);
+  context.fillText(`Backdrop: ${backdropLabel}`, headingX, footerY + 86);
 
   const blob = await canvasToBlob(canvas);
 

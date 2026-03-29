@@ -3,6 +3,7 @@ import { resolveGuideContext } from "@/lib/ai-guide/context";
 import { buildGuideMessages } from "@/lib/ai-guide/prompt";
 import { requestDeepSeekAnswer } from "@/lib/ai-guide/deepseek";
 import type {
+  GuideCaptionPayload,
   GuideIntent,
   GuideMode,
   GuideRequest,
@@ -12,6 +13,10 @@ import type { HeritageZoneId } from "@/types/content";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const MIN_QUESTION_LENGTH = 4;
+const MAX_QUESTION_LENGTH = 380;
+const MAX_FIELD_LENGTH = 120;
 
 function isGuideMode(value: unknown): value is GuideMode {
   return value === "short" || value === "detailed" || value === "fun";
@@ -23,6 +28,22 @@ function isGuideIntent(value: unknown): value is GuideIntent {
 
 function normalizeNullableString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function normalizeSizedNullableString(value: unknown, maxLength = MAX_FIELD_LENGTH) {
+  const normalized = normalizeNullableString(value);
+
+  if (!normalized) {
+    return null;
+  }
+
+  return normalized.slice(0, maxLength);
+}
+
+function normalizeCaptionText(input: string) {
+  const noQuotes = input.replace(/^["'`]+|["'`]+$/g, "");
+  const singleLine = noQuotes.replace(/\s*\n+\s*/g, " ").replace(/\s{2,}/g, " ");
+  return singleLine.trim();
 }
 
 export async function POST(request: Request) {
@@ -42,6 +63,20 @@ export async function POST(request: Request) {
     return Response.json({ error: "Question is required." }, { status: 400 });
   }
 
+  if (question.length < MIN_QUESTION_LENGTH) {
+    return Response.json(
+      { error: `Question must be at least ${MIN_QUESTION_LENGTH} characters.` },
+      { status: 400 }
+    );
+  }
+
+  if (question.length > MAX_QUESTION_LENGTH) {
+    return Response.json(
+      { error: `Question must be at most ${MAX_QUESTION_LENGTH} characters.` },
+      { status: 400 }
+    );
+  }
+
   if (!isGuideMode(mode)) {
     return Response.json({ error: "Mode must be short, detailed, or fun." }, { status: 400 });
   }
@@ -50,19 +85,21 @@ export async function POST(request: Request) {
     return Response.json({ error: "Intent must be answer or caption." }, { status: 400 });
   }
 
+  const resolvedIntent: GuideIntent = intent ?? "answer";
+
   const guideRequest: GuideRequest = {
-    sceneId: normalizeNullableString(body.sceneId),
-    hotspotId: normalizeNullableString(body.hotspotId) as HeritageZoneId | null,
-    tourStepId: normalizeNullableString(body.tourStepId),
-    focusId: normalizeNullableString(body.focusId) as
+    sceneId: normalizeSizedNullableString(body.sceneId),
+    hotspotId: normalizeSizedNullableString(body.hotspotId) as HeritageZoneId | null,
+    tourStepId: normalizeSizedNullableString(body.tourStepId),
+    focusId: normalizeSizedNullableString(body.focusId) as
       | HeritageZoneId
       | "central-axis"
       | null,
-    postcardThemeId: normalizeNullableString(body.postcardThemeId),
-    title: normalizeNullableString(body.title),
+    postcardThemeId: normalizeSizedNullableString(body.postcardThemeId),
+    title: normalizeSizedNullableString(body.title, 80),
     question,
     mode,
-    intent,
+    intent: resolvedIntent,
   };
 
   const context = resolveGuideContext(guideRequest);
@@ -71,19 +108,21 @@ export async function POST(request: Request) {
     request: guideRequest,
   });
 
-  let answer: string | null = null;
+  let answer = "";
   let fallback = false;
+  const startedAt = performance.now();
 
   try {
-    answer = await requestDeepSeekAnswer({
+    const result = await requestDeepSeekAnswer({
       messages,
       mode: guideRequest.mode,
     });
+    answer = result ?? "";
   } catch {
-    answer = null;
+    answer = "";
   }
 
-  if (!answer) {
+  if (!answer.trim()) {
     fallback = true;
     answer = buildFallbackGuideResult({
       context,
@@ -91,12 +130,29 @@ export async function POST(request: Request) {
     });
   }
 
+  const cleanedAnswer = answer.trim();
+  const latencyMs = Math.max(1, Math.round(performance.now() - startedAt));
+  const caption: GuideCaptionPayload | undefined =
+    guideRequest.intent === "caption"
+      ? {
+          text: normalizeCaptionText(cleanedAnswer),
+          focusLabel: context.focusLabel ?? context.contextLabel,
+          themeId: guideRequest.postcardThemeId ?? null,
+        }
+      : undefined;
+
   const response: GuideResponse = {
-    answer,
+    answer: cleanedAnswer,
     mode: guideRequest.mode,
     fallback,
     sourceIds: context.sourceIds,
     contextLabel: context.contextLabel,
+    intent: guideRequest.intent,
+    caption,
+    meta: {
+      provider: fallback ? "fallback" : "deepseek",
+      latencyMs,
+    },
   };
 
   return Response.json(response);

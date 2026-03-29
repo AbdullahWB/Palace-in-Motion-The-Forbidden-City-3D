@@ -32,7 +32,7 @@ export function ScenePanel() {
     : { duration: 0.36, ease: [0.22, 1, 0.36, 1] as const };
 
   return (
-    <aside className="paper-panel rounded-[1.8rem] border border-border p-6">
+    <aside className="paper-panel rounded-[1.85rem] border border-border/85 p-6 md:p-7">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent-soft">

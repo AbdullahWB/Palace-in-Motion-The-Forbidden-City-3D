@@ -20,12 +20,24 @@ export type GuideRequest = {
   intent?: GuideIntent;
 };
 
+export type GuideCaptionPayload = {
+  text: string;
+  focusLabel: string;
+  themeId?: string | null;
+};
+
 export type GuideResponse = {
   answer: string;
   mode: GuideMode;
   fallback: boolean;
   sourceIds: string[];
   contextLabel: string;
+  intent?: GuideIntent;
+  caption?: GuideCaptionPayload;
+  meta?: {
+    provider: "deepseek" | "fallback";
+    latencyMs: number;
+  };
 };
 
 export type ResolvedGuideContext = {

@@ -47,7 +47,7 @@ export function TourSidebar({
   const reduceMotion = useReducedMotion() ?? false;
 
   return (
-    <aside className="paper-panel h-fit rounded-[1.8rem] border border-border p-6 xl:sticky xl:top-28">
+    <aside className="paper-panel h-fit rounded-[1.85rem] border border-border/85 p-6 md:p-7 xl:sticky xl:top-28">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent-soft">

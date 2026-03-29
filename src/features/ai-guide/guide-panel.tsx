@@ -101,7 +101,7 @@ export function GuidePanel({
   }
 
   return (
-    <aside className={cn("paper-panel rounded-[1.8rem] border border-border p-6", className)}>
+    <aside className={cn("paper-panel rounded-[1.85rem] border border-border/85 p-6 md:p-7", className)}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent-soft">
@@ -228,6 +228,11 @@ export function GuidePanel({
                 <span className="rounded-full border border-accent/15 bg-white/72 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-soft">
                   {response.mode}
                 </span>
+                {response.meta ? (
+                  <span className="rounded-full border border-accent/15 bg-white/72 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-soft">
+                    {response.meta.provider} {response.meta.latencyMs}ms
+                  </span>
+                ) : null}
               </div>
             </motion.div>
           ) : (

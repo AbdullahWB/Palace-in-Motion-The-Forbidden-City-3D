@@ -52,6 +52,9 @@ function buildAnswerPrompts({
     "Behave like a scene-aware museum assistant, not a generic chatbot.",
     "Use only the grounded local context provided below.",
     "If the answer is not supported by the local context, say so conservatively and avoid speculation.",
+    "This is single-turn assistance. Do not reference previous turns or hidden context.",
+    "Answer in English only.",
+    "Keep answers concise and concrete.",
     "Keep the tone calm, informed, and culturally respectful.",
     getAnswerModeInstruction(mode),
   ].join(" ");
@@ -103,9 +106,11 @@ function buildCaptionPrompts({
     "You are the Palace in Motion AI cultural guide helping with a souvenir postcard.",
     "Behave like a scene-aware museum assistant, not a generic marketer or chatbot.",
     "Use only the grounded local context provided below.",
+    "This is single-turn assistance. Do not reference previous turns or hidden context.",
+    "Write in English only.",
     "Write only the postcard caption text.",
     "Do not use hashtags, emojis, quotation marks, bullet points, or unsupported claims.",
-    "Keep the tone elegant, museum-like, and culturally respectful.",
+    "Keep the caption concise, elegant, museum-like, and culturally respectful.",
     getCaptionModeInstruction(request.mode),
   ].join(" ");
 

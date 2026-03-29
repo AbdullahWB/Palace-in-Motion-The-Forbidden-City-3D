@@ -26,6 +26,9 @@ type DeepSeekMessageContent =
     }>
   | undefined;
 
+const DEFAULT_TIMEOUT_MS = 12000;
+const RETRY_DELAY_MS = 450;
+
 function getTemperature(mode: GuideMode) {
   switch (mode) {
     case "fun":
@@ -52,6 +55,16 @@ function extractTextContent(content: DeepSeekMessageContent) {
   return "";
 }
 
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function isTransientStatus(status: number) {
+  return status === 429 || status >= 500;
+}
+
 export function isDeepSeekConfigured() {
   return Boolean(process.env.DEEPSEEK_API_KEY);
 }
@@ -74,27 +87,58 @@ export async function requestDeepSeekAnswer({
     ""
   );
   const model = process.env.DEEPSEEK_MODEL ?? "deepseek-chat";
+  const maxAttempts = 2;
 
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      stream: false,
-      temperature: getTemperature(mode),
-      messages,
-    }),
-  });
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
-  if (!response.ok) {
-    throw new Error(`DeepSeek request failed with status ${response.status}`);
+    try {
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          stream: false,
+          temperature: getTemperature(mode),
+          max_tokens: 240,
+          messages,
+        }),
+      });
+
+      if (!response.ok) {
+        if (attempt === 0 && isTransientStatus(response.status)) {
+          await sleep(RETRY_DELAY_MS);
+          continue;
+        }
+
+        throw new Error(`DeepSeek request failed with status ${response.status}`);
+      }
+
+      const data = (await response.json()) as DeepSeekResponse;
+      const answer = extractTextContent(data.choices?.[0]?.message?.content);
+
+      return answer || null;
+    } catch (error) {
+      if (attempt === 0) {
+        const isAbort =
+          error instanceof DOMException && error.name === "AbortError";
+
+        if (isAbort || error instanceof TypeError) {
+          await sleep(RETRY_DELAY_MS);
+          continue;
+        }
+      }
+
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
-  const data = (await response.json()) as DeepSeekResponse;
-  const answer = extractTextContent(data.choices?.[0]?.message?.content);
-
-  return answer || null;
+  return null;
 }
