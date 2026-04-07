@@ -138,40 +138,71 @@ export type PostcardFrame = {
   defaultTitle?: string;
 };
 
-export type PanoramaPanelMedia = {
+export type ExploreView = "welcome" | "map" | "place";
+
+export type ExplorePlaceSlug =
+  | "tianyi-men"
+  | "yangxin-dian"
+  | "fengxian-dian"
+  | "qianqing-men"
+  | "huangji-dian"
+  | "shoukang-gong";
+
+export type ExploreWelcomeScene = {
+  id: string;
+  heroSrc: string;
+  title: BilingualText;
+  subtitle: BilingualText;
+  ctaLabel: BilingualText;
+};
+
+export type ExploreMapMarker = {
+  placeSlug: ExplorePlaceSlug;
+  x: number;
+  y: number;
+  label: BilingualText;
+};
+
+export type ExploreMap = {
+  imageSrc: string;
+  alt: BilingualText;
+  minScale: number;
+  maxScale: number;
+  initialScale: number;
+  markers: ExploreMapMarker[];
+};
+
+export type ExplorePlacePhoto = {
+  id: string;
   src: string;
   alt: BilingualText;
+  caption: BilingualText;
+  depth: number;
 };
 
-export type PanoramaHotspotFact = {
-  id: string;
+export type ExplorePlace = {
+  slug: ExplorePlaceSlug;
   title: BilingualText;
-  body: BilingualText;
-};
-
-export type PanoramaHotspot = {
-  id: HeritageZoneId;
-  anchor: {
+  badgeLabel: BilingualText;
+  shortDescription: BilingualText;
+  longDescription: BilingualText;
+  markerPosition: {
     x: number;
     y: number;
   };
-  markerLabel: BilingualText;
-  panelEyebrow: BilingualText;
-  title: BilingualText;
-  summary: BilingualText;
-  story: BilingualText;
-  panelMedia?: PanoramaPanelMedia | null;
-  facts: PanoramaHotspotFact[];
+  coverSrc: string;
+  defaultPhotoId: string;
+  gallery: ExplorePlacePhoto[];
 };
 
-export type PanoramaScene = {
-  id: string;
-  routeLabel: BilingualText;
-  title: BilingualText;
-  subtitle: BilingualText;
-  sceneLabel: BilingualText;
-  location: BilingualText;
-  assetSrc: string;
-  panelMedia?: PanoramaPanelMedia | null;
-  hotspots: PanoramaHotspot[];
+export type ExploreExperienceData = {
+  welcome: ExploreWelcomeScene;
+  map: ExploreMap;
+  places: ExplorePlace[];
+};
+
+export type ExploreSearchState = {
+  view: ExploreView;
+  placeSlug: ExplorePlaceSlug | null;
+  photoId: string | null;
 };

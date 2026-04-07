@@ -1,0 +1,83 @@
+{
+  "welcome": {
+    "id": "palace-open-view",
+    "heroSrc": "/explore/welcome/open-courtyard.jpg",
+    "title": {
+      "zh": "入境故宫",
+      "en": "Enter the Palace"
+    },
+    "subtitle": {
+      "zh": "从一处开阔视野开始，打开宫城地图，然后选择你想深入的主要场所。",
+      "en": "Begin from a calm open-place view, open the palace map, and then step into the main spaces you want to explore."
+    },
+    "ctaLabel": {
+      "zh": "打开宫城地图",
+      "en": "Open palace map"
+    }
+  },
+  "map": {
+    "imageSrc": "/explore/map/palace-map.jpg",
+    "alt": {
+      "zh": "故宫导览地图",
+      "en": "Palace guide map"
+    },
+    "minScale": 0.8,
+    "maxScale": 2.2,
+    "initialScale": 1
+  },
+  "places": [
+    {
+      "slug": "tianyi-men",
+      "title": {
+        "zh": "天一门",
+        "en": "Tianyi Men"
+      },
+      "badgeLabel": {
+        "zh": "经从花园入境",
+        "en": "Garden threshold"
+      },
+      "shortDescription": {
+        "zh": "一处被树冠包围的安静入口，适合作为探索的第一步。",
+        "en": "A quiet threshold wrapped by trees, suited to opening the exploration route."
+      },
+      "longDescription": {
+        "zh": "这里填写这个场所的完整介绍。",
+        "en": "Put the full place description here."
+      },
+      "markerPosition": {
+        "x": 62,
+        "y": 74
+      },
+      "coverSrc": "/explore/places/tianyi-men/cover.jpg",
+      "defaultPhotoId": "tianyi-1",
+      "gallery": [
+        {
+          "id": "tianyi-1",
+          "src": "/explore/places/tianyi-men/photo-1.jpg",
+          "alt": {
+            "zh": "天一门全景",
+            "en": "Wide view of Tianyi Men"
+          },
+          "caption": {
+            "zh": "天一门全景",
+            "en": "Wide view of Tianyi Men"
+          },
+          "depth": 0.2
+        },
+        {
+          "id": "tianyi-2",
+          "src": "/explore/places/tianyi-men/photo-2.jpg",
+          "alt": {
+            "zh": "天一门近景",
+            "en": "Closer view of Tianyi Men"
+          },
+          "caption": {
+            "zh": "天一门近景",
+            "en": "Closer view of Tianyi Men"
+          },
+          "depth": 0.3
+        }
+      ]
+    }
+  ]
+}

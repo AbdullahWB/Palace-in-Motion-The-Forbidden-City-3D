@@ -5,13 +5,14 @@ export default function Loading() {
       <div className="relative flex min-h-[100svh] items-center justify-center px-6">
         <div className="max-w-xl rounded-[2rem] border border-white/14 bg-[rgba(8,10,14,0.42)] p-8 text-center backdrop-blur-xl">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f1d8b2]">
-            全景探索 Panorama Explore
+            {"\u5168\u666f\u63a2\u7d22 Panorama Explore"}
           </p>
           <h1 className="mt-4 font-display text-4xl text-white">
-            Loading the palace panorama...
+            Loading the palace welcome view...
           </h1>
           <p className="mt-4 text-sm leading-7 text-white/70">
-            Preparing fullscreen scene artwork, hotspot dossiers, and continuous palace background music.
+            Preparing the open-place welcome scene, map overlay, place galleries,
+            and continuous palace background music.
           </p>
         </div>
       </div>
