@@ -11,7 +11,7 @@ import { APP_DESCRIPTION, APP_NAME, APP_TAGLINE } from "@/lib/constants";
 export function SiteFooter() {
   const pathname = usePathname();
 
-  if (pathname === "/selfie") {
+  if (pathname === "/selfie" || pathname === "/explore") {
     return null;
   }
 
@@ -25,7 +25,7 @@ export function SiteFooter() {
                 {APP_NAME}
               </p>
               <p className="mt-3 text-xs font-semibold uppercase tracking-[0.24em] text-accent-soft">
-                Competition demo about
+                Immersive route
               </p>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-muted">
                 {APP_DESCRIPTION}

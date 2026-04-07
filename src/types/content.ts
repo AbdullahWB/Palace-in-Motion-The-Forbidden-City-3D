@@ -2,6 +2,11 @@ export type AppRoute = "/" | "/explore" | "/tour" | "/selfie";
 export type HomeAnchor = "#ai-guide";
 export type LandingHref = AppRoute | HomeAnchor;
 
+export type BilingualText = {
+  zh: string;
+  en: string;
+};
+
 export type NavItem = {
   label: string;
   href: AppRoute;
@@ -39,7 +44,7 @@ export type AIGuidePreviewPoint = {
   description: string;
 };
 
-export type DemoFlowStepId = "explore" | "tour" | "ai-guide" | "selfie";
+export type DemoFlowStepId = "explore" | "ai-guide" | "selfie";
 
 export type DemoFlowStep = {
   id: DemoFlowStepId;
@@ -131,4 +136,42 @@ export type PostcardFrame = {
   description: string;
   ribbonLabel: string;
   defaultTitle?: string;
+};
+
+export type PanoramaPanelMedia = {
+  src: string;
+  alt: BilingualText;
+};
+
+export type PanoramaHotspotFact = {
+  id: string;
+  title: BilingualText;
+  body: BilingualText;
+};
+
+export type PanoramaHotspot = {
+  id: HeritageZoneId;
+  anchor: {
+    x: number;
+    y: number;
+  };
+  markerLabel: BilingualText;
+  panelEyebrow: BilingualText;
+  title: BilingualText;
+  summary: BilingualText;
+  story: BilingualText;
+  panelMedia?: PanoramaPanelMedia | null;
+  facts: PanoramaHotspotFact[];
+};
+
+export type PanoramaScene = {
+  id: string;
+  routeLabel: BilingualText;
+  title: BilingualText;
+  subtitle: BilingualText;
+  sceneLabel: BilingualText;
+  location: BilingualText;
+  assetSrc: string;
+  panelMedia?: PanoramaPanelMedia | null;
+  hotspots: PanoramaHotspot[];
 };

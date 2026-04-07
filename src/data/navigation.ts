@@ -4,21 +4,16 @@ export const navigationItems: NavItem[] = [
   {
     label: "Home",
     href: "/",
-    description: "Cinematic introduction and experience overview.",
+    description: "Cinematic bilingual entry into the palace experience.",
   },
   {
     label: "Explore",
     href: "/explore",
-    description: "Step into the evolving interactive palace environment.",
-  },
-  {
-    label: "Tour",
-    href: "/tour",
-    description: "Follow a curated route through key spaces and stories.",
+    description: "Fullscreen panorama viewing with guided hotspot storytelling.",
   },
   {
     label: "Selfie",
     href: "/selfie",
-    description: "Compose a keepsake postcard inspired by the visit.",
+    description: "Capture a keepsake postcard inspired by the palace visit.",
   },
 ];

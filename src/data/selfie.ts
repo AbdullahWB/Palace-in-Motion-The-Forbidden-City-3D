@@ -1,5 +1,6 @@
 import { hotspotContent } from "@/data/heritage/hotspots";
 import { siteOverview } from "@/data/heritage/site-overview";
+import { PALACE_PANORAMA_PLACEHOLDER_SRC } from "@/lib/constants";
 import type { HeritageZoneId, PostcardFrame } from "@/types/content";
 
 export type SelfieFocusId = HeritageZoneId | "central-axis";
@@ -67,8 +68,7 @@ export const selfieBackdropOptions: SelfieBackdropOption[] = [
   {
     id: "forbidden-city",
     label: "Forbidden City Axis",
-    imageUrl:
-      "https://images.pexels.com/photos/2412603/pexels-photo-2412603.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=2000",
+    imageUrl: PALACE_PANORAMA_PLACEHOLDER_SRC,
   },
   {
     id: "mountain-temple",

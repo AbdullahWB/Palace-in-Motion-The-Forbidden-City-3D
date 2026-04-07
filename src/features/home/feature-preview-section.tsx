@@ -9,9 +9,9 @@ export function FeaturePreviewSection() {
     <section className="py-18 md:py-24">
       <PageContainer>
         <SectionHeading
-          eyebrow="Feature preview"
-          title="Three entry points into a cinematic heritage experience."
-          description="Designed for elegant exploration, guided narrative flow, and future AI-led interpretation."
+          eyebrow="Feature preview / 体验入口"
+          title="Three ways into a richer palace experience."
+          description="Now centered on fullscreen panorama explore, scene-aware storytelling, and a postcard finish."
         />
 
         <div className="mt-10 grid gap-6 lg:grid-cols-3">

@@ -477,7 +477,7 @@ export function SelfieStudio() {
                     <button type="button" onClick={() => { void handleGeneratePostcard(); }} disabled={isGenerating} className={cn("rounded-full border px-5 py-3 text-sm font-semibold", isGenerating ? "cursor-wait border-white/25 bg-white/15 text-white/60" : "border-accent bg-accent text-white hover:bg-accent-strong")}>{composition && isCompositionStale ? "Regenerate postcard" : "Generate postcard"}</button>
                     {composition ? <a href={composition.downloadUrl} download={`${activeFrame.id}-postcard.png`} className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/12 px-5 py-3 text-sm font-semibold text-white hover:bg-white/20">Download PNG</a> : null}
                   </div>
-                  <DemoBadgePanel announce compact className="bg-white/12" title="Completion badge" description="Unlock by finishing tour and postcard steps." />
+                  <DemoBadgePanel announce compact className="bg-white/12" title="Completion badge" description="Unlock by finishing the Explore route and postcard steps." />
                 </>
               ) : null}
             </div>

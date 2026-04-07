@@ -2,7 +2,6 @@ import Link from "next/link";
 import { PageContainer } from "@/components/layout/page-container";
 import { MotionReveal } from "@/components/ui/motion-reveal";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { siteOverview } from "@/data/heritage/site-overview";
 import { aiGuidePreview, aiGuidePreviewPoints } from "@/data/landing";
 
 export function AIGuidePreviewSection() {
@@ -17,15 +16,13 @@ export function AIGuidePreviewSection() {
               description={aiGuidePreview.description}
             />
 
-            <p className="mt-6 max-w-xl text-sm leading-7 text-muted">
-              {siteOverview.summary}
-            </p>
+            <p className="mt-6 max-w-xl text-sm leading-7 text-muted">{aiGuidePreview.summary}</p>
 
             <Link
-              href="/tour"
+              href="/explore"
               className="mt-8 inline-flex items-center justify-center rounded-full border border-accent/18 bg-white/75 px-6 py-3 text-sm font-semibold text-foreground hover:border-accent/30 hover:bg-white"
             >
-              Preview the guided route
+              Open the panorama route
             </Link>
           </MotionReveal>
 

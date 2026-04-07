@@ -144,10 +144,10 @@ export function HeroSection() {
 
             <div className="relative">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-accent-soft">
-                Curatorial preview
+                Panorama preview
               </p>
               <h2 className="mt-4 max-w-sm font-display text-3xl leading-tight text-foreground md:text-4xl">
-                A layered heritage experience built for atmosphere and clarity.
+                A palace experience now built around one immersive route.
               </h2>
 
               <div className="mt-8 space-y-4">

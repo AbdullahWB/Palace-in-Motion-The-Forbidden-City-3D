@@ -18,6 +18,10 @@ export function SiteHeader() {
     setNavOpen(false);
   }, [pathname, setNavOpen]);
 
+  if (pathname === "/explore") {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/80 backdrop-blur-xl">
       <PageContainer>
@@ -27,7 +31,7 @@ export function SiteHeader() {
               {APP_NAME}
             </p>
             <p className="mt-1 truncate text-[11px] font-semibold uppercase tracking-[0.26em] text-accent-soft">
-              Forbidden City digital heritage
+              全景故宫 panorama route
             </p>
           </Link>
 

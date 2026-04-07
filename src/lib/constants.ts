@@ -1,9 +1,14 @@
 export const APP_NAME = "Palace in Motion";
 
 export const APP_TAGLINE =
-  "A 3D Interactive Heritage Tour of the Forbidden City with an AI Cultural Guide.";
+  "全景故宫 / Fullscreen panorama exploration, scene-aware storytelling, and postcard memories.";
 
 export const APP_DESCRIPTION =
-  "A cinematic digital heritage experience for exploring the Forbidden City through immersive navigation, guided storytelling, and an AI cultural guide.";
+  "A fullscreen panorama-led Forbidden City experience that combines immersive exploration, cultural storytelling, and a playful postcard studio.";
 
 export const HERITAGE_SCENE_ID = "forbidden-city-axis";
+
+export const SITE_MUSIC_SRC = "/audio/palace-museum-theme.mp3";
+
+export const PALACE_PANORAMA_PLACEHOLDER_SRC =
+  "https://images.pexels.com/photos/2412603/pexels-photo-2412603.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=2000";

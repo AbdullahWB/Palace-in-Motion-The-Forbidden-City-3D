@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
+import { GlobalMusicToggle } from "@/components/media/global-music-toggle";
+import { SiteMusicProvider } from "@/components/media/site-music-provider";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { APP_DESCRIPTION, APP_NAME } from "@/lib/constants";
@@ -25,8 +27,8 @@ export const metadata: Metadata = {
   applicationName: APP_NAME,
   keywords: [
     "Forbidden City",
-    "heritage tour",
-    "3D exploration",
+    "panorama experience",
+    "immersive explore",
     "AI cultural guide",
     "Next.js",
   ],
@@ -46,19 +48,22 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${cormorant.variable} h-full`}>
       <body className="min-h-full bg-background text-foreground font-sans antialiased">
-        <div className="flex min-h-screen flex-col">
-          <a
-            href="#main-content"
-            className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
-          >
-            Skip to main content
-          </a>
-          <SiteHeader />
-          <main id="main-content" className="flex-1" tabIndex={-1}>
-            {children}
-          </main>
-          <SiteFooter />
-        </div>
+        <SiteMusicProvider>
+          <div className="flex min-h-screen flex-col">
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+            >
+              Skip to main content
+            </a>
+            <SiteHeader />
+            <main id="main-content" className="flex-1" tabIndex={-1}>
+              {children}
+            </main>
+            <SiteFooter />
+          </div>
+          <GlobalMusicToggle />
+        </SiteMusicProvider>
       </body>
     </html>
   );
