@@ -640,11 +640,11 @@ export function PanoramaExperience({
             </p>
           </div>
 
-          <div className="absolute right-4 top-4 bottom-36 z-30 hidden w-[min(27rem,34vw)] lg:block">
+          <div className="absolute right-4 top-4 bottom-44 z-30 hidden w-[min(27rem,34vw)] lg:block">
             <PlaceInfoPanel place={activePlace} activePhoto={activePhoto} />
           </div>
 
-          <div className="absolute inset-x-4 bottom-40 z-30 lg:hidden">
+          <div className="absolute inset-x-4 bottom-44 z-30 lg:hidden">
             <PlaceInfoPanel
               place={activePlace}
               activePhoto={activePhoto}
@@ -652,26 +652,26 @@ export function PanoramaExperience({
             />
           </div>
 
-          <div className="absolute left-4 bottom-32 z-30 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={openMap}
-              className="rounded-full border border-white/16 bg-[rgba(8,12,20,0.56)] px-4 py-3 text-sm font-semibold text-white backdrop-blur-xl hover:bg-[rgba(8,12,20,0.68)]"
-            >
-              {"\u8fd4\u56de\u5730\u56fe Back to map"}
-            </button>
-            <button
-              type="button"
-              onClick={openWelcome}
-              className="rounded-full border border-white/16 bg-[rgba(8,12,20,0.56)] px-4 py-3 text-sm font-semibold text-white backdrop-blur-xl hover:bg-[rgba(8,12,20,0.68)]"
-            >
-              {"\u5173\u95ed Close"}
-            </button>
-            <MusicToggleButton tone="dark" compact />
-          </div>
+          <div className="absolute left-4 bottom-4 z-30 inline-flex max-w-[calc(100vw-2rem)] flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-3 rounded-[1.5rem] border border-white/12 bg-[rgba(8,12,20,0.54)] px-4 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.26)] backdrop-blur-2xl">
+              <button
+                type="button"
+                onClick={openMap}
+                className="rounded-full border border-white/16 bg-[rgba(8,12,20,0.56)] px-4 py-3 text-sm font-semibold text-white hover:bg-[rgba(8,12,20,0.68)]"
+              >
+                {"\u8fd4\u56de\u5730\u56fe Back to map"}
+              </button>
+              <button
+                type="button"
+                onClick={openWelcome}
+                className="rounded-full border border-white/16 bg-[rgba(8,12,20,0.56)] px-4 py-3 text-sm font-semibold text-white hover:bg-[rgba(8,12,20,0.68)]"
+              >
+                {"\u5173\u95ed Close"}
+              </button>
+              <MusicToggleButton tone="dark" compact />
+            </div>
 
-          <div className="absolute inset-x-4 bottom-4 z-30">
-            <div className="rounded-[1.65rem] border border-white/12 bg-[rgba(8,12,20,0.54)] p-3 shadow-[0_22px_70px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
+            <div className="w-fit max-w-[calc(100vw-2rem)] rounded-[1.65rem] border border-white/12 bg-[rgba(8,12,20,0.54)] p-3 shadow-[0_22px_70px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
               <div className="mb-3 flex items-center justify-between gap-3 px-1">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#f1d8b2]">
                   {"\u573a\u666f\u5e8f\u5217 Scene frames"}
@@ -681,7 +681,7 @@ export function PanoramaExperience({
                 </p>
               </div>
 
-              <div className="flex gap-3 overflow-x-auto pb-1">
+              <div className="flex w-fit gap-3 overflow-x-auto pb-1">
                 {activePlace.gallery.map((photo) => {
                   const isActive = photo.id === activePhoto.id;
 

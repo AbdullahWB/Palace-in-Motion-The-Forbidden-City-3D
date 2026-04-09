@@ -146,7 +146,11 @@ export type ExplorePlaceSlug =
   | "fengxian-dian"
   | "qianqing-men"
   | "huangji-dian"
-  | "shoukang-gong";
+  | "shoukang-gong"
+  | "taihe-dian"
+  | "zhonghe-dian"
+  | "baohe-dian"
+  | "jingren-gong";
 
 export type ExploreWelcomeScene = {
   id: string;
