@@ -13,7 +13,7 @@ type DemoBadgePanelProps = {
 
 export function DemoBadgePanel({
   title = "Competition demo badge",
-  description = "Complete the Explore & Tour panorama story and generate a souvenir postcard to unlock the final submission badge.",
+  description = "Complete the Explore route and generate a souvenir postcard inside Explore to unlock the final submission badge.",
   compact = false,
   announce = false,
   className,
@@ -24,7 +24,7 @@ export function DemoBadgePanel({
   const milestones = [
     {
       id: "tour",
-      label: "Explore & Tour story completed",
+      label: "Explore route completed",
       isDone: hasCompletedTour,
     },
     {

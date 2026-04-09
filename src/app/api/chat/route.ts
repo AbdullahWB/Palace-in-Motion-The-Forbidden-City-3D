@@ -14,7 +14,7 @@ import type { HeritageZoneId } from "@/types/content";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MIN_QUESTION_LENGTH = 4;
+const MIN_QUESTION_LENGTH = 2;
 const MAX_QUESTION_LENGTH = 380;
 const MAX_FIELD_LENGTH = 120;
 
@@ -96,6 +96,7 @@ export async function POST(request: Request) {
       | "central-axis"
       | null,
     postcardThemeId: normalizeSizedNullableString(body.postcardThemeId),
+    contextHint: normalizeSizedNullableString(body.contextHint, 80),
     title: normalizeSizedNullableString(body.title, 80),
     question,
     mode,

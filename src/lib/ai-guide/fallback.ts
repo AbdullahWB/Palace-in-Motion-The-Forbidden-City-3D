@@ -17,11 +17,12 @@ function buildFallbackCaption({
   context,
   mode,
   postcardThemeId,
+  contextHint,
   title,
   question,
 }: Pick<
   GuideRequest,
-  "mode" | "postcardThemeId" | "title" | "question"
+  "mode" | "postcardThemeId" | "title" | "question" | "contextHint"
 > & {
   context: ResolvedGuideContext;
 }) {
@@ -33,7 +34,8 @@ function buildFallbackCaption({
     context.site.summary;
   const relevantFact = pickRelevantFact(context, question);
   const anchor = relevantFact?.body ?? focusSummary;
-  const prefix = title?.trim() ? `${title.trim()} - ` : "";
+  const prefixParts = [title?.trim(), contextHint?.trim()].filter(Boolean);
+  const prefix = prefixParts.length ? `${prefixParts.join(" - ")} - ` : "";
 
   switch (mode) {
     case "short":
@@ -55,10 +57,12 @@ function buildFallbackAnswer({
   context,
   question,
   mode,
+  contextHint,
 }: {
   context: ResolvedGuideContext;
   question: string;
   mode: GuideMode;
+  contextHint?: string | null;
 }) {
   const focusSummary =
     context.tourStep?.explanation ??
@@ -70,6 +74,7 @@ function buildFallbackAnswer({
   if (!context.hasSpecificContext) {
     return [
       "I can answer cautiously from the current local scene material.",
+      contextHint ? `Current lens: ${contextHint}.` : "",
       context.site.summary,
       relevantFact ? `A useful anchor here is: ${relevantFact.body}` : "",
     ]
@@ -81,17 +86,19 @@ function buildFallbackAnswer({
     case "short":
       return [
         `${context.contextLabel}: ${focusSummary}`,
+        contextHint ? `Lens: ${contextHint}.` : "",
         relevantFact ? `Quick anchor: ${relevantFact.body}` : "",
       ]
         .filter(Boolean)
         .join(" ");
     case "fun":
       return relevantFact
-        ? `A scene-aware detail about ${context.contextLabel}: ${relevantFact.body}`
-        : `A scene-aware detail about ${context.contextLabel}: ${focusSummary}`;
+        ? `A scene-aware detail about ${context.contextLabel}${contextHint ? ` through the ${contextHint} lens` : ""}: ${relevantFact.body}`
+        : `A scene-aware detail about ${context.contextLabel}${contextHint ? ` through the ${contextHint} lens` : ""}: ${focusSummary}`;
     default:
       return [
         `Within the current context of ${context.contextLabel}, ${focusSummary}`,
+        contextHint ? `This answer is being framed through the ${contextHint} lens.` : "",
         relevantFact ? `One supporting detail is that ${relevantFact.body}` : "",
         "I am keeping this answer conservative because I am only using the local heritage content available in the app.",
       ]
@@ -112,6 +119,7 @@ export function buildFallbackGuideResult({
       context,
       mode: request.mode,
       postcardThemeId: request.postcardThemeId,
+      contextHint: request.contextHint,
       title: request.title,
       question: request.question,
     });
@@ -121,5 +129,6 @@ export function buildFallbackGuideResult({
     context,
     question: request.question,
     mode: request.mode,
+    contextHint: request.contextHint,
   });
 }

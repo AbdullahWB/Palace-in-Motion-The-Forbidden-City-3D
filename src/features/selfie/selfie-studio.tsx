@@ -28,6 +28,17 @@ import type { GuideRequest, GuideResponse } from "@/types/ai-guide";
 type TabId = "theme" | "place-focus" | "text-ai" | "compose-export";
 type PreparedForeground = { source: string; imageSrc: string; wasBackgroundRemoved: boolean };
 type ActiveBackdrop = { imageUrl: string; label: string; sourceType: "preset" | "custom" };
+type SelfieStudioProps = {
+  mode?: "page" | "modal";
+  onClose?: () => void;
+  initialBackdrop?: {
+    imageUrl: string;
+    label: string;
+  } | null;
+  initialTitle?: string | null;
+  initialCaption?: string | null;
+  placeLabel?: string | null;
+};
 
 const tabs: Array<{ id: TabId; label: string }> = [
   { id: "theme", label: "Theme" },
@@ -111,7 +122,15 @@ function readFileAsDataUrl(file: File) {
   });
 }
 
-export function SelfieStudio() {
+export function SelfieStudio({
+  mode = "page",
+  onClose,
+  initialBackdrop = null,
+  initialTitle = null,
+  initialCaption = null,
+  placeLabel = null,
+}: SelfieStudioProps) {
+  const isModal = mode === "modal";
   const selectedPostcardFrame = useAppStore((state) => state.selectedPostcardFrame);
   const setSelectedPostcardFrame = useAppStore((state) => state.setSelectedPostcardFrame);
   const setHasGeneratedPostcard = useAppStore((state) => state.setHasGeneratedPostcard);
@@ -120,10 +139,16 @@ export function SelfieStudio() {
   const [activeTab, setActiveTab] = useState<TabId>("theme");
   const [selectedFocusId, setSelectedFocusId] = useState(defaultSelfieFocusId);
   const [selectedPresetBackdropId, setSelectedPresetBackdropId] = useState(defaultSelfieBackdropId);
-  const [customBackdropDataUrl, setCustomBackdropDataUrl] = useState<string | null>(null);
-  const [customBackdropLabel, setCustomBackdropLabel] = useState<string | null>(null);
-  const [title, setTitle] = useState(activeFrame.defaultTitle ?? activeFrame.title);
-  const [caption, setCaption] = useState("");
+  const [customBackdropDataUrl, setCustomBackdropDataUrl] = useState<string | null>(
+    initialBackdrop?.imageUrl ?? null
+  );
+  const [customBackdropLabel, setCustomBackdropLabel] = useState<string | null>(
+    initialBackdrop?.label ?? null
+  );
+  const [title, setTitle] = useState(
+    initialTitle?.trim() || activeFrame.defaultTitle || activeFrame.title
+  );
+  const [caption, setCaption] = useState(initialCaption ?? "");
   const [sourceImage, setSourceImage] = useState<string | null>(null);
   const [sourceLabel, setSourceLabel] = useState<string | null>(null);
   const [preparedForeground, setPreparedForeground] = useState<PreparedForeground | null>(null);
@@ -380,33 +405,85 @@ export function SelfieStudio() {
             : "Ready to generate";
 
   return (
-    <div className="relative min-h-[calc(100svh-5rem)] overflow-hidden">
-      <Image src={activeBackdrop.imageUrl} alt={activeBackdrop.label} fill priority sizes="100vw" className="absolute inset-0 object-cover" />
+    <div
+      className={cn(
+        "relative overflow-hidden",
+        isModal ? "h-full rounded-[1.8rem]" : "min-h-[calc(100svh-5rem)]"
+      )}
+    >
+      <Image
+        src={activeBackdrop.imageUrl}
+        alt={activeBackdrop.label}
+        fill
+        priority
+        sizes="100vw"
+        className="absolute inset-0 object-cover"
+      />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(16,12,10,0.38),rgba(16,12,10,0.5))]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(183,138,76,0.22),transparent_35%),radial-gradient(circle_at_80%_75%,rgba(138,34,48,0.18),transparent_36%)]" />
 
-      <div className="relative z-10 mx-auto flex min-h-[calc(100svh-5rem)] w-full max-w-7xl flex-col px-6 py-5 md:px-10 md:py-7">
+      <div
+        className={cn(
+          "relative z-10 mx-auto flex w-full flex-col",
+          isModal
+            ? "h-full max-w-[92rem] overflow-y-auto px-4 py-4 md:px-5 md:py-5"
+            : "min-h-[calc(100svh-5rem)] max-w-7xl px-6 py-5 md:px-10 md:py-7"
+        )}
+      >
         <section className="rounded-[1.35rem] border border-white/20 bg-[rgba(10,9,8,0.38)] p-5 backdrop-blur-md">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
+              {placeLabel ? (
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/68">
+                  {placeLabel}
+                </p>
+              ) : null}
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f1d8b2]">Selfie and postcard</p>
-              <h1 className="mt-3 font-display text-4xl leading-tight text-white md:text-5xl">Full-view real place selfie mode</h1>
+              <h1
+                className={cn(
+                  "mt-3 font-display leading-tight text-white",
+                  isModal ? "text-3xl md:text-4xl" : "text-4xl md:text-5xl"
+                )}
+              >
+                Full-view real place selfie mode
+              </h1>
             </div>
             <div className="space-y-2 text-right">
               <p className="rounded-full border border-white/25 bg-white/12 px-4 py-2 text-sm font-semibold text-white">{sourceLabel ? `Selfie: ${sourceLabel}` : "No selfie image selected"}</p>
               <p className="rounded-full border border-white/25 bg-white/12 px-4 py-2 text-sm font-semibold text-white">{activeBackdrop.sourceType === "custom" ? `Place: custom (${activeBackdrop.label})` : `Place: preset (${activeBackdrop.label})`}</p>
+              {isModal && onClose ? (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/16"
+                >
+                  Close
+                </button>
+              ) : null}
             </div>
           </div>
         </section>
 
-        <div className="mt-5 grid flex-1 gap-6 xl:grid-cols-[minmax(0,1fr)_26rem]">
+        <div
+          className={cn(
+            "mt-5 grid flex-1 gap-6",
+            isModal
+              ? "xl:grid-cols-[minmax(0,1fr)_24rem]"
+              : "xl:grid-cols-[minmax(0,1fr)_26rem]"
+          )}
+        >
           <section className="rounded-[1.8rem] border border-white/20 bg-[rgba(10,9,8,0.4)] p-6 backdrop-blur-md">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <h2 className="font-display text-3xl text-white">{title.trim() || activeFrame.defaultTitle || activeFrame.title}</h2>
               <span className="rounded-full border border-white/25 bg-white/12 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white">{stageStatus}</span>
             </div>
 
-            <div className="relative mt-4 h-[48vh] min-h-[18rem] overflow-hidden rounded-[1.3rem] border border-white/22 bg-black/30">
+            <div
+              className={cn(
+                "relative mt-4 overflow-hidden rounded-[1.3rem] border border-white/22 bg-black/30",
+                isModal ? "h-[38vh] min-h-[16rem] md:h-[42vh]" : "h-[48vh] min-h-[18rem]"
+              )}
+            >
               {isCameraActive ? (
                 <>
                   <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-cover" />

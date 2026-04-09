@@ -26,6 +26,7 @@ import {
   getExplorePlaceBySlug,
   normalizeExploreSearchState,
 } from "@/data/panorama";
+import { SelfieStudio } from "@/features/selfie/selfie-studio";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/use-app-store";
 import type {
@@ -173,6 +174,7 @@ export function PanoramaExperience({
 
   const [mapScale, setMapScale] = useState(exploreExperience.map.initialScale);
   const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
+  const [isSelfieModalOpen, setIsSelfieModalOpen] = useState(false);
 
   const mapDragRef = useRef<{
     pointerId: number;
@@ -210,6 +212,24 @@ export function PanoramaExperience({
     setHasCompletedTour(visitedCount >= exploreExperience.places.length);
   }, [setHasCompletedTour, visitedCount]);
 
+  useEffect(() => {
+    if (!isSelfieModalOpen) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsSelfieModalOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isSelfieModalOpen]);
+
   const backdropSrc =
     searchState.view === "place"
       ? activePhoto?.src ?? activePlace?.coverSrc ?? exploreExperience.welcome.heroSrc
@@ -241,6 +261,7 @@ export function PanoramaExperience({
   }
 
   function openWelcome() {
+    setIsSelfieModalOpen(false);
     navigate({
       view: "welcome",
       placeSlug: null,
@@ -249,6 +270,7 @@ export function PanoramaExperience({
   }
 
   function openMap() {
+    setIsSelfieModalOpen(false);
     setMapScale(exploreExperience.map.initialScale);
     setMapOffset({ x: 0, y: 0 });
     navigate({
@@ -406,12 +428,6 @@ export function PanoramaExperience({
                 className="rounded-full border border-white/16 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white hover:bg-white/16"
               >
                 Home
-              </Link>
-              <Link
-                href="/selfie"
-                className="rounded-full border border-[#d6b071]/26 bg-[#d6b071]/14 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#f6dfb8] hover:bg-[#d6b071]/22"
-              >
-                Selfie
               </Link>
             </div>
 
@@ -668,6 +684,13 @@ export function PanoramaExperience({
               >
                 {"\u5173\u95ed Close"}
               </button>
+              <button
+                type="button"
+                onClick={() => setIsSelfieModalOpen(true)}
+                className="rounded-full border border-[#d6b071]/30 bg-[#d6b071]/14 px-4 py-3 text-sm font-semibold text-[#f5ddb4] hover:bg-[#d6b071]/22"
+              >
+                {"\u5408\u5f71 Selfie"}
+              </button>
               <MusicToggleButton tone="dark" compact />
             </div>
 
@@ -721,6 +744,57 @@ export function PanoramaExperience({
           </div>
         </>
       ) : null}
+
+      <AnimatePresence>
+        {searchState.view === "place" &&
+        activePlace &&
+        activePhoto &&
+        isSelfieModalOpen ? (
+          <motion.div
+            key="explore-selfie-modal"
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={reduceMotion ? undefined : { opacity: 0 }}
+            transition={reduceMotion ? undefined : { duration: 0.22 }}
+            className="absolute inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+          >
+            <button
+              type="button"
+              onClick={() => setIsSelfieModalOpen(false)}
+              className="absolute inset-0 bg-[rgba(4,6,10,0.72)] backdrop-blur-[14px]"
+              aria-label="Close selfie modal"
+            />
+
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.98, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, scale: 0.98, y: 20 }}
+              transition={
+                reduceMotion
+                  ? undefined
+                  : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }
+              }
+              className="relative z-10 h-[min(92svh,60rem)] w-full max-w-[92rem] overflow-hidden rounded-[2rem] border border-[#d6b071]/24 bg-[rgba(8,12,20,0.84)] shadow-[0_36px_120px_rgba(0,0,0,0.44)]"
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Selfie studio for ${activePlace.title.en}`}
+            >
+              <SelfieStudio
+                key={`${activePlace.slug}:${activePhoto.id}`}
+                mode="modal"
+                onClose={() => setIsSelfieModalOpen(false)}
+                initialBackdrop={{
+                  imageUrl: activePhoto.src,
+                  label: formatInline(activePhoto.caption),
+                }}
+                initialTitle={activePlace.title.en}
+                initialCaption={activePlace.shortDescription.en}
+                placeLabel={formatInline(activePlace.title)}
+              />
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </section>
   );
 }

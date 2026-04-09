@@ -40,12 +40,10 @@ function formatQuickFacts(context: ResolvedGuideContext) {
 
 function buildAnswerPrompts({
   context,
-  question,
-  mode,
+  request,
 }: {
   context: ResolvedGuideContext;
-  question: string;
-  mode: GuideMode;
+  request: Pick<GuideRequest, "mode" | "question" | "title" | "contextHint">;
 }) {
   const systemPrompt = [
     "You are the Palace in Motion AI cultural guide.",
@@ -56,13 +54,15 @@ function buildAnswerPrompts({
     "Answer in English only.",
     "Keep answers concise and concrete.",
     "Keep the tone calm, informed, and culturally respectful.",
-    getAnswerModeInstruction(mode),
+    getAnswerModeInstruction(request.mode),
   ].join(" ");
 
   const userPrompt = [
-    `Mode: ${mode}`,
+    `Mode: ${request.mode}`,
     `Context label: ${context.contextLabel}`,
     `Has specific hotspot or tour context: ${context.hasSpecificContext ? "yes" : "no"}`,
+    `Assistant lens: ${request.contextHint?.trim() || "Default cultural guide"}`,
+    `Visitor page context: ${request.title?.trim() || "None."}`,
     "",
     "Site overview:",
     `${context.site.headline} ${context.site.summary}`,
@@ -80,7 +80,7 @@ function buildAnswerPrompts({
     "Quick facts:",
     formatQuickFacts(context),
     "",
-    `User question: ${question}`,
+    `User question: ${request.question}`,
   ].join("\n");
 
   return [
@@ -96,7 +96,7 @@ function buildCaptionPrompts({
   context: ResolvedGuideContext;
   request: Pick<
     GuideRequest,
-    "mode" | "question" | "postcardThemeId" | "title" | "focusId"
+    "mode" | "question" | "postcardThemeId" | "title" | "focusId" | "contextHint"
   >;
 }) {
   const frame = request.postcardThemeId
@@ -116,6 +116,7 @@ function buildCaptionPrompts({
 
   const userPrompt = [
     `Mode: ${request.mode}`,
+    `Assistant lens: ${request.contextHint?.trim() || "Default cultural guide"}`,
     `Theme preset: ${frame?.title ?? "None selected"}`,
     `Theme description: ${frame?.description ?? "None."}`,
     `Ribbon label: ${frame?.ribbonLabel ?? "None."}`,
@@ -168,7 +169,6 @@ export function buildGuideMessages({
 
   return buildAnswerPrompts({
     context,
-    question: request.question,
-    mode: request.mode,
+    request,
   });
 }

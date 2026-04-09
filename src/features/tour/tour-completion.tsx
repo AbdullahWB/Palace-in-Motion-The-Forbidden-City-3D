@@ -39,8 +39,8 @@ export function TourCompletion({ onRestart }: TourCompletionProps) {
         </div>
         <p className="mt-4 text-sm leading-7 text-muted">
           The guided route is the first half of the final competition badge.
-          Restart to revisit the six stops or move into the postcard studio to
-          finish the flow.
+          Restart to revisit the six stops or return to Explore to open the
+          integrated postcard flow.
         </p>
       </div>
 
@@ -69,10 +69,10 @@ export function TourCompletion({ onRestart }: TourCompletionProps) {
         </Link>
 
         <Link
-          href="/selfie"
+          href="/explore"
           className="inline-flex items-center justify-center rounded-full border border-border bg-white/82 px-4 py-3 text-sm font-semibold text-foreground hover:-translate-y-0.5 hover:bg-white"
         >
-          Continue to selfie
+          Open explore selfie
         </Link>
       </div>
     </aside>

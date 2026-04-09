@@ -22,8 +22,8 @@ export const landingHeroActions: HeroAction[] = [
     variant: "primary",
   },
   {
-    label: "Open Selfie Studio",
-    href: "/selfie",
+    label: "Selfie In Explore",
+    href: "/explore",
     variant: "secondary",
   },
   {
@@ -36,25 +36,25 @@ export const landingHeroActions: HeroAction[] = [
 export const landingFeaturePreviews: LandingFeaturePreview[] = [
   {
     eyebrow: "全景探索 Explore & Tour",
-    title: "One route for scenic viewing and guided palace reading",
+    title: "One route for scenic viewing, guidance, and selfie capture",
     description:
-      "A fullscreen panorama shell blends beautiful place viewing, cultural hotspots, and guided progression in a single destination.",
+      "A fullscreen panorama shell now blends beautiful place viewing, cultural hotspots, DeepSeek chat help, and an in-place selfie studio.",
     href: "/explore",
     ctaLabel: "Open Explore",
   },
   {
     eyebrow: "自拍留影 Selfie studio",
-    title: "Turn your palace visit into a keepsake postcard",
+    title: "Capture your postcard without leaving the palace route",
     description:
-      "Capture or upload a portrait, place yourself in a palace-inspired setting, and export a souvenir image.",
-    href: "/selfie",
-    ctaLabel: "Open Selfie",
+      "Open any mapped place, launch the integrated selfie modal, and turn that exact location into a keepsake postcard scene.",
+    href: "/explore",
+    ctaLabel: "Open Place Selfie",
   },
   {
     eyebrow: "AI文化导览 AI cultural guide",
-    title: "Interpretation designed around scene context",
+    title: "A floating corner guide that stays tied to palace context",
     description:
-      "Context-aware assistance stays tied to axial order, ceremonial meaning, and the currently selected palace focus.",
+      "A corner chatbot uses DeepSeek with local palace context so questions stay grounded in the route instead of feeling generic.",
     href: "#ai-guide",
     ctaLabel: "Preview AI Guide",
   },
@@ -62,9 +62,9 @@ export const landingFeaturePreviews: LandingFeaturePreview[] = [
 
 export const aiGuidePreview = {
   eyebrow: "AI文化导览 AI cultural guide",
-  title: "A thoughtful interpretive layer that belongs inside the scene.",
+  title: "A thoughtful interpretive layer that now lives inside the route.",
   description:
-    "AI interpretation is framed as a calm museum companion, ready to answer from the palace route instead of floating above it as a generic chatbot.",
+    "AI interpretation is framed as a calm museum companion, ready to answer from a floating corner helper that still stays grounded in the palace route.",
   summary:
     "从场景出发，而不是脱离场景。 Scene-aware guidance can explain symmetry, thresholds, and ritual meaning from the viewer's current palace focus.",
 } as const;
@@ -90,20 +90,20 @@ export const aiGuidePreviewPoints: AIGuidePreviewPoint[] = [
 export const demoFlowSteps: DemoFlowStep[] = [
   {
     id: "explore",
-    label: "Explore & Tour",
-    description: "Open the fullscreen panorama and move through the palace story via hotspots.",
+    label: "Explore",
+    description: "Open the fullscreen panorama, map, and place views inside the main palace route.",
     href: "/explore",
   },
   {
     id: "ai-guide",
     label: "AI Guide",
-    description: "Use scene-aware interpretation shaped by the palace route and its current focus.",
+    description: "Use the floating DeepSeek helper for scene-aware interpretation shaped by the palace route.",
   },
   {
     id: "selfie",
-    label: "Selfie",
-    description: "Generate a souvenir postcard and complete the final demo badge path.",
-    href: "/selfie",
+    label: "Selfie In Explore",
+    description: "Generate a souvenir postcard directly from any mapped place inside Explore.",
+    href: "/explore",
   },
 ];
 
@@ -111,7 +111,7 @@ export const projectSummary = {
   eyebrow: "Project summary / 项目概览",
   title: "A coherent palace demo that moves from atmosphere into interaction.",
   description:
-    "This submission now centers on a single immersive route: panorama exploration, guided hotspot storytelling, grounded AI interpretation, and a playful postcard finish.",
+    "This submission now centers on a single immersive route: panorama exploration, grounded AI interpretation, and a playful postcard finish inside Explore itself.",
 } as const;
 
 export const projectSummaryCards: LandingSummaryCard[] = [
@@ -125,7 +125,7 @@ export const projectSummaryCards: LandingSummaryCard[] = [
     eyebrow: "Demo flow",
     title: "The experience now has a clearer public route",
     description:
-      "Visitors move from the landing page into Explore, read the palace through guided hotspots, consult the AI helper, and finish with a postcard keepsake.",
+      "Visitors move from the landing page into Explore, read the palace through mapped places, consult the AI helper, and finish with a postcard keepsake without leaving the route.",
   },
   {
     eyebrow: "Cultural framing",

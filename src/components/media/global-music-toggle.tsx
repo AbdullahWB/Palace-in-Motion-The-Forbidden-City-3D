@@ -11,10 +11,10 @@ export function GlobalMusicToggle() {
   }
 
   return (
-    <div className="pointer-events-none fixed bottom-5 right-5 z-[55]">
+    <div className="pointer-events-none fixed bottom-5 right-[5.75rem] z-[44]">
       <MusicToggleButton
         className="pointer-events-auto"
-        tone={pathname === "/selfie" ? "dark" : "light"}
+        tone="light"
       />
     </div>
   );

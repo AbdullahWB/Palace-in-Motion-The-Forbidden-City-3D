@@ -13,6 +13,7 @@ export type GuideRequest = {
   hotspotId?: HeritageZoneId | null;
   tourStepId?: string | null;
   focusId?: HeritageZoneId | "central-axis" | null;
+  contextHint?: string | null;
   postcardThemeId?: string | null;
   title?: string | null;
   question: string;

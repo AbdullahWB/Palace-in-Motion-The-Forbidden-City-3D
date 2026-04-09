@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { FloatingAIAssistant } from "@/components/layout/floating-ai-assistant";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import { GlobalMusicToggle } from "@/components/media/global-music-toggle";
 import { SiteMusicProvider } from "@/components/media/site-music-provider";
@@ -63,6 +65,9 @@ export default function RootLayout({
             <SiteFooter />
           </div>
           <GlobalMusicToggle />
+          <Suspense fallback={null}>
+            <FloatingAIAssistant />
+          </Suspense>
         </SiteMusicProvider>
       </body>
     </html>

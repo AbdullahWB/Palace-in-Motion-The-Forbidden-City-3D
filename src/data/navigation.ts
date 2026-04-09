@@ -9,11 +9,6 @@ export const navigationItems: NavItem[] = [
   {
     label: "Explore",
     href: "/explore",
-    description: "Fullscreen panorama viewing with guided hotspot storytelling.",
-  },
-  {
-    label: "Selfie",
-    href: "/selfie",
-    description: "Capture a keepsake postcard inspired by the palace visit.",
+    description: "Fullscreen palace viewing, DeepSeek assistance, and integrated selfie mode.",
   },
 ];
