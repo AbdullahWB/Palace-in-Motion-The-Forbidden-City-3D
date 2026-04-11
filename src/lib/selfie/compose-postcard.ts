@@ -7,6 +7,12 @@ export type PostcardCompositionResult = {
   height: number;
 };
 
+export type PortraitSceneCompositionResult = {
+  dataUrl: string;
+  width: number;
+  height: number;
+};
+
 export type SubjectTransform = {
   scale: number;
   offsetX: number;
@@ -23,6 +29,7 @@ export type ComposePostcardInput = {
   title: string;
   caption: string;
   focusLabel: string;
+  sceneOverrideSrc?: string | null;
 };
 
 type Palette = {
@@ -40,6 +47,12 @@ type Palette = {
 
 const POSTCARD_WIDTH = 1600;
 const POSTCARD_HEIGHT = 1000;
+const CARD_WIDTH = 620;
+const CARD_HEIGHT = 760;
+const CARD_IMAGE_INSET = 28;
+const CARD_TEXT_FOOTER_HEIGHT = 110;
+const PORTRAIT_SCENE_WIDTH = CARD_WIDTH - CARD_IMAGE_INSET * 2;
+const PORTRAIT_SCENE_HEIGHT = CARD_HEIGHT - CARD_IMAGE_INSET * 2 - CARD_TEXT_FOOTER_HEIGHT;
 
 const paletteByAccentToken: Record<PostcardFrame["accentToken"], Palette> = {
   "imperial-red": {
@@ -381,6 +394,166 @@ function canvasToBlob(canvas: HTMLCanvasElement) {
   });
 }
 
+function renderPortraitScene({
+  context,
+  sourceImage,
+  backdropImage,
+  photoIsCutout,
+  subjectTransform,
+  x,
+  y,
+  width,
+  height,
+}: {
+  context: CanvasRenderingContext2D;
+  sourceImage: HTMLImageElement;
+  backdropImage: HTMLImageElement | null;
+  photoIsCutout: boolean;
+  subjectTransform: SubjectTransform;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}) {
+  if (photoIsCutout) {
+    context.save();
+    roundedRectPath(context, x, y, width, height, 24);
+    context.clip();
+
+    if (backdropImage) {
+      drawPhotoCover({
+        context,
+        image: backdropImage,
+        x,
+        y,
+        width,
+        height,
+      });
+    } else {
+      const fallbackSurface = context.createLinearGradient(x, y, x, y + height);
+      fallbackSurface.addColorStop(0, "rgba(255, 255, 255, 0.22)");
+      fallbackSurface.addColorStop(1, "rgba(255, 255, 255, 0.12)");
+      context.fillStyle = fallbackSurface;
+      context.fillRect(x, y, width, height);
+    }
+
+    const sceneGrade = context.createLinearGradient(x, y, x, y + height);
+    sceneGrade.addColorStop(0, "rgba(16, 12, 10, 0.12)");
+    sceneGrade.addColorStop(1, "rgba(16, 12, 10, 0.36)");
+    context.fillStyle = sceneGrade;
+    context.fillRect(x, y, width, height);
+    context.restore();
+
+    const shadowCenterX = x + width / 2;
+    const shadowCenterY = y + height - 42;
+    const shadowRadiusX = width * 0.35;
+    const shadowRadiusY = 36;
+
+    context.save();
+    context.beginPath();
+    context.ellipse(
+      shadowCenterX,
+      shadowCenterY,
+      shadowRadiusX,
+      shadowRadiusY,
+      0,
+      0,
+      Math.PI * 2
+    );
+    const floorShadow = context.createRadialGradient(
+      shadowCenterX,
+      shadowCenterY,
+      10,
+      shadowCenterX,
+      shadowCenterY,
+      shadowRadiusX
+    );
+    floorShadow.addColorStop(0, "rgba(0, 0, 0, 0.34)");
+    floorShadow.addColorStop(1, "rgba(0, 0, 0, 0)");
+    context.fillStyle = floorShadow;
+    context.fill();
+    context.restore();
+
+    context.save();
+    context.shadowColor = "rgba(0, 0, 0, 0.3)";
+    context.shadowBlur = 14;
+    context.shadowOffsetY = 6;
+    drawCutoutForeground({
+      context,
+      image: sourceImage,
+      x: x + 20,
+      y: y + 14,
+      width: width - 40,
+      height: height - 16,
+      subjectTransform,
+    });
+    context.restore();
+    return;
+  }
+
+  context.save();
+  roundedRectPath(context, x, y, width, height, 24);
+  context.clip();
+  drawPhotoCover({
+    context,
+    image: sourceImage,
+    x,
+    y,
+    width,
+    height,
+  });
+  const selfieGradient = context.createLinearGradient(x, y, x, y + height);
+  selfieGradient.addColorStop(0, "rgba(12, 8, 6, 0.08)");
+  selfieGradient.addColorStop(0.55, "rgba(12, 8, 6, 0)");
+  selfieGradient.addColorStop(1, "rgba(138, 34, 48, 0.24)");
+  context.fillStyle = selfieGradient;
+  context.fillRect(x, y, width, height);
+  context.restore();
+}
+
+export async function composePortraitScene({
+  photoSrc,
+  photoIsCutout = false,
+  backdropSrc,
+  subjectTransform = { scale: 1, offsetX: 0, offsetY: 0 },
+}: Pick<
+  ComposePostcardInput,
+  "photoSrc" | "photoIsCutout" | "backdropSrc" | "subjectTransform"
+>): Promise<PortraitSceneCompositionResult> {
+  const [sourceImage, backdropImage] = await Promise.all([
+    loadImage(photoSrc),
+    loadImage(backdropSrc).catch(() => null),
+  ]);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = PORTRAIT_SCENE_WIDTH;
+  canvas.height = PORTRAIT_SCENE_HEIGHT;
+
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("Canvas is not available in this browser.");
+  }
+
+  renderPortraitScene({
+    context,
+    sourceImage,
+    backdropImage,
+    photoIsCutout,
+    subjectTransform,
+    x: 0,
+    y: 0,
+    width: PORTRAIT_SCENE_WIDTH,
+    height: PORTRAIT_SCENE_HEIGHT,
+  });
+
+  return {
+    dataUrl: canvas.toDataURL("image/png"),
+    width: canvas.width,
+    height: canvas.height,
+  };
+}
+
 export async function composePostcard({
   photoSrc,
   photoIsCutout = false,
@@ -391,11 +564,13 @@ export async function composePostcard({
   title,
   caption,
   focusLabel,
+  sceneOverrideSrc = null,
 }: ComposePostcardInput): Promise<PostcardCompositionResult> {
   const palette = paletteByAccentToken[frame.accentToken];
-  const [sourceImage, backdropImage] = await Promise.all([
-    loadImage(photoSrc),
+  const [sourceImage, backdropImage, sceneOverrideImage] = await Promise.all([
+    sceneOverrideSrc ? Promise.resolve(null) : loadImage(photoSrc),
     loadImage(backdropSrc).catch(() => null),
+    sceneOverrideSrc ? loadImage(sceneOverrideSrc).catch(() => null) : Promise.resolve(null),
   ]);
   const canvas = document.createElement("canvas");
 
@@ -411,11 +586,11 @@ export async function composePostcard({
   const outerPadding = 30;
   const cardX = 72;
   const cardY = 160;
-  const cardWidth = 620;
-  const cardHeight = 760;
-  const cardImageInset = 28;
+  const cardWidth = CARD_WIDTH;
+  const cardHeight = CARD_HEIGHT;
+  const cardImageInset = CARD_IMAGE_INSET;
   const cardImageWidth = cardWidth - cardImageInset * 2;
-  const cardImageHeight = cardHeight - cardImageInset * 2 - 110;
+  const cardImageHeight = cardHeight - cardImageInset * 2 - CARD_TEXT_FOOTER_HEIGHT;
   const detailsX = cardX + cardWidth + 58;
   const detailsY = 160;
   const detailsWidth = POSTCARD_WIDTH - detailsX - 72;
@@ -493,122 +668,41 @@ export async function composePostcard({
   roundedRectPath(context, cardX, cardY, cardWidth, cardHeight, 34);
   context.stroke();
 
-  if (photoIsCutout) {
-    context.save();
-    roundedRectPath(context, cardImageX, cardImageY, cardImageWidth, cardImageHeight, 24);
-    context.clip();
+  context.save();
+  roundedRectPath(
+    context,
+    cardImageX,
+    cardImageY,
+    cardImageWidth,
+    cardImageHeight,
+    24
+  );
+  context.clip();
 
-    if (backdropImage) {
-      drawPhotoCover({
-        context,
-        image: backdropImage,
-        x: cardImageX,
-        y: cardImageY,
-        width: cardImageWidth,
-        height: cardImageHeight,
-      });
-    } else {
-      const fallbackSurface = context.createLinearGradient(
-        cardImageX,
-        cardImageY,
-        cardImageX,
-        cardImageY + cardImageHeight
-      );
-      fallbackSurface.addColorStop(0, "rgba(255, 255, 255, 0.22)");
-      fallbackSurface.addColorStop(1, "rgba(255, 255, 255, 0.12)");
-      context.fillStyle = fallbackSurface;
-      context.fillRect(cardImageX, cardImageY, cardImageWidth, cardImageHeight);
-    }
-
-    const sceneGrade = context.createLinearGradient(
-      cardImageX,
-      cardImageY,
-      cardImageX,
-      cardImageY + cardImageHeight
-    );
-    sceneGrade.addColorStop(0, "rgba(16, 12, 10, 0.12)");
-    sceneGrade.addColorStop(1, "rgba(16, 12, 10, 0.36)");
-    context.fillStyle = sceneGrade;
-    context.fillRect(cardImageX, cardImageY, cardImageWidth, cardImageHeight);
-
-    context.restore();
-
-    const shadowCenterX = cardImageX + cardImageWidth / 2;
-    const shadowCenterY = cardImageY + cardImageHeight - 42;
-    const shadowRadiusX = cardImageWidth * 0.35;
-    const shadowRadiusY = 36;
-
-    context.save();
-    context.beginPath();
-    context.ellipse(
-      shadowCenterX,
-      shadowCenterY,
-      shadowRadiusX,
-      shadowRadiusY,
-      0,
-      0,
-      Math.PI * 2
-    );
-    const floorShadow = context.createRadialGradient(
-      shadowCenterX,
-      shadowCenterY,
-      10,
-      shadowCenterX,
-      shadowCenterY,
-      shadowRadiusX
-    );
-    floorShadow.addColorStop(0, "rgba(0, 0, 0, 0.34)");
-    floorShadow.addColorStop(1, "rgba(0, 0, 0, 0)");
-    context.fillStyle = floorShadow;
-    context.fill();
-    context.restore();
-
-    context.save();
-    context.shadowColor = "rgba(0, 0, 0, 0.3)";
-    context.shadowBlur = 14;
-    context.shadowOffsetY = 6;
-    drawCutoutForeground({
-      context,
-      image: sourceImage,
-      x: cardImageX + 20,
-      y: cardImageY + 14,
-      width: cardImageWidth - 40,
-      height: cardImageHeight - 16,
-      subjectTransform,
-    });
-    context.restore();
-  } else {
-    context.save();
-    roundedRectPath(
-      context,
-      cardImageX,
-      cardImageY,
-      cardImageWidth,
-      cardImageHeight,
-      24
-    );
-    context.clip();
+  if (sceneOverrideImage) {
     drawPhotoCover({
       context,
-      image: sourceImage,
+      image: sceneOverrideImage,
       x: cardImageX,
       y: cardImageY,
       width: cardImageWidth,
       height: cardImageHeight,
     });
-    const selfieGradient = context.createLinearGradient(
-      cardImageX,
-      cardImageY,
-      cardImageX,
-      cardImageY + cardImageHeight
-    );
-    selfieGradient.addColorStop(0, "rgba(12, 8, 6, 0.08)");
-    selfieGradient.addColorStop(0.55, "rgba(12, 8, 6, 0)");
-    selfieGradient.addColorStop(1, palette.photoGlow);
-    context.fillStyle = selfieGradient;
-    context.fillRect(cardImageX, cardImageY, cardImageWidth, cardImageHeight);
-    context.restore();
+  } else if (sourceImage) {
+    renderPortraitScene({
+      context,
+      sourceImage,
+      backdropImage,
+      photoIsCutout,
+      subjectTransform,
+      x: cardImageX,
+      y: cardImageY,
+      width: cardImageWidth,
+      height: cardImageHeight,
+    });
   }
+
+  context.restore();
 
   context.lineWidth = 2;
   context.strokeStyle = "rgba(255, 255, 255, 0.72)";

@@ -29,30 +29,39 @@ const SitePreferencesContext = createContext<SitePreferencesContextValue | null>
   null
 );
 
+function getInitialLanguage() {
+  if (typeof window === "undefined") {
+    return DEFAULT_APP_LANGUAGE;
+  }
+
+  try {
+    const storedLanguage = window.localStorage.getItem(SITE_LANGUAGE_STORAGE_KEY);
+    return isAppLanguage(storedLanguage) ? storedLanguage : DEFAULT_APP_LANGUAGE;
+  } catch {
+    return DEFAULT_APP_LANGUAGE;
+  }
+}
+
+function getInitialTheme() {
+  if (typeof window === "undefined") {
+    return DEFAULT_APP_THEME;
+  }
+
+  try {
+    const storedTheme = window.localStorage.getItem(SITE_THEME_STORAGE_KEY);
+    return isAppTheme(storedTheme) ? storedTheme : DEFAULT_APP_THEME;
+  } catch {
+    return DEFAULT_APP_THEME;
+  }
+}
+
 export function SitePreferencesProvider({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [language, setLanguage] = useState<AppLanguage>(DEFAULT_APP_LANGUAGE);
-  const [theme, setTheme] = useState<AppTheme>(DEFAULT_APP_THEME);
-
-  useEffect(() => {
-    try {
-      const storedLanguage = window.localStorage.getItem(SITE_LANGUAGE_STORAGE_KEY);
-      const storedTheme = window.localStorage.getItem(SITE_THEME_STORAGE_KEY);
-
-      if (isAppLanguage(storedLanguage)) {
-        setLanguage(storedLanguage);
-      }
-
-      if (isAppTheme(storedTheme)) {
-        setTheme(storedTheme);
-      }
-    } catch {
-      // Ignore storage access issues and keep defaults.
-    }
-  }, []);
+  const [language, setLanguage] = useState<AppLanguage>(getInitialLanguage);
+  const [theme, setTheme] = useState<AppTheme>(getInitialTheme);
 
   useEffect(() => {
     applyDocumentPreferences(language, theme);

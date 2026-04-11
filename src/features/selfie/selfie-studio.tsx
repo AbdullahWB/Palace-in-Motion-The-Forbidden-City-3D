@@ -15,6 +15,7 @@ import {
 } from "@/data/selfie";
 import {
   composePostcard,
+  composePortraitScene,
   type PostcardCompositionResult,
   type SubjectTransform,
 } from "@/lib/selfie/compose-postcard";
@@ -25,10 +26,16 @@ import { HERITAGE_SCENE_ID } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/use-app-store";
 import type { GuideRequest, GuideResponse } from "@/types/ai-guide";
+import type {
+  AiEnhancedScene,
+  SelfieEnhanceRequest,
+  SelfieEnhanceResponse,
+} from "@/types/selfie";
 
 type TabId = "theme" | "place-focus" | "text-ai" | "compose-export";
 type PreparedForeground = { source: string; imageSrc: string; wasBackgroundRemoved: boolean };
 type ActiveBackdrop = { imageUrl: string; label: string; sourceType: "preset" | "custom" };
+type PreviewMode = "manual" | "ai";
 type SelfieStudioProps = {
   mode?: "page" | "modal";
   onClose?: () => void;
@@ -157,16 +164,23 @@ export function SelfieStudio({
   const [preparedForeground, setPreparedForeground] = useState<PreparedForeground | null>(null);
   const [subjectTransform, setSubjectTransform] = useState<SubjectTransform>(defaultSubjectTransform);
   const [composition, setComposition] = useState<PostcardCompositionResult | null>(null);
+  const [aiComposition, setAiComposition] = useState<PostcardCompositionResult | null>(null);
+  const [manualSceneDataUrl, setManualSceneDataUrl] = useState<string | null>(null);
+  const [aiEnhancedScene, setAiEnhancedScene] = useState<AiEnhancedScene | null>(null);
+  const [previewMode, setPreviewMode] = useState<PreviewMode>("manual");
   const [isCompositionStale, setIsCompositionStale] = useState(false);
+  const [isAiResultStale, setIsAiResultStale] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [captionError, setCaptionError] = useState<string | null>(null);
   const [captionInfo, setCaptionInfo] = useState<string | null>(null);
+  const [enhanceError, setEnhanceError] = useState<string | null>(null);
   const [isStartingCamera, setIsStartingCamera] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [isRemovingBackground, setIsRemovingBackground] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const [isSuggestingCaption, setIsSuggestingCaption] = useState(false);
 
   const activeFocus = getSelfieFocusById(selectedFocusId) ?? selfieFocusOptions[0];
@@ -179,12 +193,39 @@ export function SelfieStudio({
   const sourceInputRef = useRef<HTMLInputElement | null>(null);
   const backdropInputRef = useRef<HTMLInputElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const visibleComposition =
+    previewMode === "ai" && aiComposition && !isAiResultStale
+      ? aiComposition
+      : composition;
 
   useEffect(() => () => streamRef.current?.getTracks().forEach((track) => track.stop()), []);
-  useEffect(() => () => { if (composition) URL.revokeObjectURL(composition.downloadUrl); }, [composition]);
+  useEffect(
+    () => () => {
+      if (composition) URL.revokeObjectURL(composition.downloadUrl);
+    },
+    [composition]
+  );
+  useEffect(
+    () => () => {
+      if (aiComposition) URL.revokeObjectURL(aiComposition.downloadUrl);
+    },
+    [aiComposition]
+  );
 
-  const markStale = () => composition && setIsCompositionStale(true);
-  const resetGenerationState = () => { setComposition(null); setIsCompositionStale(false); };
+  function invalidateAiResult() {
+    const hadAiResult = Boolean(aiEnhancedScene || aiComposition);
+
+    setPreviewMode("manual");
+    setAiComposition(null);
+    setAiEnhancedScene(null);
+    setEnhanceError(null);
+    setIsAiResultStale(hadAiResult || isAiResultStale);
+  }
+
+  const markStale = () => {
+    if (composition) setIsCompositionStale(true);
+    invalidateAiResult();
+  };
 
   function stopCameraStream() {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -196,6 +237,7 @@ export function SelfieStudio({
 
   async function runPostcardGeneration(backdrop: ActiveBackdrop) {
     if (!sourceImage) throw new Error("Capture or upload your photo first, then generate.");
+    const hadAiResult = Boolean(aiEnhancedScene || aiComposition);
     const resolvedTitle = title.trim() || activeFrame.defaultTitle || activeFrame.title;
     const resolvedCaption = caption.trim() || activeFocus.description;
     let fg = preparedForeground;
@@ -206,6 +248,12 @@ export function SelfieStudio({
       setPreparedForeground(fg);
       setIsRemovingBackground(false);
     }
+    const manualScene = await composePortraitScene({
+      photoSrc: fg.imageSrc,
+      photoIsCutout: fg.wasBackgroundRemoved,
+      backdropSrc: backdrop.imageUrl,
+      subjectTransform,
+    });
     const next = await composePostcard({
       photoSrc: fg.imageSrc,
       photoIsCutout: fg.wasBackgroundRemoved,
@@ -216,11 +264,18 @@ export function SelfieStudio({
       title: resolvedTitle,
       caption: resolvedCaption,
       focusLabel: activeFocus.label,
+      sceneOverrideSrc: manualScene.dataUrl,
     });
     setTitle(resolvedTitle);
     if (!caption.trim()) setCaption(resolvedCaption);
+    setManualSceneDataUrl(manualScene.dataUrl);
     setComposition(next);
+    setAiComposition(null);
+    setAiEnhancedScene(null);
+    setPreviewMode("manual");
     setIsCompositionStale(false);
+    setIsAiResultStale(hadAiResult);
+    setEnhanceError(null);
     setHasGeneratedPostcard(true);
   }
 
@@ -245,7 +300,6 @@ export function SelfieStudio({
     setIsStartingCamera(true);
     setCameraError(null);
     setGenerationError(null);
-    resetGenerationState();
     try {
       stopCameraStream();
       const stream = await requestCameraStream();
@@ -279,7 +333,8 @@ export function SelfieStudio({
       setSourceImage(imageDataUrl);
       setSourceLabel(file.name);
       setPreparedForeground(null);
-      resetGenerationState();
+      setManualSceneDataUrl(null);
+      markStale();
       setCaptionInfo(null);
     } catch (error) {
       setGenerationError(error instanceof Error ? error.message : "The selected image could not be read.");
@@ -323,7 +378,8 @@ export function SelfieStudio({
     setSourceImage(captureCanvas.toDataURL("image/png"));
     setSourceLabel("Camera capture");
     setPreparedForeground(null);
-    resetGenerationState();
+    setManualSceneDataUrl(null);
+    markStale();
     setCaptionInfo(null);
     stopCameraStream();
   }
@@ -341,6 +397,66 @@ export function SelfieStudio({
     } finally {
       setIsGenerating(false);
       setIsRemovingBackground(false);
+    }
+  }
+
+  async function handleAiEnhance() {
+    if (!composition || !manualSceneDataUrl || !preparedForeground) {
+      return setEnhanceError("Generate the postcard first before running AI enhancement.");
+    }
+
+    setEnhanceError(null);
+    setIsEnhancing(true);
+
+    try {
+      const payload: SelfieEnhanceRequest = {
+        baseSceneDataUrl: manualSceneDataUrl,
+        subjectReferenceDataUrl: preparedForeground.imageSrc,
+        backgroundReferenceDataUrl: activeBackdrop.imageUrl,
+        placeTitle: title.trim() || activeFrame.defaultTitle || activeFrame.title,
+        focusLabel: activeFocus.label,
+        language,
+      };
+      const response = await fetch("/api/selfie/enhance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = (await response.json()) as SelfieEnhanceResponse;
+
+      if (!response.ok || !data.enhancedSceneDataUrl) {
+        throw new Error(data.error ?? "AI enhancement failed.");
+      }
+
+      const enhancedResult = await composePostcard({
+        photoSrc: preparedForeground.imageSrc,
+        photoIsCutout: preparedForeground.wasBackgroundRemoved,
+        backdropSrc: activeBackdrop.imageUrl,
+        backdropLabel: activeBackdrop.label,
+        subjectTransform,
+        frame: activeFrame,
+        title: title.trim() || activeFrame.defaultTitle || activeFrame.title,
+        caption: caption.trim() || activeFocus.description,
+        focusLabel: activeFocus.label,
+        sceneOverrideSrc: data.enhancedSceneDataUrl,
+      });
+
+      setAiEnhancedScene({
+        dataUrl: data.enhancedSceneDataUrl,
+        provider: data.provider,
+        model: data.model,
+      });
+      setAiComposition(enhancedResult);
+      setPreviewMode("ai");
+      setIsAiResultStale(false);
+      setActiveTab("compose-export");
+    } catch (error) {
+      setPreviewMode("manual");
+      setEnhanceError(
+        error instanceof Error ? error.message : "AI enhancement failed."
+      );
+    } finally {
+      setIsEnhancing(false);
     }
   }
 
@@ -401,10 +517,14 @@ export function SelfieStudio({
 
   const stageStatus = !sourceImage
     ? "No selfie image"
+    : isEnhancing
+      ? "Enhancing with AI"
     : isRemovingBackground
       ? "Removing background"
       : isGenerating
         ? "Generating postcard"
+        : isAiResultStale
+          ? "AI needs regenerate"
         : composition && !isCompositionStale
           ? "Postcard generated"
           : composition && isCompositionStale
@@ -497,14 +617,26 @@ export function SelfieStudio({
                   <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-cover" />
                   {!isCameraReady ? <div className="absolute inset-0 flex items-center justify-center bg-black/40"><p className="rounded-full border border-white/35 bg-white/15 px-5 py-2 text-sm font-semibold text-white">Waiting for camera feed...</p></div> : null}
                 </>
-              ) : composition ? (
-                <Image src={composition.dataUrl} alt="Generated postcard composition preview" fill unoptimized sizes="(max-width: 1280px) 100vw, 70vw" className="object-contain bg-black/45" />
+              ) : visibleComposition ? (
+                <Image src={visibleComposition.dataUrl} alt="Generated postcard composition preview" fill unoptimized sizes="(max-width: 1280px) 100vw, 70vw" className="object-contain bg-black/45" />
               ) : sourceImage ? (
                 <Image src={sourceImage} alt="Selected selfie source" fill unoptimized sizes="(max-width: 1280px) 100vw, 70vw" className="object-cover" />
               ) : (
                 <Image src={activeBackdrop.imageUrl} alt={`${activeBackdrop.label} backdrop`} fill sizes="(max-width: 1280px) 100vw, 70vw" className="object-cover" />
               )}
-              {isGenerating ? <div className="absolute inset-0 flex items-center justify-center bg-black/45"><p className="rounded-full border border-white/30 bg-white/18 px-5 py-2 text-sm font-semibold text-white">{isRemovingBackground ? "Removing selfie background..." : "Generating postcard..."}</p></div> : null}
+              {visibleComposition ? (
+                <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+                  <span className="rounded-full border border-white/25 bg-black/35 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white">
+                    {previewMode === "ai" && !isAiResultStale ? "AI preview" : "Original preview"}
+                  </span>
+                  {aiEnhancedScene && !isAiResultStale ? (
+                    <span className="rounded-full border border-white/25 bg-black/35 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/80">
+                      {aiEnhancedScene.model}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+              {isGenerating || isEnhancing ? <div className="absolute inset-0 flex items-center justify-center bg-black/45"><p className="rounded-full border border-white/30 bg-white/18 px-5 py-2 text-sm font-semibold text-white">{isEnhancing ? "Blending with Gemini..." : isRemovingBackground ? "Removing selfie background..." : "Generating postcard..."}</p></div> : null}
             </div>
 
             <div className="mt-4 flex flex-wrap gap-3">
@@ -554,13 +686,85 @@ export function SelfieStudio({
               ) : null}
               {activeTab === "compose-export" ? (
                 <>
+                  {composition ? (
+                    <div className="rounded-[1rem] border border-white/25 bg-white/10 p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f1d8b2]">
+                            AI scene blend
+                          </p>
+                          <p className="mt-2 text-sm leading-6 text-white/78">
+                            Use Gemini to harmonize your cutout with the selected palace place.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => { void handleAiEnhance(); }}
+                          disabled={isGenerating || isEnhancing}
+                          className={cn(
+                            "rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em]",
+                            isGenerating || isEnhancing
+                              ? "cursor-wait border-white/25 bg-white/15 text-white/60"
+                              : "border-[#f1d8b2] bg-[#f1d8b2] text-[#271b15] hover:bg-[#f4e0c1]"
+                          )}
+                        >
+                          {isEnhancing
+                            ? "Enhancing..."
+                            : aiEnhancedScene && !isAiResultStale
+                              ? "Re-run AI Enhance"
+                              : "AI Enhance"}
+                        </button>
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewMode("manual")}
+                          disabled={!composition}
+                          className={cn(
+                            "rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em]",
+                            previewMode === "manual" || !aiComposition || isAiResultStale
+                              ? "border-[#f1d8b2]/60 bg-[#f1d8b2]/22 text-white"
+                              : "border-white/25 bg-white/10 text-white hover:bg-white/18"
+                          )}
+                        >
+                          Original
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewMode("ai")}
+                          disabled={!aiComposition || isAiResultStale}
+                          className={cn(
+                            "rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em]",
+                            previewMode === "ai" && aiComposition && !isAiResultStale
+                              ? "border-[#f1d8b2]/60 bg-[#f1d8b2]/22 text-white"
+                              : !aiComposition || isAiResultStale
+                                ? "cursor-not-allowed border-white/20 bg-white/8 text-white/45"
+                                : "border-white/25 bg-white/10 text-white hover:bg-white/18"
+                          )}
+                        >
+                          AI
+                        </button>
+                      </div>
+                      {isAiResultStale ? (
+                        <p className="mt-3 rounded-[0.9rem] border border-white/20 bg-black/20 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/80">
+                          Changes need regenerate
+                        </p>
+                      ) : null}
+                      {enhanceError ? (
+                        <p className="mt-3 rounded-[0.9rem] border border-[#f1d8b2]/40 bg-[#f1d8b2]/16 px-4 py-3 text-sm leading-6 text-white">
+                          {enhanceError}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
                   <label className="block"><div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.16em] text-white/80"><span>Scale</span><span>{subjectTransform.scale.toFixed(2)}x</span></div><input type="range" min={0.6} max={1.6} step={0.05} value={subjectTransform.scale} onChange={(event) => { setSubjectTransform((prev) => ({ ...prev, scale: Number(event.target.value) })); markStale(); }} className="mt-2 w-full" /></label>
                   <label className="block"><div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.16em] text-white/80"><span>Horizontal</span><span>{subjectTransform.offsetX}%</span></div><input type="range" min={-35} max={35} step={1} value={subjectTransform.offsetX} onChange={(event) => { setSubjectTransform((prev) => ({ ...prev, offsetX: Number(event.target.value) })); markStale(); }} className="mt-2 w-full" /></label>
                   <label className="block"><div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.16em] text-white/80"><span>Vertical</span><span>{subjectTransform.offsetY}%</span></div><input type="range" min={-35} max={35} step={1} value={subjectTransform.offsetY} onChange={(event) => { setSubjectTransform((prev) => ({ ...prev, offsetY: Number(event.target.value) })); markStale(); }} className="mt-2 w-full" /></label>
                   <button type="button" onClick={() => { setSubjectTransform(defaultSubjectTransform); markStale(); }} className="rounded-full border border-white/35 bg-white/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-white/20">Reset placement</button>
                   <div className="flex flex-wrap gap-3">
                     <button type="button" onClick={() => { void handleGeneratePostcard(); }} disabled={isGenerating} className={cn("rounded-full border px-5 py-3 text-sm font-semibold", isGenerating ? "cursor-wait border-white/25 bg-white/15 text-white/60" : "border-accent bg-accent text-white hover:bg-accent-strong")}>{composition && isCompositionStale ? "Regenerate postcard" : "Generate postcard"}</button>
-                    {composition ? <a href={composition.downloadUrl} download={`${activeFrame.id}-postcard.png`} className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/12 px-5 py-3 text-sm font-semibold text-white hover:bg-white/20">Download PNG</a> : null}
+                    {visibleComposition ? <a href={visibleComposition.downloadUrl} download={`${activeFrame.id}-${previewMode === "ai" && !isAiResultStale ? "ai" : "manual"}-postcard.png`} className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/12 px-5 py-3 text-sm font-semibold text-white hover:bg-white/20">Download PNG</a> : null}
                   </div>
                   <DemoBadgePanel announce compact className="bg-white/12" title="Completion badge" description="Unlock by finishing the Explore route and postcard steps." />
                 </>

@@ -44,11 +44,13 @@ type PanoramaExperienceProps = {
   initialState: ExploreSearchState;
 };
 
+type ExploreUiCopy = (typeof exploreUiCopy)[keyof typeof exploreUiCopy];
+
 type PlaceInfoPanelProps = {
   place: ExplorePlace;
   activePhoto: ExplorePlacePhoto;
   language: AppLanguage;
-  copy: (typeof exploreUiCopy)["zh"];
+  copy: ExploreUiCopy;
   theme: "dark" | "light";
   compact?: boolean;
 };

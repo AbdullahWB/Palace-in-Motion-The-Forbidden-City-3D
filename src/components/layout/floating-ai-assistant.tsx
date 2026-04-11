@@ -908,19 +908,20 @@ export function FloatingAIAssistant() {
         ) : null}
       </AnimatePresence>
 
-      <button
-        type="button"
-        onClick={() => setIsOpen((current) => !current)}
-        className={cn(
-          "pointer-events-auto relative ml-auto inline-flex h-[4.75rem] w-[4.75rem] items-center justify-center overflow-hidden rounded-full border-[5px] transition-transform hover:scale-[1.03]",
-          isDarkTheme
-            ? "border-[#ff6c72] bg-[#14090c] shadow-[0_18px_42px_rgba(123,21,36,0.28)]"
-            : "border-[#ff6c72] bg-[rgba(255,243,240,0.95)] shadow-[0_18px_42px_rgba(143,38,56,0.16)]"
-        )}
-        aria-expanded={isOpen}
-        aria-label={isOpen ? copy.closeLabel : copy.openLabel}
-      >
-        {isOpen ? (
+      {!isOpen ? (
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          className={cn(
+            "pointer-events-auto relative ml-auto inline-flex h-[4.75rem] w-[4.75rem] items-center justify-center overflow-hidden rounded-full border-[5px] hover:scale-[1.03]",
+            isDarkTheme
+              ? "border-[#ff6c72] bg-[#14090c] shadow-[0_18px_42px_rgba(123,21,36,0.28)]"
+              : "border-[#ff6c72] bg-[rgba(255,243,240,0.95)] shadow-[0_18px_42px_rgba(143,38,56,0.16)]"
+          )}
+          aria-expanded={false}
+          aria-label={copy.openLabel}
+        >
+        {false && (
           <span
             className={cn(
               "text-4xl font-black",
@@ -929,7 +930,7 @@ export function FloatingAIAssistant() {
           >
             ×
           </span>
-        ) : (
+        )}
           <Image
             src="/assistant/avatar.jpg"
             alt={copy.openLabel}
@@ -937,8 +938,8 @@ export function FloatingAIAssistant() {
             sizes="76px"
             className="object-cover"
           />
-        )}
       </button>
+      ) : null}
     </div>
   );
 }
