@@ -1,19 +1,32 @@
-import type { Metadata } from "next";
-import { normalizeExploreSearchState } from "@/data/panorama";
-import { PanoramaExperience } from "@/features/explore/panorama-experience";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Explore",
-  description:
-    "A fullscreen Palace in Motion route with a welcoming palace view, zoomable map overlay, and place-by-place photo exploration.",
-};
-
-type ExplorePageProps = {
+type ExploreRedirectPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function ExplorePage({ searchParams }: ExplorePageProps) {
-  const initialState = normalizeExploreSearchState(await searchParams);
+function buildSearchString(searchParams: Record<string, string | string[] | undefined>) {
+  const params = new URLSearchParams();
 
-  return <PanoramaExperience initialState={initialState} />;
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        params.append(key, item);
+      });
+      continue;
+    }
+
+    if (typeof value === "string") {
+      params.set(key, value);
+    }
+  }
+
+  return params.toString();
+}
+
+export default async function ExploreRedirectPage({
+  searchParams,
+}: ExploreRedirectPageProps) {
+  const query = buildSearchString(await searchParams);
+
+  redirect(query ? `/?${query}` : "/");
 }

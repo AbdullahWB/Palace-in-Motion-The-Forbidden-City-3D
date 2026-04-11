@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   AnimatePresence,
@@ -19,7 +18,10 @@ import {
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
 } from "react";
+import { LanguageToggleButton } from "@/components/preferences/language-toggle-button";
 import { MusicToggleButton } from "@/components/media/music-toggle-button";
+import { ThemeToggleButton } from "@/components/preferences/theme-toggle-button";
+import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
 import {
   exploreExperience,
   getExplorePhotoById,
@@ -27,39 +29,79 @@ import {
   normalizeExploreSearchState,
 } from "@/data/panorama";
 import { SelfieStudio } from "@/features/selfie/selfie-studio";
+import { pickLocalizedText } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/use-app-store";
 import type {
-  BilingualText,
   ExplorePlace,
   ExplorePlacePhoto,
   ExplorePlaceSlug,
   ExploreSearchState,
 } from "@/types/content";
+import type { AppLanguage } from "@/types/preferences";
 
 type PanoramaExperienceProps = {
   initialState: ExploreSearchState;
 };
 
-type BilingualStackProps = {
-  copy: BilingualText;
-  className?: string;
-  zhClassName?: string;
-  enClassName?: string;
-};
-
 type PlaceInfoPanelProps = {
   place: ExplorePlace;
   activePhoto: ExplorePlacePhoto;
+  language: AppLanguage;
+  copy: (typeof exploreUiCopy)["zh"];
+  theme: "dark" | "light";
   compact?: boolean;
 };
 
+const exploreUiCopy = {
+  zh: {
+    brandTitle: "全景故宫",
+    brandSubtitle: "全景故宫博物馆",
+    home: "首页",
+    preparedPlaces: "已准备场景",
+    welcome: "欢迎",
+    palaceMap: "宫城地图",
+    mapInstruction: "拖动或缩放地图，然后点击一个场所进入视图。",
+    mappedPlaces: "地点已映射",
+    closeMap: "关闭宫城地图",
+    zoomOut: "缩小地图",
+    zoomIn: "放大地图",
+    backToWelcome: "返回欢迎",
+    placeView: "场所视图",
+    backToMap: "返回地图",
+    close: "关闭",
+    selfie: "合影",
+    sceneFrames: "场景序列",
+    views: "张视图",
+    activeFrame: "当前画面",
+    closeSelfieModal: "关闭合影弹窗",
+  },
+  en: {
+    brandTitle: "Panoramic Palace",
+    brandSubtitle: "The Panoramic Palace Museum",
+    home: "Home",
+    preparedPlaces: "Prepared places",
+    welcome: "Welcome",
+    palaceMap: "Palace map",
+    mapInstruction: "Drag or zoom the map, then click one place to enter its view.",
+    mappedPlaces: "mapped places",
+    closeMap: "Close palace map",
+    zoomOut: "Zoom out map",
+    zoomIn: "Zoom in map",
+    backToWelcome: "Back to welcome",
+    placeView: "Place view",
+    backToMap: "Back to map",
+    close: "Close",
+    selfie: "Selfie",
+    sceneFrames: "Scene frames",
+    views: "views",
+    activeFrame: "Active frame",
+    closeSelfieModal: "Close selfie modal",
+  },
+} as const;
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
-}
-
-function formatInline(copy: BilingualText) {
-  return `${copy.zh} / ${copy.en}`;
 }
 
 function toSearchString(searchState: ExploreSearchState) {
@@ -78,29 +120,28 @@ function toSearchString(searchState: ExploreSearchState) {
   return params.toString();
 }
 
-function BilingualStack({
-  copy,
-  className,
-  zhClassName,
-  enClassName,
-}: BilingualStackProps) {
-  return (
-    <div className={className}>
-      <p className={zhClassName}>{copy.zh}</p>
-      <p className={enClassName}>{copy.en}</p>
-    </div>
-  );
-}
-
 function PlaceInfoPanel({
   place,
   activePhoto,
+  language,
+  copy,
+  theme,
   compact = false,
 }: PlaceInfoPanelProps) {
+  const isDarkTheme = theme === "dark";
+  const accentTextClass = isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft";
+  const paragraphTextClass = isDarkTheme ? "text-white" : "text-foreground";
+  const secondaryParagraphTextClass = isDarkTheme
+    ? "text-white/76"
+    : "text-foreground/78";
+
   return (
     <div
       className={cn(
-        "h-full overflow-hidden rounded-[1.8rem] border border-[#d6b071]/28 bg-[rgba(8,12,20,0.76)] text-white shadow-[0_28px_80px_rgba(0,0,0,0.34)] backdrop-blur-2xl",
+        "h-full overflow-hidden rounded-[1.8rem] border shadow-[0_28px_80px_rgba(0,0,0,0.24)] backdrop-blur-2xl",
+        isDarkTheme
+          ? "border-[#d6b071]/28 bg-[rgba(8,12,20,0.76)] text-white"
+          : "border-border/70 bg-[rgba(255,248,240,0.86)] text-foreground",
         compact ? "max-h-[32svh]" : "max-h-none"
       )}
     >
@@ -110,47 +151,53 @@ function PlaceInfoPanel({
           compact ? "px-4 py-4" : "px-6 py-6"
         )}
       >
-        <BilingualStack
-          copy={place.badgeLabel}
-          zhClassName="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#f1d8b2]"
-          enClassName="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/56"
-        />
+        <p
+          className={cn(
+            "text-[11px] font-semibold uppercase tracking-[0.28em]",
+            accentTextClass
+          )}
+        >
+          {pickLocalizedText(place.badgeLabel, language)}
+        </p>
 
-        <BilingualStack
-          copy={place.title}
-          className="mt-4"
-          zhClassName={cn(
-            "font-display text-white",
+        <p
+          className={cn(
+            "mt-4 font-display",
+            paragraphTextClass,
             compact ? "text-3xl" : "text-4xl leading-tight"
           )}
-          enClassName="mt-2 text-sm font-semibold uppercase tracking-[0.18em] text-white/68"
-        />
+        >
+          {pickLocalizedText(place.title, language)}
+        </p>
 
-        <BilingualStack
-          copy={place.shortDescription}
-          className="mt-5 rounded-[1.35rem] border border-white/10 bg-white/7 p-4"
-          zhClassName="text-sm leading-7 text-white"
-          enClassName="mt-2 text-sm leading-7 text-white/72"
-        />
-
-        <div className="mt-5 rounded-[1.35rem] border border-[#d6b071]/20 bg-[#d6b071]/8 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#f1d8b2]">
-            {"\u5f53\u524d\u753b\u9762 Active frame"}
+        <div
+          className={cn(
+            "mt-5 rounded-[1.35rem] border p-4",
+            isDarkTheme ? "border-white/10 bg-white/7" : "border-border/80 bg-background/82"
+          )}
+        >
+          <p className={cn("text-sm leading-7", paragraphTextClass)}>
+            {pickLocalizedText(place.shortDescription, language)}
           </p>
-          <BilingualStack
-            copy={activePhoto.caption}
-            className="mt-3"
-            zhClassName="text-sm font-semibold text-white"
-            enClassName="mt-1 text-sm text-white/70"
-          />
         </div>
 
-        <BilingualStack
-          copy={place.longDescription}
-          className="mt-5"
-          zhClassName="text-sm leading-8 text-white"
-          enClassName="mt-3 text-sm leading-8 text-white/72"
-        />
+        <div
+          className={cn(
+            "mt-5 rounded-[1.35rem] border p-4",
+            isDarkTheme ? "border-[#d6b071]/20 bg-[#d6b071]/8" : "border-accent-soft/20 bg-accent-soft/8"
+          )}
+        >
+          <p className={cn("text-[11px] font-semibold uppercase tracking-[0.24em]", accentTextClass)}>
+            {copy.activeFrame}
+          </p>
+          <p className={cn("mt-3 text-sm font-semibold", paragraphTextClass)}>
+            {pickLocalizedText(activePhoto.caption, language)}
+          </p>
+        </div>
+
+        <p className={cn("mt-5 text-sm leading-8", secondaryParagraphTextClass)}>
+          {pickLocalizedText(place.longDescription, language)}
+        </p>
       </div>
     </div>
   );
@@ -163,6 +210,9 @@ export function PanoramaExperience({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const reduceMotion = useReducedMotion() ?? false;
+  const { language, theme } = useSitePreferences();
+  const ui = exploreUiCopy[language];
+  const isDarkTheme = theme === "dark";
 
   const visitedExplorePlaceSlugs = useAppStore(
     (state) => state.visitedExplorePlaceSlugs
@@ -201,6 +251,9 @@ export function PanoramaExperience({
   const deferredPhotoId = useDeferredValue(searchState.photoId);
   const activePhoto = getExplorePhotoById(activePlace, deferredPhotoId);
   const visitedCount = visitedExplorePlaceSlugs.length;
+  const showWelcomeVideo =
+    searchState.view === "welcome" &&
+    Boolean(exploreExperience.welcome.heroVideoSrc);
 
   useEffect(() => {
     if (searchState.view === "place" && activePlace) {
@@ -234,6 +287,8 @@ export function PanoramaExperience({
     searchState.view === "place"
       ? activePhoto?.src ?? activePlace?.coverSrc ?? exploreExperience.welcome.heroSrc
       : exploreExperience.welcome.heroSrc;
+  const localize = (copy: { zh: string; en: string }) =>
+    pickLocalizedText(copy, language);
 
   function clampMapOffset(
     nextOffset: {
@@ -375,7 +430,10 @@ export function PanoramaExperience({
 
   return (
     <section
-      className="relative h-[100svh] overflow-hidden bg-[#05070d] text-white"
+      className={cn(
+        "relative h-[100svh] overflow-hidden",
+        isDarkTheme ? "bg-[#05070d] text-white" : "bg-background text-foreground"
+      )}
       onPointerMove={handleScenePointerMove}
       onPointerLeave={handleScenePointerLeave}
     >
@@ -393,6 +451,26 @@ export function PanoramaExperience({
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${backdropSrc})` }}
         />
+        {showWelcomeVideo ? (
+          <video
+            key={exploreExperience.welcome.heroVideoSrc}
+            className="absolute inset-0 h-full w-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            poster={
+              exploreExperience.welcome.heroVideoPosterSrc ??
+              exploreExperience.welcome.heroSrc
+            }
+          >
+            <source
+              src={exploreExperience.welcome.heroVideoSrc}
+              type="video/mp4"
+            />
+          </video>
+        ) : null}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_16%,rgba(38,94,164,0.5),transparent_28%),radial-gradient(circle_at_78%_18%,rgba(227,178,96,0.24),transparent_34%),linear-gradient(180deg,rgba(8,10,15,0.12),rgba(8,10,15,0.3)_48%,rgba(5,7,12,0.58)_100%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(6,8,14,0.32),transparent_22%,transparent_78%,rgba(6,8,14,0.36))]" />
       </motion.div>
@@ -414,27 +492,63 @@ export function PanoramaExperience({
 
       {searchState.view !== "place" ? (
         <div className="absolute left-4 top-4 z-30 w-[min(22rem,calc(100vw-2rem))] md:left-6 md:top-6">
-          <div className="rounded-[1.8rem] border border-white/14 bg-[rgba(8,10,14,0.44)] p-5 backdrop-blur-xl shadow-[0_24px_70px_rgba(0,0,0,0.28)]">
-            <p className="text-3xl font-semibold tracking-[0.12em] text-[#f4dcae]">
-              {"\u5168\u666f\u6545\u5bab"}
+          <div
+            className={cn(
+              "rounded-[1.8rem] border p-5 backdrop-blur-xl shadow-[0_24px_70px_rgba(0,0,0,0.22)]",
+              isDarkTheme
+                ? "border-white/14 bg-[rgba(8,10,14,0.44)] text-white"
+                : "border-border/70 bg-[rgba(255,248,240,0.82)] text-foreground"
+            )}
+          >
+            <p
+              className={cn(
+                "text-3xl font-semibold tracking-[0.12em]",
+                isDarkTheme ? "text-[#f4dcae]" : "text-accent"
+              )}
+            >
+              {ui.brandTitle}
             </p>
-            <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/62">
-              The Panoramic Palace Museum
+            <p
+              className={cn(
+                "mt-2 text-[11px] font-semibold uppercase tracking-[0.28em]",
+                isDarkTheme ? "text-white/62" : "text-foreground/62"
+              )}
+            >
+              {ui.brandSubtitle}
             </p>
 
             <div className="mt-5 flex flex-wrap gap-2">
-              <Link
-                href="/"
-                className="rounded-full border border-white/16 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white hover:bg-white/16"
+              <span
+                className={cn(
+                  "rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em]",
+                  isDarkTheme
+                    ? "border-white/16 bg-white/10 text-white"
+                    : "border-border/70 bg-background/76 text-foreground"
+                )}
               >
-                Home
-              </Link>
+                {ui.home}
+              </span>
             </div>
 
-            <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#f1d8b2]">
-              {"\u5df2\u51c6\u5907\u573a\u666f Prepared places"}
+            <div className="mt-5 flex flex-wrap gap-2">
+              <LanguageToggleButton tone={isDarkTheme ? "dark" : "light"} />
+              <ThemeToggleButton tone={isDarkTheme ? "dark" : "light"} />
+            </div>
+
+            <p
+              className={cn(
+                "mt-6 text-[11px] font-semibold uppercase tracking-[0.24em]",
+                isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft"
+              )}
+            >
+              {ui.preparedPlaces}
             </p>
-            <p className="mt-2 text-sm text-white/76">
+            <p
+              className={cn(
+                "mt-2 text-sm",
+                isDarkTheme ? "text-white/76" : "text-foreground/74"
+              )}
+            >
               {visitedCount} / {exploreExperience.places.length}
             </p>
           </div>
@@ -455,40 +569,63 @@ export function PanoramaExperience({
             }
             className="absolute inset-0 z-20 flex items-center justify-center px-4"
           >
-            <div className="w-full max-w-3xl rounded-[2.1rem] border border-white/14 bg-[rgba(8,10,14,0.42)] px-6 py-8 text-center shadow-[0_28px_80px_rgba(0,0,0,0.3)] backdrop-blur-2xl md:px-10 md:py-10">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[#f1d8b2]">
-                {"\u6b22\u8fce Welcome"}
+            <div
+              className={cn(
+                "w-full max-w-3xl rounded-[2.1rem] border px-6 py-8 text-center shadow-[0_28px_80px_rgba(0,0,0,0.3)] backdrop-blur-2xl md:px-10 md:py-10",
+                isDarkTheme
+                  ? "border-white/14 bg-[rgba(8,10,14,0.42)] text-white"
+                  : "border-border/70 bg-[rgba(255,248,240,0.78)] text-foreground"
+              )}
+            >
+              <p
+                className={cn(
+                  "text-[11px] font-semibold uppercase tracking-[0.32em]",
+                  isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft"
+                )}
+              >
+                {ui.welcome}
               </p>
 
-              <BilingualStack
-                copy={exploreExperience.welcome.title}
-                className="mt-5"
-                zhClassName="font-display text-5xl leading-none text-white md:text-7xl"
-                enClassName="mt-3 text-sm font-semibold uppercase tracking-[0.22em] text-white/66"
-              />
+              <p
+                className={cn(
+                  "mt-5 font-display text-5xl leading-none md:text-7xl",
+                  isDarkTheme ? "text-white" : "text-foreground"
+                )}
+              >
+                {localize(exploreExperience.welcome.title)}
+              </p>
 
-              <BilingualStack
-                copy={exploreExperience.welcome.subtitle}
-                className="mx-auto mt-6 max-w-2xl"
-                zhClassName="text-base leading-8 text-white"
-                enClassName="mt-3 text-sm leading-7 text-white/72"
-              />
+              <p
+                className={cn(
+                  "mx-auto mt-6 max-w-2xl text-base leading-8",
+                  isDarkTheme ? "text-white/86" : "text-foreground/80"
+                )}
+              >
+                {localize(exploreExperience.welcome.subtitle)}
+              </p>
 
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <button
                   type="button"
                   onClick={openMap}
-                  className="inline-flex flex-col items-center justify-center rounded-full border border-[#d6b071]/34 bg-[#d6b071]/16 px-7 py-4 text-center shadow-[0_18px_40px_rgba(14,10,6,0.28)] hover:bg-[#d6b071]/24"
+                  className={cn(
+                    "inline-flex items-center justify-center rounded-full border px-7 py-4 text-center shadow-[0_18px_40px_rgba(14,10,6,0.18)]",
+                    isDarkTheme
+                      ? "border-[#d6b071]/34 bg-[#d6b071]/16 hover:bg-[#d6b071]/24"
+                      : "border-accent-soft/28 bg-accent-soft/16 hover:bg-accent-soft/24"
+                  )}
                 >
-                  <span className="text-sm font-semibold text-[#f6dfb8]">
-                    {exploreExperience.welcome.ctaLabel.zh}
-                  </span>
-                  <span className="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/68">
-                    {exploreExperience.welcome.ctaLabel.en}
+                  <span
+                    className={cn(
+                      "text-sm font-semibold",
+                      isDarkTheme ? "text-[#f6dfb8]" : "text-accent-strong"
+                    )}
+                  >
+                    {localize(exploreExperience.welcome.ctaLabel)}
                   </span>
                 </button>
 
-                <MusicToggleButton tone="dark" />
+                <MusicToggleButton tone={isDarkTheme ? "dark" : "light"} />
               </div>
             </div>
           </motion.div>
@@ -516,23 +653,43 @@ export function PanoramaExperience({
                   ? undefined
                   : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }
               }
-              className="relative z-10 w-full max-w-[82rem] rounded-[2rem] border border-[#d6b071]/22 bg-[rgba(8,12,20,0.78)] p-4 shadow-[0_32px_90px_rgba(0,0,0,0.34)] backdrop-blur-2xl"
+              className={cn(
+                "relative z-10 w-full max-w-[82rem] rounded-[2rem] border p-4 shadow-[0_32px_90px_rgba(0,0,0,0.26)] backdrop-blur-2xl",
+                isDarkTheme
+                  ? "border-[#d6b071]/22 bg-[rgba(8,12,20,0.78)] text-white"
+                  : "border-border/70 bg-[rgba(255,248,240,0.86)] text-foreground"
+              )}
             >
               <div className="flex items-center justify-between gap-4 px-2 pb-4">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#f1d8b2]">
-                    {"\u5bab\u57ce\u5730\u56fe Palace map"}
+                  <p
+                    className={cn(
+                      "text-[11px] font-semibold uppercase tracking-[0.28em]",
+                      isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft"
+                    )}
+                  >
+                    {ui.palaceMap}
                   </p>
-                  <p className="mt-2 text-sm text-white/72">
-                    {"\u62d6\u52a8\u6216\u7f29\u653e\u5730\u56fe\uff0c\u7136\u540e\u70b9\u51fb\u4e00\u4e2a\u573a\u6240\u8fdb\u5165\u89c6\u56fe Drag or zoom the map, then enter one of the highlighted places."}
+                  <p
+                    className={cn(
+                      "mt-2 text-sm",
+                      isDarkTheme ? "text-white/72" : "text-foreground/72"
+                    )}
+                  >
+                    {ui.mapInstruction}
                   </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={openWelcome}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/16 bg-white/10 text-lg text-white hover:bg-white/16"
-                  aria-label="Close palace map"
+                  className={cn(
+                    "inline-flex h-11 w-11 items-center justify-center rounded-full border text-lg",
+                    isDarkTheme
+                      ? "border-white/16 bg-white/10 text-white hover:bg-white/16"
+                      : "border-border/80 bg-background/82 text-foreground hover:bg-background"
+                  )}
+                  aria-label={ui.closeMap}
                 >
                   ×
                 </button>
@@ -557,7 +714,7 @@ export function PanoramaExperience({
                     <div className="relative h-full w-full">
                       <Image
                         src={exploreExperience.map.imageSrc}
-                        alt={formatInline(exploreExperience.map.alt)}
+                        alt={localize(exploreExperience.map.alt)}
                         fill
                         priority
                         sizes="(max-width: 1024px) 92vw, 70rem"
@@ -580,10 +737,7 @@ export function PanoramaExperience({
                           </span>
                           <span className="absolute left-1/2 top-full mt-2 min-w-28 -translate-x-1/2 rounded-xl border border-[#d6b071]/24 bg-white/92 px-3 py-2 text-center shadow-[0_12px_28px_rgba(45,24,14,0.18)]">
                             <span className="block text-xs font-semibold text-[#8e4c1d]">
-                              {marker.label.zh}
-                            </span>
-                            <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#6c5b48]">
-                              {marker.label.en}
+                              {localize(marker.label)}
                             </span>
                           </span>
                         </button>
@@ -592,24 +746,41 @@ export function PanoramaExperience({
                   </div>
                 </div>
 
-                <div className="absolute bottom-4 left-4 rounded-full border border-[#d6b071]/24 bg-[rgba(8,12,20,0.72)] px-4 py-2 text-sm font-semibold text-white/82 backdrop-blur-md">
-                  {visitedCount} / {exploreExperience.places.length} {"\u5730\u70b9 mapped places"}
+                <div
+                  className={cn(
+                    "absolute bottom-4 left-4 rounded-full border px-4 py-2 text-sm font-semibold backdrop-blur-md",
+                    isDarkTheme
+                      ? "border-[#d6b071]/24 bg-[rgba(8,12,20,0.72)] text-white/82"
+                      : "border-border/80 bg-[rgba(255,248,240,0.82)] text-foreground/82"
+                  )}
+                >
+                  {visitedCount} / {exploreExperience.places.length} {ui.mappedPlaces}
                 </div>
 
                 <div className="absolute bottom-4 right-4 flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => adjustMapScale(mapScale - 0.18)}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#d6b071]/28 bg-[rgba(8,12,20,0.72)] text-xl text-[#f6dfb8] backdrop-blur-md hover:bg-[rgba(8,12,20,0.82)]"
-                    aria-label="Zoom out map"
+                    className={cn(
+                      "inline-flex h-11 w-11 items-center justify-center rounded-full border text-xl backdrop-blur-md",
+                      isDarkTheme
+                        ? "border-[#d6b071]/28 bg-[rgba(8,12,20,0.72)] text-[#f6dfb8] hover:bg-[rgba(8,12,20,0.82)]"
+                        : "border-border/80 bg-[rgba(255,248,240,0.82)] text-accent-strong hover:bg-[rgba(255,248,240,0.96)]"
+                    )}
+                    aria-label={ui.zoomOut}
                   >
                     −
                   </button>
                   <button
                     type="button"
                     onClick={() => adjustMapScale(mapScale + 0.18)}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#d6b071]/28 bg-[rgba(8,12,20,0.72)] text-xl text-[#f6dfb8] backdrop-blur-md hover:bg-[rgba(8,12,20,0.82)]"
-                    aria-label="Zoom in map"
+                    className={cn(
+                      "inline-flex h-11 w-11 items-center justify-center rounded-full border text-xl backdrop-blur-md",
+                      isDarkTheme
+                        ? "border-[#d6b071]/28 bg-[rgba(8,12,20,0.72)] text-[#f6dfb8] hover:bg-[rgba(8,12,20,0.82)]"
+                        : "border-border/80 bg-[rgba(255,248,240,0.82)] text-accent-strong hover:bg-[rgba(255,248,240,0.96)]"
+                    )}
+                    aria-label={ui.zoomIn}
                   >
                     +
                   </button>
@@ -617,13 +788,18 @@ export function PanoramaExperience({
               </div>
 
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-2">
-                <MusicToggleButton tone="dark" compact />
+                <MusicToggleButton tone={isDarkTheme ? "dark" : "light"} compact />
                 <button
                   type="button"
                   onClick={openWelcome}
-                  className="rounded-full border border-white/16 bg-white/10 px-4 py-3 text-sm font-semibold text-white hover:bg-white/16"
+                  className={cn(
+                    "rounded-full border px-4 py-3 text-sm font-semibold",
+                    isDarkTheme
+                      ? "border-white/16 bg-white/10 text-white hover:bg-white/16"
+                      : "border-border/80 bg-background/82 text-foreground hover:bg-background"
+                  )}
                 >
-                  {"\u8fd4\u56de\u6b22\u8fce Back to welcome"}
+                  {ui.backToWelcome}
                 </button>
               </div>
             </motion.div>
@@ -639,68 +815,112 @@ export function PanoramaExperience({
               style={{ writingMode: "vertical-rl" }}
             >
               <p className="text-2xl font-semibold tracking-[0.18em]">
-                {activePlace.title.zh}
-              </p>
-              <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.26em] text-white/58">
-                {activePlace.title.en}
+                {localize(activePlace.title)}
               </p>
             </div>
           </div>
 
-          <div className="absolute left-4 top-4 z-30 max-w-[min(18rem,calc(100vw-2rem))] rounded-[1.4rem] border border-white/14 bg-[rgba(8,12,20,0.5)] px-4 py-3 shadow-[0_20px_60px_rgba(0,0,0,0.22)] backdrop-blur-xl">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#f1d8b2]">
-              {"\u573a\u6240 Place view"}
+          <div
+            className={cn(
+              "absolute left-4 top-4 z-30 max-w-[min(18rem,calc(100vw-2rem))] rounded-[1.4rem] border px-4 py-3 shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl",
+              isDarkTheme
+                ? "border-white/14 bg-[rgba(8,12,20,0.5)]"
+                : "border-border/70 bg-[rgba(255,248,240,0.84)]"
+            )}
+          >
+            <p className={cn("text-[10px] font-semibold uppercase tracking-[0.28em]", isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft")}>
+              {ui.placeView}
             </p>
-            <p className="mt-2 text-sm font-semibold text-white">
-              {formatInline(activePlace.title)}
+            <p className={cn("mt-2 text-sm font-semibold", isDarkTheme ? "text-white" : "text-foreground")}>
+              {localize(activePlace.title)}
             </p>
           </div>
 
           <div className="absolute right-4 top-4 bottom-44 z-30 hidden w-[min(27rem,34vw)] lg:block">
-            <PlaceInfoPanel place={activePlace} activePhoto={activePhoto} />
+            <PlaceInfoPanel
+              place={activePlace}
+              activePhoto={activePhoto}
+              language={language}
+              copy={ui}
+              theme={theme}
+            />
           </div>
 
           <div className="absolute inset-x-4 bottom-44 z-30 lg:hidden">
             <PlaceInfoPanel
               place={activePlace}
               activePhoto={activePhoto}
+              language={language}
+              copy={ui}
+              theme={theme}
               compact
             />
           </div>
 
           <div className="absolute left-4 bottom-4 z-30 inline-flex max-w-[calc(100vw-2rem)] flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-3 rounded-[1.5rem] border border-white/12 bg-[rgba(8,12,20,0.54)] px-4 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.26)] backdrop-blur-2xl">
+            <div
+              className={cn(
+                "flex flex-wrap items-center gap-3 rounded-[1.5rem] border px-4 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur-2xl",
+                isDarkTheme
+                  ? "border-white/12 bg-[rgba(8,12,20,0.54)]"
+                  : "border-border/70 bg-[rgba(255,248,240,0.84)]"
+              )}
+            >
               <button
                 type="button"
                 onClick={openMap}
-                className="rounded-full border border-white/16 bg-[rgba(8,12,20,0.56)] px-4 py-3 text-sm font-semibold text-white hover:bg-[rgba(8,12,20,0.68)]"
+                className={cn(
+                  "rounded-full border px-4 py-3 text-sm font-semibold",
+                  isDarkTheme
+                    ? "border-white/16 bg-[rgba(8,12,20,0.56)] text-white hover:bg-[rgba(8,12,20,0.68)]"
+                    : "border-border/80 bg-background/82 text-foreground hover:bg-background"
+                )}
               >
-                {"\u8fd4\u56de\u5730\u56fe Back to map"}
+                {ui.backToMap}
               </button>
               <button
                 type="button"
                 onClick={openWelcome}
-                className="rounded-full border border-white/16 bg-[rgba(8,12,20,0.56)] px-4 py-3 text-sm font-semibold text-white hover:bg-[rgba(8,12,20,0.68)]"
+                className={cn(
+                  "rounded-full border px-4 py-3 text-sm font-semibold",
+                  isDarkTheme
+                    ? "border-white/16 bg-[rgba(8,12,20,0.56)] text-white hover:bg-[rgba(8,12,20,0.68)]"
+                    : "border-border/80 bg-background/82 text-foreground hover:bg-background"
+                )}
               >
-                {"\u5173\u95ed Close"}
+                {ui.close}
               </button>
               <button
                 type="button"
                 onClick={() => setIsSelfieModalOpen(true)}
-                className="rounded-full border border-[#d6b071]/30 bg-[#d6b071]/14 px-4 py-3 text-sm font-semibold text-[#f5ddb4] hover:bg-[#d6b071]/22"
+                className={cn(
+                  "rounded-full border px-4 py-3 text-sm font-semibold",
+                  isDarkTheme
+                    ? "border-[#d6b071]/30 bg-[#d6b071]/14 text-[#f5ddb4] hover:bg-[#d6b071]/22"
+                    : "border-accent-soft/30 bg-accent-soft/14 text-accent-strong hover:bg-accent-soft/22"
+                )}
               >
-                {"\u5408\u5f71 Selfie"}
+                {ui.selfie}
               </button>
-              <MusicToggleButton tone="dark" compact />
+              <MusicToggleButton tone={isDarkTheme ? "dark" : "light"} compact />
+              <LanguageToggleButton tone={isDarkTheme ? "dark" : "light"} />
+              <ThemeToggleButton tone={isDarkTheme ? "dark" : "light"} />
             </div>
 
-            <div className="w-fit max-w-[calc(100vw-2rem)] rounded-[1.65rem] border border-white/12 bg-[rgba(8,12,20,0.54)] p-3 shadow-[0_22px_70px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
+            <div
+              className={cn(
+                "w-fit max-w-[calc(100vw-2rem)] rounded-[1.65rem] border p-3 shadow-[0_22px_70px_rgba(0,0,0,0.22)] backdrop-blur-2xl",
+                isDarkTheme
+                  ? "border-white/12 bg-[rgba(8,12,20,0.54)]"
+                  : "border-border/70 bg-[rgba(255,248,240,0.84)]"
+              )}
+            >
               <div className="mb-3 flex items-center justify-between gap-3 px-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#f1d8b2]">
-                  {"\u573a\u666f\u5e8f\u5217 Scene frames"}
+                <p className={cn("text-[11px] font-semibold uppercase tracking-[0.24em]", isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft")}>
+                  {ui.sceneFrames}
                 </p>
-                <p className="text-xs text-white/68">
-                  {activePlace.gallery.length} {"\u5f20 views"}
+                <p className={cn("text-xs", isDarkTheme ? "text-white/68" : "text-foreground/66")}>
+                  {activePlace.gallery.length} {ui.views}
                 </p>
               </div>
 
@@ -722,7 +942,7 @@ export function PanoramaExperience({
                     >
                       <Image
                         src={photo.src}
-                        alt={formatInline(photo.alt)}
+                        alt={localize(photo.alt)}
                         fill
                         sizes="8rem"
                         className="object-cover"
@@ -730,10 +950,7 @@ export function PanoramaExperience({
                       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,8,12,0.04),rgba(6,8,12,0.74))]" />
                       <div className="absolute inset-x-0 bottom-0 p-2 text-left">
                         <p className="truncate text-xs font-semibold text-white">
-                          {photo.caption.zh}
-                        </p>
-                        <p className="truncate text-[10px] uppercase tracking-[0.16em] text-white/62">
-                          {photo.caption.en}
+                          {localize(photo.caption)}
                         </p>
                       </div>
                     </button>
@@ -762,7 +979,7 @@ export function PanoramaExperience({
               type="button"
               onClick={() => setIsSelfieModalOpen(false)}
               className="absolute inset-0 bg-[rgba(4,6,10,0.72)] backdrop-blur-[14px]"
-              aria-label="Close selfie modal"
+              aria-label={ui.closeSelfieModal}
             />
 
             <motion.div
@@ -774,10 +991,15 @@ export function PanoramaExperience({
                   ? undefined
                   : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }
               }
-              className="relative z-10 h-[min(92svh,60rem)] w-full max-w-[92rem] overflow-hidden rounded-[2rem] border border-[#d6b071]/24 bg-[rgba(8,12,20,0.84)] shadow-[0_36px_120px_rgba(0,0,0,0.44)]"
+              className={cn(
+                "relative z-10 h-[min(92svh,60rem)] w-full max-w-[92rem] overflow-hidden rounded-[2rem] border shadow-[0_36px_120px_rgba(0,0,0,0.34)]",
+                isDarkTheme
+                  ? "border-[#d6b071]/24 bg-[rgba(8,12,20,0.84)]"
+                  : "border-border/70 bg-[rgba(255,248,240,0.9)]"
+              )}
               role="dialog"
               aria-modal="true"
-              aria-label={`Selfie studio for ${activePlace.title.en}`}
+              aria-label={`${ui.selfie}: ${localize(activePlace.title)}`}
             >
               <SelfieStudio
                 key={`${activePlace.slug}:${activePhoto.id}`}
@@ -785,11 +1007,11 @@ export function PanoramaExperience({
                 onClose={() => setIsSelfieModalOpen(false)}
                 initialBackdrop={{
                   imageUrl: activePhoto.src,
-                  label: formatInline(activePhoto.caption),
+                  label: localize(activePhoto.caption),
                 }}
-                initialTitle={activePlace.title.en}
-                initialCaption={activePlace.shortDescription.en}
-                placeLabel={formatInline(activePlace.title)}
+                initialTitle={localize(activePlace.title)}
+                initialCaption={localize(activePlace.shortDescription)}
+                placeLabel={localize(activePlace.title)}
               />
             </motion.div>
           </motion.div>

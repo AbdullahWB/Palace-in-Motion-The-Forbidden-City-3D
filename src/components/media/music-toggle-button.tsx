@@ -1,7 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
 import { useSiteMusic } from "@/components/media/site-music-provider";
+import { cn } from "@/lib/utils";
 
 type MusicToggleButtonProps = {
   className?: string;
@@ -15,19 +16,39 @@ export function MusicToggleButton({
   compact = false,
 }: MusicToggleButtonProps) {
   const { enabled, hasStarted, isPlaying, toggleMusic } = useSiteMusic();
+  const { language } = useSitePreferences();
 
   const wrapperClassName =
     tone === "dark"
       ? "border-white/22 bg-[rgba(9,10,14,0.46)] text-white hover:bg-[rgba(9,10,14,0.58)]"
       : "border-border/80 bg-white/88 text-foreground hover:bg-white";
 
-  const statusLabel = !enabled
-    ? "Off"
-    : isPlaying
-      ? "Playing"
-      : hasStarted
-        ? "Resume"
-        : "Start";
+  const statusLabel =
+    language === "zh"
+      ? !enabled
+        ? "关闭"
+        : isPlaying
+          ? "播放中"
+          : hasStarted
+            ? "继续"
+            : "开始"
+      : !enabled
+        ? "Off"
+        : isPlaying
+          ? "Playing"
+          : hasStarted
+            ? "Resume"
+            : "Start";
+
+  const sectionLabel = language === "zh" ? "宫乐" : "Palace music";
+  const ariaLabel =
+    language === "zh"
+      ? enabled
+        ? "关闭宫廷背景音乐"
+        : "播放宫廷背景音乐"
+      : enabled
+        ? "Mute palace background music"
+        : "Play palace background music";
 
   return (
     <button
@@ -40,7 +61,7 @@ export function MusicToggleButton({
         className
       )}
       aria-pressed={enabled}
-      aria-label={enabled ? "Mute palace background music" : "Play palace background music"}
+      aria-label={ariaLabel}
     >
       <span
         className={cn(
@@ -57,11 +78,9 @@ export function MusicToggleButton({
             tone === "dark" ? "text-white/58" : "text-accent-soft"
           )}
         >
-          Palace music
+          {sectionLabel}
         </span>
-        <span className="block truncate text-sm font-semibold">
-          宫乐 {statusLabel}
-        </span>
+        <span className="block truncate text-sm font-semibold">{statusLabel}</span>
       </span>
     </button>
   );

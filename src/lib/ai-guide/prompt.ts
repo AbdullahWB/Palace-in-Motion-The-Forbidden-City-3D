@@ -1,10 +1,11 @@
 import { getPostcardFrameById } from "@/data/selfie";
 import type {
   GuideIntent,
-  GuideMode,
   GuideRequest,
+  GuideMode,
   ResolvedGuideContext,
 } from "@/types/ai-guide";
+import type { AppLanguage } from "@/types/preferences";
 
 function getAnswerModeInstruction(mode: GuideMode) {
   switch (mode) {
@@ -28,6 +29,18 @@ function getCaptionModeInstruction(mode: GuideMode) {
   }
 }
 
+function getLanguageInstruction(language: AppLanguage, intent: GuideIntent) {
+  if (language === "zh") {
+    return intent === "caption"
+      ? "Write in Simplified Chinese only."
+      : "Answer in Simplified Chinese only.";
+  }
+
+  return intent === "caption"
+    ? "Write in English only."
+    : "Answer in English only.";
+}
+
 function formatQuickFacts(context: ResolvedGuideContext) {
   if (!context.quickFacts.length) {
     return "None.";
@@ -43,7 +56,10 @@ function buildAnswerPrompts({
   request,
 }: {
   context: ResolvedGuideContext;
-  request: Pick<GuideRequest, "mode" | "question" | "title" | "contextHint">;
+  request: Pick<
+    GuideRequest,
+    "mode" | "question" | "title" | "contextHint" | "language"
+  >;
 }) {
   const systemPrompt = [
     "You are the Palace in Motion AI cultural guide.",
@@ -51,7 +67,7 @@ function buildAnswerPrompts({
     "Use only the grounded local context provided below.",
     "If the answer is not supported by the local context, say so conservatively and avoid speculation.",
     "This is single-turn assistance. Do not reference previous turns or hidden context.",
-    "Answer in English only.",
+    getLanguageInstruction(request.language ?? "en", "answer"),
     "Keep answers concise and concrete.",
     "Keep the tone calm, informed, and culturally respectful.",
     getAnswerModeInstruction(request.mode),
@@ -96,7 +112,13 @@ function buildCaptionPrompts({
   context: ResolvedGuideContext;
   request: Pick<
     GuideRequest,
-    "mode" | "question" | "postcardThemeId" | "title" | "focusId" | "contextHint"
+    | "mode"
+    | "question"
+    | "postcardThemeId"
+    | "title"
+    | "focusId"
+    | "contextHint"
+    | "language"
   >;
 }) {
   const frame = request.postcardThemeId
@@ -107,7 +129,7 @@ function buildCaptionPrompts({
     "Behave like a scene-aware museum assistant, not a generic marketer or chatbot.",
     "Use only the grounded local context provided below.",
     "This is single-turn assistance. Do not reference previous turns or hidden context.",
-    "Write in English only.",
+    getLanguageInstruction(request.language ?? "en", "caption"),
     "Write only the postcard caption text.",
     "Do not use hashtags, emojis, quotation marks, bullet points, or unsupported claims.",
     "Keep the caption concise, elegant, museum-like, and culturally respectful.",
@@ -155,7 +177,14 @@ export function buildGuideMessages({
   context: ResolvedGuideContext;
   request: Pick<
     GuideRequest,
-    "intent" | "mode" | "question" | "postcardThemeId" | "title" | "focusId"
+    | "intent"
+    | "mode"
+    | "question"
+    | "postcardThemeId"
+    | "title"
+    | "focusId"
+    | "contextHint"
+    | "language"
   >;
 }) {
   const intent: GuideIntent = request.intent ?? "answer";

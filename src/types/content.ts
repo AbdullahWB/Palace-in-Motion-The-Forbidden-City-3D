@@ -155,6 +155,8 @@ export type ExplorePlaceSlug =
 export type ExploreWelcomeScene = {
   id: string;
   heroSrc: string;
+  heroVideoSrc: string;
+  heroVideoPosterSrc?: string;
   title: BilingualText;
   subtitle: BilingualText;
   ctaLabel: BilingualText;

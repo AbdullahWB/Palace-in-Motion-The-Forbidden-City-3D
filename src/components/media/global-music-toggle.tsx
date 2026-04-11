@@ -6,7 +6,7 @@ import { MusicToggleButton } from "@/components/media/music-toggle-button";
 export function GlobalMusicToggle() {
   const pathname = usePathname();
 
-  if (pathname === "/explore") {
+  if (pathname === "/" || pathname === "/explore") {
     return null;
   }
 

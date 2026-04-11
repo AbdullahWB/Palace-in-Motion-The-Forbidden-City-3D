@@ -2,6 +2,8 @@
   "welcome": {
     "id": "palace-open-view",
     "heroSrc": "/explore/welcome/open-courtyard.svg",
+    "heroVideoSrc": "/explore/welcome/hero_v.mp4",
+    "heroVideoPosterSrc": "/explore/welcome/open-courtyard.svg",
     "title": {
       "zh": "\u5165\u5883\u6545\u5bab",
       "en": "Enter the Palace"

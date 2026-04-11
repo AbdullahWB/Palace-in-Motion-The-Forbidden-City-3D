@@ -4,6 +4,7 @@ import type {
   QuickFact,
   TourStepKind,
 } from "@/types/content";
+import type { AppLanguage } from "@/types/preferences";
 
 export type GuideMode = "short" | "detailed" | "fun";
 export type GuideIntent = "answer" | "caption";
@@ -16,6 +17,7 @@ export type GuideRequest = {
   contextHint?: string | null;
   postcardThemeId?: string | null;
   title?: string | null;
+  language?: AppLanguage;
   question: string;
   mode: GuideMode;
   intent?: GuideIntent;

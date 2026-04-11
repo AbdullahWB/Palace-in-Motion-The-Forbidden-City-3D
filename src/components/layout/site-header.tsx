@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { MainNav } from "@/components/layout/main-nav";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { PageContainer } from "@/components/layout/page-container";
+import { ThemeToggleButton } from "@/components/preferences/theme-toggle-button";
 import { APP_NAME } from "@/lib/constants";
 import { useAppStore } from "@/store/use-app-store";
 
@@ -18,7 +19,7 @@ export function SiteHeader() {
     setNavOpen(false);
   }, [pathname, setNavOpen]);
 
-  if (pathname === "/explore") {
+  if (pathname === "/" || pathname === "/explore") {
     return null;
   }
 
@@ -35,18 +36,20 @@ export function SiteHeader() {
             </p>
           </Link>
 
-          <MainNav pathname={pathname} />
-
-          <button
-            type="button"
-            onClick={() => setNavOpen(!isNavOpen)}
-            className="inline-flex items-center justify-center rounded-full border border-border bg-white/78 px-4 py-2 text-sm font-semibold text-foreground md:hidden"
-            aria-expanded={isNavOpen}
-            aria-controls="mobile-nav"
-            aria-label={isNavOpen ? "Close navigation menu" : "Open navigation menu"}
-          >
-            {isNavOpen ? "Close" : "Menu"}
-          </button>
+          <div className="flex items-center gap-3">
+            <MainNav pathname={pathname} />
+            <ThemeToggleButton />
+            <button
+              type="button"
+              onClick={() => setNavOpen(!isNavOpen)}
+              className="inline-flex items-center justify-center rounded-full border border-border bg-white/78 px-4 py-2 text-sm font-semibold text-foreground md:hidden"
+              aria-expanded={isNavOpen}
+              aria-controls="mobile-nav"
+              aria-label={isNavOpen ? "Close navigation menu" : "Open navigation menu"}
+            >
+              {isNavOpen ? "Close" : "Menu"}
+            </button>
+          </div>
         </div>
       </PageContainer>
 

@@ -20,6 +20,7 @@ import {
 } from "@/lib/selfie/compose-postcard";
 import { extractForegroundFromSelfie } from "@/lib/selfie/remove-background";
 import { DemoBadgePanel } from "@/components/ui/demo-badge-panel";
+import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
 import { HERITAGE_SCENE_ID } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/use-app-store";
@@ -131,6 +132,8 @@ export function SelfieStudio({
   placeLabel = null,
 }: SelfieStudioProps) {
   const isModal = mode === "modal";
+  const { language, theme } = useSitePreferences();
+  const isDarkTheme = theme === "dark";
   const selectedPostcardFrame = useAppStore((state) => state.selectedPostcardFrame);
   const setSelectedPostcardFrame = useAppStore((state) => state.setSelectedPostcardFrame);
   const setHasGeneratedPostcard = useAppStore((state) => state.setHasGeneratedPostcard);
@@ -367,7 +370,11 @@ export function SelfieStudio({
         sceneId: HERITAGE_SCENE_ID,
         hotspotId: activeFocus.id === "central-axis" ? null : activeFocus.id,
         focusId: activeFocus.id,
-        question: "Suggest a short postcard caption for this heritage souvenir.",
+        language,
+        question:
+          language === "zh"
+            ? "请为这张文化纪念明信片建议一句简短题注。"
+            : "Suggest a short postcard caption for this heritage souvenir.",
         mode: "fun",
         intent: "caption",
         postcardThemeId: activeFrame.id,
@@ -408,6 +415,7 @@ export function SelfieStudio({
     <div
       className={cn(
         "relative overflow-hidden",
+        !isDarkTheme && "text-foreground",
         isModal ? "h-full rounded-[1.8rem]" : "min-h-[calc(100svh-5rem)]"
       )}
     >

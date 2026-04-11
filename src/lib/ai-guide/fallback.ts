@@ -1,5 +1,6 @@
 import { getPostcardFrameById } from "@/data/selfie";
 import type { GuideMode, GuideRequest, ResolvedGuideContext } from "@/types/ai-guide";
+import type { AppLanguage } from "@/types/preferences";
 
 function pickRelevantFact(context: ResolvedGuideContext, question: string) {
   const lowerQuestion = question.toLowerCase();
@@ -20,9 +21,10 @@ function buildFallbackCaption({
   contextHint,
   title,
   question,
+  language,
 }: Pick<
   GuideRequest,
-  "mode" | "postcardThemeId" | "title" | "question" | "contextHint"
+  "mode" | "postcardThemeId" | "title" | "question" | "contextHint" | "language"
 > & {
   context: ResolvedGuideContext;
 }) {
@@ -36,6 +38,23 @@ function buildFallbackCaption({
   const anchor = relevantFact?.body ?? focusSummary;
   const prefixParts = [title?.trim(), contextHint?.trim()].filter(Boolean);
   const prefix = prefixParts.length ? `${prefixParts.join(" - ")} - ` : "";
+
+  if (language === "zh") {
+    switch (mode) {
+      case "short":
+        return `${prefix}${focusLabel}在对称、门序与礼制节奏中展开。`;
+      case "detailed":
+        return [
+          `${prefix}${focusLabel}顺着故宫礼仪路线收束视线与节奏。`,
+          anchor,
+        ].join(" ");
+      default:
+        return [
+          `${prefix}${frame?.title ?? "Palace in Motion"}把${focusLabel}定格在一段带有宫廷秩序感的瞬间。`,
+          anchor,
+        ].join(" ");
+    }
+  }
 
   switch (mode) {
     case "short":
@@ -58,11 +77,13 @@ function buildFallbackAnswer({
   question,
   mode,
   contextHint,
+  language,
 }: {
   context: ResolvedGuideContext;
   question: string;
   mode: GuideMode;
   contextHint?: string | null;
+  language: AppLanguage;
 }) {
   const focusSummary =
     context.tourStep?.explanation ??
@@ -70,6 +91,17 @@ function buildFallbackAnswer({
     context.hotspot?.hotspotDescription ??
     context.site.summary;
   const relevantFact = pickRelevantFact(context, question);
+
+  if (!context.hasSpecificContext && language === "zh") {
+    return [
+      "我会依据当前页面内可用的本地场景资料谨慎回答。",
+      contextHint ? `当前视角：${contextHint}。` : "",
+      context.site.summary,
+      relevantFact ? `可参考的一条信息是：${relevantFact.body}` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
 
   if (!context.hasSpecificContext) {
     return [
@@ -80,6 +112,32 @@ function buildFallbackAnswer({
     ]
       .filter(Boolean)
       .join(" ");
+  }
+
+  if (language === "zh") {
+    switch (mode) {
+      case "short":
+        return [
+          `${context.contextLabel}：${focusSummary}`,
+          contextHint ? `观察视角：${contextHint}。` : "",
+          relevantFact ? `可抓住的一点：${relevantFact.body}` : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+      case "fun":
+        return relevantFact
+          ? `关于${context.contextLabel}${contextHint ? `，从${contextHint}角度看` : ""}，有一个值得注意的细节：${relevantFact.body}`
+          : `关于${context.contextLabel}${contextHint ? `，从${contextHint}角度看` : ""}，可先把握这个重点：${focusSummary}`;
+      default:
+        return [
+          `在当前${context.contextLabel}的语境下，${focusSummary}`,
+          contextHint ? `这次回答按照“${contextHint}”的视角来组织。` : "",
+          relevantFact ? `支撑这一点的细节是：${relevantFact.body}` : "",
+          "这个回答保持保守，因为我只依据应用内可用的本地文化内容进行说明。",
+        ]
+          .filter(Boolean)
+          .join(" ");
+    }
   }
 
   switch (mode) {
@@ -122,6 +180,7 @@ export function buildFallbackGuideResult({
       contextHint: request.contextHint,
       title: request.title,
       question: request.question,
+      language: request.language ?? "en",
     });
   }
 
@@ -130,5 +189,6 @@ export function buildFallbackGuideResult({
     question: request.question,
     mode: request.mode,
     contextHint: request.contextHint,
+    language: request.language ?? "en",
   });
 }
