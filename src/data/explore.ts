@@ -79,3 +79,4 @@ export const exploreZones: ExploreZone[] = exploreSpatialData.map((spatialZone) 
 export function getExploreZoneById(zoneId: ExploreZone["id"]) {
   return exploreZones.find((zone) => zone.id === zoneId) ?? null;
 }
+

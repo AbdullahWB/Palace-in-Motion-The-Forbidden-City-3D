@@ -13,8 +13,6 @@ import {
   SITE_LANGUAGE_STORAGE_KEY,
   SITE_THEME_STORAGE_KEY,
   applyDocumentPreferences,
-  isAppLanguage,
-  isAppTheme,
 } from "@/lib/site-preferences";
 import type { AppLanguage, AppTheme } from "@/types/preferences";
 
@@ -29,39 +27,17 @@ const SitePreferencesContext = createContext<SitePreferencesContextValue | null>
   null
 );
 
-function getInitialLanguage() {
-  if (typeof window === "undefined") {
-    return DEFAULT_APP_LANGUAGE;
-  }
-
-  try {
-    const storedLanguage = window.localStorage.getItem(SITE_LANGUAGE_STORAGE_KEY);
-    return isAppLanguage(storedLanguage) ? storedLanguage : DEFAULT_APP_LANGUAGE;
-  } catch {
-    return DEFAULT_APP_LANGUAGE;
-  }
-}
-
-function getInitialTheme() {
-  if (typeof window === "undefined") {
-    return DEFAULT_APP_THEME;
-  }
-
-  try {
-    const storedTheme = window.localStorage.getItem(SITE_THEME_STORAGE_KEY);
-    return isAppTheme(storedTheme) ? storedTheme : DEFAULT_APP_THEME;
-  } catch {
-    return DEFAULT_APP_THEME;
-  }
-}
-
 export function SitePreferencesProvider({
   children,
+  initialLanguage = DEFAULT_APP_LANGUAGE,
+  initialTheme = DEFAULT_APP_THEME,
 }: Readonly<{
   children: React.ReactNode;
+  initialLanguage?: AppLanguage;
+  initialTheme?: AppTheme;
 }>) {
-  const [language, setLanguage] = useState<AppLanguage>(getInitialLanguage);
-  const [theme, setTheme] = useState<AppTheme>(getInitialTheme);
+  const [language, setLanguage] = useState<AppLanguage>(initialLanguage);
+  const [theme, setTheme] = useState<AppTheme>(initialTheme);
 
   useEffect(() => {
     applyDocumentPreferences(language, theme);
@@ -69,6 +45,8 @@ export function SitePreferencesProvider({
     try {
       window.localStorage.setItem(SITE_LANGUAGE_STORAGE_KEY, language);
       window.localStorage.setItem(SITE_THEME_STORAGE_KEY, theme);
+      document.cookie = `${SITE_LANGUAGE_STORAGE_KEY}=${language}; Path=/; Max-Age=31536000`;
+      document.cookie = `${SITE_THEME_STORAGE_KEY}=${theme}; Path=/; Max-Age=31536000`;
     } catch {
       // Ignore storage access issues and keep runtime state.
     }

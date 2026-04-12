@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { FloatingAIAssistant } from "@/components/layout/floating-ai-assistant";
 import { Cormorant_Garamond, Inter } from "next/font/google";
@@ -8,7 +9,14 @@ import { SiteMusicProvider } from "@/components/media/site-music-provider";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { APP_DESCRIPTION, APP_NAME } from "@/lib/constants";
-import { getPreferenceBootScript } from "@/lib/site-preferences";
+import {
+  DEFAULT_APP_LANGUAGE,
+  DEFAULT_APP_THEME,
+  SITE_LANGUAGE_STORAGE_KEY,
+  SITE_THEME_STORAGE_KEY,
+  isAppLanguage,
+  isAppTheme,
+} from "@/lib/site-preferences";
 import "./globals.css";
 
 const inter = Inter({
@@ -44,24 +52,34 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const languageCookie = cookieStore.get(SITE_LANGUAGE_STORAGE_KEY)?.value;
+  const themeCookie = cookieStore.get(SITE_THEME_STORAGE_KEY)?.value;
+  const initialLanguage = isAppLanguage(languageCookie)
+    ? languageCookie
+    : DEFAULT_APP_LANGUAGE;
+  const initialTheme = isAppTheme(themeCookie)
+    ? themeCookie
+    : DEFAULT_APP_THEME;
+
   return (
     <html
-      lang="zh"
-      data-theme="dark"
-      data-language="zh"
+      lang={initialLanguage}
+      data-theme={initialTheme}
+      data-language={initialLanguage}
       suppressHydrationWarning
       className={`${inter.variable} ${cormorant.variable} h-full`}
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: getPreferenceBootScript() }} />
-      </head>
       <body className="min-h-full bg-background text-foreground font-sans antialiased">
-        <SitePreferencesProvider>
+        <SitePreferencesProvider
+          initialLanguage={initialLanguage}
+          initialTheme={initialTheme}
+        >
           <SiteMusicProvider>
             <div className="flex min-h-screen flex-col">
               <a
