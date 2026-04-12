@@ -32,7 +32,7 @@ import type {
   SelfieEnhanceResponse,
 } from "@/types/selfie";
 
-type TabId = "theme" | "place-focus" | "text-ai" | "compose-export";
+type StepId = "capture" | "adjust" | "compose";
 type PreparedForeground = { source: string; imageSrc: string; wasBackgroundRemoved: boolean };
 type ActiveBackdrop = { imageUrl: string; label: string; sourceType: "preset" | "custom" };
 type PreviewMode = "manual" | "ai";
@@ -48,11 +48,10 @@ type SelfieStudioProps = {
   placeLabel?: string | null;
 };
 
-const tabs: Array<{ id: TabId; label: string }> = [
-  { id: "theme", label: "Theme" },
-  { id: "place-focus", label: "Place & Focus" },
-  { id: "text-ai", label: "Text & AI" },
-  { id: "compose-export", label: "Compose & Export" },
+const steps: Array<{ id: StepId; label: string }> = [
+  { id: "capture", label: "Capture" },
+  { id: "adjust", label: "Adjust" },
+  { id: "compose", label: "Export" },
 ];
 
 const defaultSubjectTransform: SubjectTransform = { scale: 1, offsetX: 0, offsetY: 0 };
@@ -130,6 +129,20 @@ function readFileAsDataUrl(file: File) {
   });
 }
 
+async function ensureDataUrl(src: string) {
+  if (src.startsWith("data:")) {
+    return src;
+  }
+
+  const response = await fetch(src);
+  if (!response.ok) {
+    throw new Error("Failed to load the backdrop image for AI enhancement.");
+  }
+
+  const blob = await response.blob();
+  return readFileAsDataUrl(new File([blob], "backdrop-image"));
+}
+
 export function SelfieStudio({
   mode = "page",
   onClose,
@@ -146,7 +159,7 @@ export function SelfieStudio({
   const setHasGeneratedPostcard = useAppStore((state) => state.setHasGeneratedPostcard);
 
   const activeFrame = getPostcardFrameById(selectedPostcardFrame);
-  const [activeTab, setActiveTab] = useState<TabId>("theme");
+  const [activeStep, setActiveStep] = useState<StepId>("capture");
   const [selectedFocusId, setSelectedFocusId] = useState(defaultSelfieFocusId);
   const [selectedPresetBackdropId, setSelectedPresetBackdropId] = useState(defaultSelfieBackdropId);
   const [customBackdropDataUrl, setCustomBackdropDataUrl] = useState<string | null>(
@@ -188,6 +201,8 @@ export function SelfieStudio({
   const activeBackdrop: ActiveBackdrop = customBackdropDataUrl
     ? { imageUrl: customBackdropDataUrl, label: customBackdropLabel ?? "Custom place", sourceType: "custom" }
     : { imageUrl: presetBackdrop.imageUrl, label: presetBackdrop.label, sourceType: "preset" };
+  const canAdvanceToAdjust = Boolean(sourceImage);
+  const canAdvanceToCompose = Boolean(sourceImage);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const sourceInputRef = useRef<HTMLInputElement | null>(null);
@@ -226,6 +241,11 @@ export function SelfieStudio({
     if (composition) setIsCompositionStale(true);
     invalidateAiResult();
   };
+
+  function handleAutoFit() {
+    setSubjectTransform({ scale: 1, offsetX: 0, offsetY: 0 });
+    markStale();
+  }
 
   function stopCameraStream() {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -390,7 +410,7 @@ export function SelfieStudio({
     setIsGenerating(true);
     try {
       await runPostcardGeneration(activeBackdrop);
-      setActiveTab("compose-export");
+      setActiveStep("compose");
     } catch (error) {
       setGenerationError(error instanceof Error ? error.message : "The postcard preview could not be generated.");
       markStale();
@@ -409,10 +429,11 @@ export function SelfieStudio({
     setIsEnhancing(true);
 
     try {
+      const backgroundReferenceDataUrl = await ensureDataUrl(activeBackdrop.imageUrl);
       const payload: SelfieEnhanceRequest = {
         baseSceneDataUrl: manualSceneDataUrl,
         subjectReferenceDataUrl: preparedForeground.imageSrc,
-        backgroundReferenceDataUrl: activeBackdrop.imageUrl,
+        backgroundReferenceDataUrl,
         placeTitle: title.trim() || activeFrame.defaultTitle || activeFrame.title,
         focusLabel: activeFocus.label,
         language,
@@ -449,7 +470,7 @@ export function SelfieStudio({
       setAiComposition(enhancedResult);
       setPreviewMode("ai");
       setIsAiResultStale(false);
-      setActiveTab("compose-export");
+      setActiveStep("compose");
     } catch (error) {
       setPreviewMode("manual");
       setEnhanceError(
@@ -639,11 +660,17 @@ export function SelfieStudio({
               {isGenerating || isEnhancing ? <div className="absolute inset-0 flex items-center justify-center bg-black/45"><p className="rounded-full border border-white/30 bg-white/18 px-5 py-2 text-sm font-semibold text-white">{isEnhancing ? "Blending with Gemini..." : isRemovingBackground ? "Removing selfie background..." : "Generating postcard..."}</p></div> : null}
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-3">
-              <button type="button" onClick={handleStartCamera} disabled={isStartingCamera} className={cn("rounded-full border px-5 py-3 text-sm font-semibold", isStartingCamera ? "cursor-wait border-white/25 bg-white/15 text-white/60" : "border-[#f1d8b2] bg-[#f1d8b2] text-[#271b15] hover:bg-[#f4e0c1]")}>{isCameraActive ? "Restart camera" : isStartingCamera ? "Starting camera..." : "Start camera"}</button>
-              <button type="button" onClick={() => { void handleCapturePhoto(); }} disabled={!isCameraActive || !isCameraReady} className={cn("rounded-full border px-5 py-3 text-sm font-semibold", isCameraActive && isCameraReady ? "border-white/35 bg-white/12 text-white hover:bg-white/20" : "cursor-not-allowed border-white/20 bg-white/10 text-white/55")}>Capture photo</button>
-              <button type="button" onClick={() => sourceInputRef.current?.click()} className="rounded-full border border-white/35 bg-white/12 px-5 py-3 text-sm font-semibold text-white hover:bg-white/20">Upload image</button>
-            </div>
+            {activeStep === "capture" ? (
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button type="button" onClick={handleStartCamera} disabled={isStartingCamera} className={cn("rounded-full border px-5 py-3 text-sm font-semibold", isStartingCamera ? "cursor-wait border-white/25 bg-white/15 text-white/60" : "border-[#f1d8b2] bg-[#f1d8b2] text-[#271b15] hover:bg-[#f4e0c1]")}>{isCameraActive ? "Restart camera" : isStartingCamera ? "Starting camera..." : "Start camera"}</button>
+                <button type="button" onClick={() => { void handleCapturePhoto(); }} disabled={!isCameraActive || !isCameraReady} className={cn("rounded-full border px-5 py-3 text-sm font-semibold", isCameraActive && isCameraReady ? "border-white/35 bg-white/12 text-white hover:bg-white/20" : "cursor-not-allowed border-white/20 bg-white/10 text-white/55")}>Capture photo</button>
+                <button type="button" onClick={() => sourceInputRef.current?.click()} className="rounded-full border border-white/35 bg-white/12 px-5 py-3 text-sm font-semibold text-white hover:bg-white/20">Upload image</button>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-[1rem] border border-white/20 bg-white/10 px-4 py-3 text-sm text-white/75">
+                Use the step controls on the right to adjust and export your postcard.
+              </div>
+            )}
 
             <input ref={sourceInputRef} type="file" accept="image/*" onChange={(event) => { void handleSourceUpload(event); }} className="hidden" />
             {cameraError ? <p className="mt-4 rounded-[1rem] border border-[#f1d8b2]/40 bg-[#f1d8b2]/16 px-4 py-3 text-sm leading-6 text-white">{cameraError}</p> : null}
@@ -653,26 +680,160 @@ export function SelfieStudio({
           <aside className="rounded-[1.8rem] border border-white/20 bg-[rgba(10,9,8,0.42)] p-6 backdrop-blur-md">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f1d8b2]">Postcard controls</p>
             <h3 className="mt-3 font-display text-3xl leading-tight text-white">Customize your souvenir</h3>
-            <div className="mt-5 grid grid-cols-2 gap-2">
-              {tabs.map((tab) => <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={cn("rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em]", activeTab === tab.id ? "border-[#f1d8b2] bg-[#f1d8b2] text-[#2a1d16]" : "border-white/25 bg-white/10 text-white hover:bg-white/18")}>{tab.label}</button>)}
+            <div className="mt-5 flex flex-wrap gap-2">
+              {steps.map((step) => (
+                <button
+                  key={step.id}
+                  type="button"
+                  onClick={() => setActiveStep(step.id)}
+                  className={cn(
+                    "rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em]",
+                    activeStep === step.id
+                      ? "border-[#f1d8b2] bg-[#f1d8b2] text-[#2a1d16]"
+                      : "border-white/25 bg-white/10 text-white hover:bg-white/18"
+                  )}
+                >
+                  {step.label}
+                </button>
+              ))}
             </div>
 
             <div className="mt-6 min-h-[24rem] space-y-4">
-              {activeTab === "theme" ? postcardFrames.map((frame) => <button key={frame.id} type="button" onClick={() => { setSelectedPostcardFrame(frame.id); setTitle(frame.defaultTitle || frame.title); markStale(); }} className={cn("w-full rounded-[1rem] border px-3 py-3 text-left", frame.id === activeFrame.id ? "border-[#f1d8b2]/65 bg-[#f1d8b2]/22 text-white" : "border-white/25 bg-white/12 text-white hover:bg-white/20")}><p className="font-semibold">{frame.title}</p><p className="mt-1 text-xs leading-5 text-white/75">{frame.description}</p></button>) : null}
-              {activeTab === "place-focus" ? (
+              {activeStep === "capture" ? (
                 <>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f1d8b2]">Place source</p>
-                  {selfieBackdropOptions.map((backdrop) => <button key={backdrop.id} type="button" onClick={() => { void handleSelectPresetBackdrop(backdrop.id); }} className={cn("w-full rounded-[1rem] border px-3 py-2.5 text-left text-sm font-semibold", activeBackdrop.sourceType === "preset" && selectedPresetBackdropId === backdrop.id ? "border-[#f1d8b2]/65 bg-[#f1d8b2]/22 text-white" : "border-white/25 bg-white/12 text-white hover:bg-white/20")}>{backdrop.label}</button>)}
+                  <p className="text-sm leading-6 text-white/78">
+                    Capture or upload a selfie first. Once a face is selected, move to Adjust.
+                  </p>
                   <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={() => backdropInputRef.current?.click()} className="rounded-full border border-white/35 bg-white/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-white/20">{customBackdropDataUrl ? "Replace place image" : "Upload place image"}</button>
-                    {customBackdropDataUrl ? <button type="button" onClick={() => { void handleRemoveCustomBackdrop(); }} className="rounded-full border border-white/35 bg-white/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-white/20">Remove custom place</button> : null}
+                    <button
+                      type="button"
+                      onClick={() => setActiveStep("adjust")}
+                      disabled={!canAdvanceToAdjust}
+                      className={cn(
+                        "rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em]",
+                        canAdvanceToAdjust
+                          ? "border-[#f1d8b2] bg-[#f1d8b2] text-[#271b15]"
+                          : "cursor-not-allowed border-white/20 bg-white/10 text-white/55"
+                      )}
+                    >
+                      Next: Adjust
+                    </button>
+                    <span className="rounded-full border border-white/25 bg-white/10 px-3 py-2 text-xs font-semibold text-white/75">
+                      {sourceLabel ? `Selfie: ${sourceLabel}` : "No selfie selected"}
+                    </span>
                   </div>
-                  <input ref={backdropInputRef} type="file" accept="image/*" onChange={(event) => { void handleBackdropUpload(event); }} className="hidden" />
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f1d8b2]">Heritage focus</p>
-                  {selfieFocusOptions.map((focus) => <button key={focus.id} type="button" onClick={() => { setSelectedFocusId(focus.id); markStale(); }} className={cn("w-full rounded-[1rem] border px-3 py-2.5 text-left text-sm font-semibold", focus.id === activeFocus.id ? "border-[#f1d8b2]/65 bg-[#f1d8b2]/22 text-white" : "border-white/25 bg-white/12 text-white hover:bg-white/20")}>{focus.label}</button>)}
+
+                  <details className="rounded-[1rem] border border-white/20 bg-white/8 p-4">
+                    <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.2em] text-[#f1d8b2]">
+                      Advanced options
+                    </summary>
+                    <div className="mt-4 space-y-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f1d8b2]">Postcard frame</p>
+                      {postcardFrames.map((frame) => (
+                        <button
+                          key={frame.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedPostcardFrame(frame.id);
+                            setTitle(frame.defaultTitle || frame.title);
+                            markStale();
+                          }}
+                          className={cn(
+                            "w-full rounded-[1rem] border px-3 py-3 text-left",
+                            frame.id === activeFrame.id
+                              ? "border-[#f1d8b2]/65 bg-[#f1d8b2]/22 text-white"
+                              : "border-white/25 bg-white/12 text-white hover:bg-white/20"
+                          )}
+                        >
+                          <p className="font-semibold">{frame.title}</p>
+                          <p className="mt-1 text-xs leading-5 text-white/75">{frame.description}</p>
+                        </button>
+                      ))}
+
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f1d8b2]">Place source</p>
+                      {selfieBackdropOptions.map((backdrop) => (
+                        <button
+                          key={backdrop.id}
+                          type="button"
+                          onClick={() => {
+                            void handleSelectPresetBackdrop(backdrop.id);
+                          }}
+                          className={cn(
+                            "w-full rounded-[1rem] border px-3 py-2.5 text-left text-sm font-semibold",
+                            activeBackdrop.sourceType === "preset" && selectedPresetBackdropId === backdrop.id
+                              ? "border-[#f1d8b2]/65 bg-[#f1d8b2]/22 text-white"
+                              : "border-white/25 bg-white/12 text-white hover:bg-white/20"
+                          )}
+                        >
+                          {backdrop.label}
+                        </button>
+                      ))}
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => backdropInputRef.current?.click()}
+                          className="rounded-full border border-white/35 bg-white/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-white/20"
+                        >
+                          {customBackdropDataUrl ? "Replace place image" : "Upload place image"}
+                        </button>
+                        {customBackdropDataUrl ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void handleRemoveCustomBackdrop();
+                            }}
+                            className="rounded-full border border-white/35 bg-white/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-white/20"
+                          >
+                            Remove custom place
+                          </button>
+                        ) : null}
+                      </div>
+                      <input ref={backdropInputRef} type="file" accept="image/*" onChange={(event) => { void handleBackdropUpload(event); }} className="hidden" />
+
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f1d8b2]">Heritage focus</p>
+                      {selfieFocusOptions.map((focus) => (
+                        <button
+                          key={focus.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedFocusId(focus.id);
+                            markStale();
+                          }}
+                          className={cn(
+                            "w-full rounded-[1rem] border px-3 py-2.5 text-left text-sm font-semibold",
+                            focus.id === activeFocus.id
+                              ? "border-[#f1d8b2]/65 bg-[#f1d8b2]/22 text-white"
+                              : "border-white/25 bg-white/12 text-white hover:bg-white/20"
+                          )}
+                        >
+                          {focus.label}
+                        </button>
+                      ))}
+                    </div>
+                  </details>
                 </>
               ) : null}
-              {activeTab === "text-ai" ? (
+
+              {activeStep === "adjust" ? (
+                <>
+                  <p className="text-sm leading-6 text-white/78">
+                    Adjust the subject placement, then continue to export.
+                  </p>
+                  <label className="block"><div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.16em] text-white/80"><span>Scale</span><span>{subjectTransform.scale.toFixed(2)}x</span></div><input type="range" min={0.6} max={1.6} step={0.05} value={subjectTransform.scale} onChange={(event) => { setSubjectTransform((prev) => ({ ...prev, scale: Number(event.target.value) })); markStale(); }} className="mt-2 w-full" /></label>
+                  <label className="block"><div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.16em] text-white/80"><span>Horizontal</span><span>{subjectTransform.offsetX}%</span></div><input type="range" min={-35} max={35} step={1} value={subjectTransform.offsetX} onChange={(event) => { setSubjectTransform((prev) => ({ ...prev, offsetX: Number(event.target.value) })); markStale(); }} className="mt-2 w-full" /></label>
+                  <label className="block"><div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.16em] text-white/80"><span>Vertical</span><span>{subjectTransform.offsetY}%</span></div><input type="range" min={-35} max={35} step={1} value={subjectTransform.offsetY} onChange={(event) => { setSubjectTransform((prev) => ({ ...prev, offsetY: Number(event.target.value) })); markStale(); }} className="mt-2 w-full" /></label>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={handleAutoFit} className="rounded-full border border-white/35 bg-white/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-white/20">Center & scale</button>
+                    <button type="button" onClick={() => { setSubjectTransform(defaultSubjectTransform); markStale(); }} className="rounded-full border border-white/35 bg-white/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-white/20">Reset placement</button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={() => setActiveStep("capture")} className="rounded-full border border-white/35 bg-white/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-white/20">Back</button>
+                    <button type="button" onClick={() => setActiveStep("compose")} disabled={!canAdvanceToCompose} className={cn("rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em]", canAdvanceToCompose ? "border-[#f1d8b2] bg-[#f1d8b2] text-[#271b15]" : "cursor-not-allowed border-white/20 bg-white/10 text-white/55")}>Next: Export</button>
+                  </div>
+                </>
+              ) : null}
+
+              {activeStep === "compose" ? (
                 <>
                   <input value={title} onChange={(event) => { setTitle(event.target.value); markStale(); }} placeholder={activeFrame.defaultTitle || activeFrame.title} className="w-full rounded-[1rem] border border-white/25 bg-white/12 px-4 py-3 text-sm leading-6 text-white outline-none placeholder:text-white/55 focus:border-[#f1d8b2]/60" />
                   <div className="flex items-center justify-between gap-3">
@@ -682,10 +843,7 @@ export function SelfieStudio({
                   <textarea value={caption} onChange={(event) => { setCaption(event.target.value); markStale(); }} rows={6} placeholder="Write your own caption or use AI suggestion." className="w-full rounded-[1rem] border border-white/25 bg-white/12 px-4 py-3 text-sm leading-6 text-white outline-none placeholder:text-white/55 focus:border-[#f1d8b2]/60" />
                   {captionInfo ? <p className="rounded-[1rem] border border-white/25 bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/85">{captionInfo}</p> : null}
                   {captionError ? <p className="rounded-[1rem] border border-[#f1d8b2]/40 bg-[#f1d8b2]/16 px-4 py-3 text-sm leading-6 text-white">{captionError}</p> : null}
-                </>
-              ) : null}
-              {activeTab === "compose-export" ? (
-                <>
+
                   {composition ? (
                     <div className="rounded-[1rem] border border-white/25 bg-white/10 p-4">
                       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -758,14 +916,11 @@ export function SelfieStudio({
                     </div>
                   ) : null}
 
-                  <label className="block"><div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.16em] text-white/80"><span>Scale</span><span>{subjectTransform.scale.toFixed(2)}x</span></div><input type="range" min={0.6} max={1.6} step={0.05} value={subjectTransform.scale} onChange={(event) => { setSubjectTransform((prev) => ({ ...prev, scale: Number(event.target.value) })); markStale(); }} className="mt-2 w-full" /></label>
-                  <label className="block"><div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.16em] text-white/80"><span>Horizontal</span><span>{subjectTransform.offsetX}%</span></div><input type="range" min={-35} max={35} step={1} value={subjectTransform.offsetX} onChange={(event) => { setSubjectTransform((prev) => ({ ...prev, offsetX: Number(event.target.value) })); markStale(); }} className="mt-2 w-full" /></label>
-                  <label className="block"><div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.16em] text-white/80"><span>Vertical</span><span>{subjectTransform.offsetY}%</span></div><input type="range" min={-35} max={35} step={1} value={subjectTransform.offsetY} onChange={(event) => { setSubjectTransform((prev) => ({ ...prev, offsetY: Number(event.target.value) })); markStale(); }} className="mt-2 w-full" /></label>
-                  <button type="button" onClick={() => { setSubjectTransform(defaultSubjectTransform); markStale(); }} className="rounded-full border border-white/35 bg-white/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-white/20">Reset placement</button>
                   <div className="flex flex-wrap gap-3">
                     <button type="button" onClick={() => { void handleGeneratePostcard(); }} disabled={isGenerating} className={cn("rounded-full border px-5 py-3 text-sm font-semibold", isGenerating ? "cursor-wait border-white/25 bg-white/15 text-white/60" : "border-accent bg-accent text-white hover:bg-accent-strong")}>{composition && isCompositionStale ? "Regenerate postcard" : "Generate postcard"}</button>
                     {visibleComposition ? <a href={visibleComposition.downloadUrl} download={`${activeFrame.id}-${previewMode === "ai" && !isAiResultStale ? "ai" : "manual"}-postcard.png`} className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/12 px-5 py-3 text-sm font-semibold text-white hover:bg-white/20">Download PNG</a> : null}
                   </div>
+                  <button type="button" onClick={() => setActiveStep("adjust")} className="rounded-full border border-white/35 bg-white/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-white/20">Back</button>
                   <DemoBadgePanel announce compact className="bg-white/12" title="Completion badge" description="Unlock by finishing the Explore route and postcard steps." />
                 </>
               ) : null}

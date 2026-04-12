@@ -13,6 +13,7 @@ import {
   startTransition,
   useDeferredValue,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
@@ -77,6 +78,19 @@ const exploreUiCopy = {
     views: "张视图",
     activeFrame: "当前画面",
     closeSelfieModal: "关闭合影弹窗",
+    autoTour: "自动导览",
+    tourPaused: "暂停中",
+    tourNarrating: "讲解中",
+    tourLoading: "生成讲解…",
+    tourResume: "继续",
+    tourPause: "暂停",
+    tourNext: "下一处",
+    tourBack: "上一处",
+    tourExit: "退出导览",
+    tourVoiceOn: "语音开",
+    tourVoiceOff: "语音关",
+    tourStopTitle: "导览进度",
+    tourPhotoLabel: "画面",
   },
   en: {
     brandTitle: "Panoramic Palace",
@@ -99,6 +113,19 @@ const exploreUiCopy = {
     views: "views",
     activeFrame: "Active frame",
     closeSelfieModal: "Close selfie modal",
+    autoTour: "Auto tour",
+    tourPaused: "Paused",
+    tourNarrating: "Narrating",
+    tourLoading: "Generating narration...",
+    tourResume: "Resume",
+    tourPause: "Pause",
+    tourNext: "Next",
+    tourBack: "Back",
+    tourExit: "Exit tour",
+    tourVoiceOn: "Voice on",
+    tourVoiceOff: "Voice off",
+    tourStopTitle: "Tour progress",
+    tourPhotoLabel: "Frame",
   },
 } as const;
 
@@ -122,6 +149,29 @@ function toSearchString(searchState: ExploreSearchState) {
   return params.toString();
 }
 
+function truncateText(value: string, maxLength: number) {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  return `${value.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+function estimateNarrationMs(text: string, language: AppLanguage) {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return 3500;
+  }
+
+  if (language === "zh") {
+    const charCount = trimmed.replace(/\s+/g, "").length;
+    return Math.max(3500, Math.round((charCount / 4.2) * 1000));
+  }
+
+  const wordCount = trimmed.split(/\s+/).filter(Boolean).length;
+  return Math.max(3500, Math.round(wordCount * 420));
+}
+
 function PlaceInfoPanel({
   place,
   activePhoto,
@@ -140,11 +190,11 @@ function PlaceInfoPanel({
   return (
     <div
       className={cn(
-        "h-full overflow-hidden rounded-[1.8rem] border shadow-[0_28px_80px_rgba(0,0,0,0.24)] backdrop-blur-2xl",
+        "overflow-hidden rounded-[1.8rem] border shadow-[0_28px_80px_rgba(0,0,0,0.24)] backdrop-blur-2xl",
         isDarkTheme
           ? "border-[#d6b071]/28 bg-[rgba(8,12,20,0.76)] text-white"
           : "border-border/70 bg-[rgba(255,248,240,0.86)] text-foreground",
-        compact ? "max-h-[32svh]" : "max-h-none"
+        compact ? "max-h-[32svh]" : "max-h-[70svh]"
       )}
     >
       <div
@@ -227,6 +277,15 @@ export function PanoramaExperience({
   const [mapScale, setMapScale] = useState(exploreExperience.map.initialScale);
   const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
   const [isSelfieModalOpen, setIsSelfieModalOpen] = useState(false);
+  const [isAutoTourActive, setIsAutoTourActive] = useState(false);
+  const [isAutoTourPaused, setIsAutoTourPaused] = useState(false);
+  const [autoTourPlaceIndex, setAutoTourPlaceIndex] = useState(0);
+  const [autoTourPhotoIndex, setAutoTourPhotoIndex] = useState(0);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [autoTourNarration, setAutoTourNarration] = useState("");
+  const [autoTourError, setAutoTourError] = useState("");
+  const [isAutoTourLoading, setIsAutoTourLoading] = useState(false);
 
   const mapDragRef = useRef<{
     pointerId: number;
@@ -240,6 +299,9 @@ export function PanoramaExperience({
   const panY = useMotionValue(0);
   const smoothX = useSpring(panX, { stiffness: 90, damping: 22, mass: 0.5 });
   const smoothY = useSpring(panY, { stiffness: 90, damping: 22, mass: 0.5 });
+  const narrationCacheRef = useRef<Map<string, string>>(new Map());
+  const autoTourTimerRef = useRef<number | null>(null);
+  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const searchKey = searchParams.toString();
   const liveSearchState = normalizeExploreSearchState({
@@ -256,6 +318,26 @@ export function PanoramaExperience({
   const showWelcomeVideo =
     searchState.view === "welcome" &&
     Boolean(exploreExperience.welcome.heroVideoSrc);
+  const normalizeImageSrc = (src: string | null | undefined) =>
+    src ? encodeURI(src) : src;
+  const activePhotoSrc = normalizeImageSrc(activePhoto?.src);
+  const activeCoverSrc = normalizeImageSrc(activePlace?.coverSrc);
+  const welcomeHeroSrc = normalizeImageSrc(exploreExperience.welcome.heroSrc);
+  const tourPlaces = useMemo(() => {
+    const placeMap = new Map(
+      exploreExperience.places.map((place) => [place.slug, place])
+    );
+
+    return exploreExperience.map.markers
+      .map((marker) => placeMap.get(marker.placeSlug))
+      .filter((place): place is ExplorePlace => Boolean(place));
+  }, []);
+  const totalTourPlaces = tourPlaces.length;
+  const activeTourPlace = tourPlaces[autoTourPlaceIndex] ?? null;
+  const activeTourPhoto =
+    activeTourPlace?.gallery[autoTourPhotoIndex] ??
+    activeTourPlace?.gallery[0] ??
+    null;
 
   useEffect(() => {
     if (searchState.view === "place" && activePlace) {
@@ -285,10 +367,224 @@ export function PanoramaExperience({
     };
   }, [isSelfieModalOpen]);
 
+  useEffect(() => {
+    if (!isAutoTourActive) {
+      return;
+    }
+
+    if (!activeTourPlace || !activeTourPhoto) {
+      return;
+    }
+
+    if (
+      searchState.view !== "place" ||
+      activePlace?.slug !== activeTourPlace.slug ||
+      activePhoto?.id !== activeTourPhoto.id
+    ) {
+      openPlace(activeTourPlace.slug, activeTourPhoto.id);
+    }
+  }, [
+    isAutoTourActive,
+    searchState.view,
+    activePlace?.slug,
+    activePhoto?.id,
+    activeTourPlace,
+    activeTourPhoto,
+  ]);
+
+  useEffect(() => {
+    if (!isAutoTourActive || !activeTourPlace || !activeTourPhoto) {
+      return;
+    }
+
+    const key = `${activeTourPlace.slug}:${activeTourPhoto.id}:${language}`;
+    const cachedNarration = narrationCacheRef.current.get(key);
+
+    if (cachedNarration) {
+      setAutoTourNarration(cachedNarration);
+      setIsAutoTourLoading(false);
+      setAutoTourError("");
+      return;
+    }
+
+    let cancelled = false;
+
+    async function fetchNarration() {
+      setIsAutoTourLoading(true);
+      setAutoTourError("");
+      setAutoTourNarration("");
+
+      const placeTitle = pickLocalizedText(activeTourPlace.title, language);
+      const shortDesc = pickLocalizedText(
+        activeTourPlace.shortDescription,
+        language
+      );
+      const longDesc = pickLocalizedText(
+        activeTourPlace.longDescription,
+        language
+      );
+      const photoCaption = pickLocalizedText(activeTourPhoto.caption, language);
+      const isFirstPhoto = autoTourPhotoIndex === 0;
+
+      const question =
+        language === "zh"
+          ? truncateText(
+              isFirstPhoto
+                ? `请先用1到2句话概述“${placeTitle}”的整体特色，然后聚焦讲解当前子场景“${photoCaption}”。参考描述：${shortDesc}。补充细节：${longDesc}。不要添加虚构人物或地点。`
+                : `请聚焦讲解当前子场景“${photoCaption}”，用4到6句话描述画面与空间特征，不要重复总体概述。参考描述：${shortDesc}。补充细节：${longDesc}。不要添加虚构人物或地点。`,
+              360
+            )
+          : truncateText(
+              isFirstPhoto
+                ? `Start with a 1–2 sentence overview of "${placeTitle}", then focus on the sub-place in this frame: "${photoCaption}". Reference: ${shortDesc}. Add detail from: ${longDesc}. Do not invent people or locations.`
+                : `Focus on the sub-place in this frame: "${photoCaption}". Use 4–6 sentences describing the scene and spatial cues; do not repeat the overall place overview. Reference: ${shortDesc}. Add detail from: ${longDesc}. Do not invent people or locations.`,
+              360
+            );
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: "detailed",
+            intent: "answer",
+            language,
+            question,
+            title: placeTitle,
+          }),
+        });
+
+        const data = (await response.json()) as { answer?: string; error?: string };
+
+        if (!response.ok || !data.answer) {
+          throw new Error(data.error ?? "Failed to generate narration.");
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        narrationCacheRef.current.set(key, data.answer);
+        setAutoTourNarration(data.answer);
+        setIsAutoTourLoading(false);
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        const fallbackNarration = language === "zh"
+          ? isFirstPhoto
+            ? `${placeTitle}。${shortDesc}。当前画面为：${photoCaption}。${longDesc}`
+            : `当前画面为：${photoCaption}。${shortDesc}。${longDesc}`
+          : isFirstPhoto
+            ? `${placeTitle}. ${shortDesc}. Current frame: ${photoCaption}. ${longDesc}`
+            : `Current frame: ${photoCaption}. ${shortDesc}. ${longDesc}`;
+
+        setAutoTourNarration(fallbackNarration);
+        setAutoTourError(
+          error instanceof Error ? error.message : "Narration unavailable."
+        );
+        setIsAutoTourLoading(false);
+      }
+    }
+
+    fetchNarration();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTourPlace, activeTourPhoto, isAutoTourActive, language]);
+
+  useEffect(() => {
+    if (!isAutoTourActive) {
+      return;
+    }
+
+    if (!autoTourNarration || isAutoTourLoading) {
+      return;
+    }
+
+    if (isAutoTourPaused) {
+      return;
+    }
+
+    if (!voiceEnabled) {
+      clearAutoTourTimer();
+      const delayMs = estimateNarrationMs(autoTourNarration, language);
+      autoTourTimerRef.current = window.setTimeout(() => {
+        advanceAutoTour(1);
+      }, delayMs);
+      return;
+    }
+
+    if (typeof window === "undefined" || !window.speechSynthesis) {
+      return;
+    }
+
+    stopSpeech();
+
+    const utterance = new SpeechSynthesisUtterance(autoTourNarration);
+    utterance.lang = language === "zh" ? "zh-CN" : "en-US";
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      clearAutoTourTimer();
+      autoTourTimerRef.current = window.setTimeout(() => {
+        advanceAutoTour(1);
+      }, 1200);
+    };
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      clearAutoTourTimer();
+      autoTourTimerRef.current = window.setTimeout(() => {
+        advanceAutoTour(1);
+      }, 1200);
+    };
+
+    currentUtteranceRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  }, [
+    autoTourNarration,
+    isAutoTourActive,
+    isAutoTourLoading,
+    isAutoTourPaused,
+    language,
+    voiceEnabled,
+  ]);
+
+  useEffect(() => {
+    if (!isAutoTourActive) {
+      return;
+    }
+
+    if (typeof window === "undefined" || !window.speechSynthesis) {
+      return;
+    }
+
+    if (voiceEnabled) {
+      if (isAutoTourPaused) {
+        clearAutoTourTimer();
+        window.speechSynthesis.pause();
+      } else {
+        window.speechSynthesis.resume();
+      }
+    }
+  }, [isAutoTourPaused, isAutoTourActive, voiceEnabled]);
+
+  useEffect(() => {
+    if (!isAutoTourActive) {
+      return;
+    }
+
+    stopSpeech();
+    clearAutoTourTimer();
+    setAutoTourNarration("");
+  }, [isAutoTourActive, language]);
+
   const backdropSrc =
     searchState.view === "place"
-      ? activePhoto?.src ?? activePlace?.coverSrc ?? exploreExperience.welcome.heroSrc
-      : exploreExperience.welcome.heroSrc;
+      ? activePhotoSrc ?? activeCoverSrc ?? welcomeHeroSrc
+      : welcomeHeroSrc;
   const localize = (copy: { zh: string; en: string }) =>
     pickLocalizedText(copy, language);
 
@@ -362,6 +658,79 @@ export function PanoramaExperience({
     }
 
     openPlace(activePlace.slug, photoId);
+  }
+
+  function clearAutoTourTimer() {
+    if (autoTourTimerRef.current) {
+      window.clearTimeout(autoTourTimerRef.current);
+      autoTourTimerRef.current = null;
+    }
+  }
+
+  function stopSpeech() {
+    if (typeof window === "undefined" || !window.speechSynthesis) {
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    currentUtteranceRef.current = null;
+    setIsSpeaking(false);
+  }
+
+  function startAutoTour() {
+    if (!totalTourPlaces) {
+      return;
+    }
+
+    setIsSelfieModalOpen(false);
+    setIsAutoTourActive(true);
+    setIsAutoTourPaused(false);
+    setAutoTourPlaceIndex(0);
+    setAutoTourPhotoIndex(0);
+  }
+
+  function stopAutoTour() {
+    setIsAutoTourActive(false);
+    setIsAutoTourPaused(false);
+    setAutoTourNarration("");
+    setAutoTourError("");
+    clearAutoTourTimer();
+    stopSpeech();
+  }
+
+  function advanceAutoTour(direction: 1 | -1) {
+    clearAutoTourTimer();
+    stopSpeech();
+
+    const currentPlaceIndex = autoTourPlaceIndex;
+    const currentPhotoIndex = autoTourPhotoIndex;
+    const place = tourPlaces[currentPlaceIndex];
+    const photoCount = place?.gallery.length ?? 0;
+    let nextPlaceIndex = currentPlaceIndex;
+    let nextPhotoIndex = currentPhotoIndex;
+
+    if (direction === -1) {
+      if (nextPhotoIndex > 0) {
+        nextPhotoIndex -= 1;
+      } else if (currentPlaceIndex > 0) {
+        nextPlaceIndex = currentPlaceIndex - 1;
+        const prevPlace = tourPlaces[nextPlaceIndex];
+        nextPhotoIndex = Math.max(0, (prevPlace?.gallery.length ?? 1) - 1);
+      }
+    } else {
+      if (nextPhotoIndex + 1 < photoCount) {
+        nextPhotoIndex += 1;
+      } else if (currentPlaceIndex + 1 < totalTourPlaces) {
+        nextPlaceIndex = currentPlaceIndex + 1;
+        nextPhotoIndex = 0;
+      } else {
+        stopAutoTour();
+        return;
+      }
+    }
+
+    setAutoTourPlaceIndex(nextPlaceIndex);
+    setAutoTourPhotoIndex(nextPhotoIndex);
   }
 
   function handleScenePointerMove(event: ReactPointerEvent<HTMLElement>) {
@@ -451,7 +820,11 @@ export function PanoramaExperience({
       >
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${backdropSrc})` }}
+          style={
+            backdropSrc
+              ? { backgroundImage: `url("${backdropSrc}")` }
+              : undefined
+          }
         />
         {showWelcomeVideo ? (
           <video
@@ -477,17 +850,17 @@ export function PanoramaExperience({
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(6,8,14,0.32),transparent_22%,transparent_78%,rgba(6,8,14,0.36))]" />
       </motion.div>
 
-      {searchState.view === "place" && activePhoto ? (
-        <motion.div
-          className="absolute inset-[-4%] opacity-50 blur-2xl"
-          style={reduceMotion ? { scale: 1.08 } : { x: smoothX, y: smoothY, scale: 1.1 }}
-        >
-          <div
-            className="absolute inset-0 bg-cover bg-center mix-blend-screen"
-            style={{ backgroundImage: `url(${activePhoto.src})` }}
-          />
-        </motion.div>
-      ) : null}
+        {searchState.view === "place" && activePhotoSrc ? (
+          <motion.div
+            className="absolute inset-[-4%] opacity-50 blur-2xl"
+            style={reduceMotion ? { scale: 1.08 } : { x: smoothX, y: smoothY, scale: 1.1 }}
+          >
+            <div
+              className="absolute inset-0 bg-cover bg-center mix-blend-screen"
+              style={{ backgroundImage: `url("${activePhotoSrc}")` }}
+            />
+          </motion.div>
+        ) : null}
 
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,transparent_56%,rgba(4,6,10,0.48)_100%)]" />
       <div className="absolute inset-x-0 bottom-0 h-[42%] bg-[linear-gradient(180deg,rgba(5,7,12,0)_0%,rgba(5,7,12,0.18)_30%,rgba(5,7,12,0.82)_100%)]" />
@@ -664,14 +1037,28 @@ export function PanoramaExperience({
             >
               <div className="flex items-center justify-between gap-4 px-2 pb-4">
                 <div>
-                  <p
-                    className={cn(
-                      "text-[11px] font-semibold uppercase tracking-[0.28em]",
-                      isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft"
-                    )}
-                  >
-                    {ui.palaceMap}
-                  </p>
+                  <div className="flex items-center gap-3">
+                    <p
+                      className={cn(
+                        "text-[11px] font-semibold uppercase tracking-[0.28em]",
+                        isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft"
+                      )}
+                    >
+                      {ui.palaceMap}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={startAutoTour}
+                      className={cn(
+                        "rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em]",
+                        isDarkTheme
+                          ? "border-[#d6b071]/28 bg-[#d6b071]/14 text-[#f5ddb4] hover:bg-[#d6b071]/22"
+                          : "border-accent-soft/30 bg-accent-soft/14 text-accent-strong hover:bg-accent-soft/22"
+                      )}
+                    >
+                      {ui.autoTour}
+                    </button>
+                  </div>
                   <p
                     className={cn(
                       "mt-2 text-sm",
@@ -838,7 +1225,7 @@ export function PanoramaExperience({
             </p>
           </div>
 
-          <div className="absolute right-4 top-4 bottom-44 z-30 hidden w-[min(27rem,34vw)] lg:block">
+          <div className="absolute right-4 top-4 z-30 hidden w-[min(27rem,34vw)] lg:block">
             <PlaceInfoPanel
               place={activePlace}
               activePhoto={activePhoto}
@@ -894,6 +1281,18 @@ export function PanoramaExperience({
               </button>
               <button
                 type="button"
+                onClick={startAutoTour}
+                className={cn(
+                  "rounded-full border px-4 py-3 text-sm font-semibold",
+                  isDarkTheme
+                    ? "border-[#f5ddb4]/30 bg-[#f5ddb4]/14 text-[#f5ddb4] hover:bg-[#f5ddb4]/22"
+                    : "border-accent-soft/30 bg-accent-soft/14 text-accent-strong hover:bg-accent-soft/22"
+                )}
+              >
+                {ui.autoTour}
+              </button>
+              <button
+                type="button"
                 onClick={() => setIsSelfieModalOpen(true)}
                 className={cn(
                   "rounded-full border px-4 py-3 text-sm font-semibold",
@@ -943,7 +1342,7 @@ export function PanoramaExperience({
                       )}
                     >
                       <Image
-                        src={photo.src}
+                        src={normalizeImageSrc(photo.src) ?? photo.src}
                         alt={localize(photo.alt)}
                         fill
                         sizes="8rem"
@@ -962,6 +1361,107 @@ export function PanoramaExperience({
             </div>
           </div>
         </>
+      ) : null}
+
+      {isAutoTourActive && activeTourPlace && activeTourPhoto ? (
+        <div className="absolute bottom-[300px] left-4 z-40 w-[min(22rem,calc(100vw-2rem))] sm:bottom-[280px] lg:bottom-[240px]">
+          <div
+            className={cn(
+              "rounded-[1.5rem] border px-4 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.28)] backdrop-blur-2xl",
+              isDarkTheme
+                ? "border-[#d6b071]/24 bg-[rgba(8,12,20,0.76)] text-white"
+                : "border-border/70 bg-[rgba(255,248,240,0.9)] text-foreground"
+            )}
+          >
+            <p
+              className={cn(
+                "text-[11px] font-semibold uppercase tracking-[0.28em]",
+                isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft"
+              )}
+            >
+              {ui.tourStopTitle}
+            </p>
+            <p className={cn("mt-2 text-lg font-semibold", isDarkTheme ? "text-white" : "text-foreground")}>
+              {localize(activeTourPlace.title)}
+            </p>
+            <p className={cn("mt-1 text-sm", isDarkTheme ? "text-white/70" : "text-foreground/70")}>
+              {ui.tourPhotoLabel} {autoTourPhotoIndex + 1}/{activeTourPlace.gallery.length} · {autoTourPlaceIndex + 1}/{totalTourPlaces}
+            </p>
+
+            <p className={cn("mt-3 text-xs uppercase tracking-[0.2em]", isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft")}>
+              {isAutoTourPaused ? ui.tourPaused : isAutoTourLoading ? ui.tourLoading : ui.tourNarrating}
+            </p>
+            <p className={cn("mt-2 text-sm leading-6", isDarkTheme ? "text-white/78" : "text-foreground/78")}>
+              {isAutoTourLoading ? "" : autoTourNarration}
+            </p>
+            {autoTourError ? (
+              <p className="mt-2 text-xs text-red-400">{autoTourError}</p>
+            ) : null}
+
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsAutoTourPaused((current) => !current)}
+                className={cn(
+                  "rounded-full border px-3 py-2 text-xs font-semibold",
+                  isDarkTheme
+                    ? "border-white/16 bg-white/10 text-white hover:bg-white/16"
+                    : "border-border/80 bg-background/82 text-foreground hover:bg-background"
+                )}
+              >
+                {isAutoTourPaused ? ui.tourResume : ui.tourPause}
+              </button>
+              <button
+                type="button"
+                onClick={() => advanceAutoTour(-1)}
+                className={cn(
+                  "rounded-full border px-3 py-2 text-xs font-semibold",
+                  isDarkTheme
+                    ? "border-white/16 bg-white/10 text-white hover:bg-white/16"
+                    : "border-border/80 bg-background/82 text-foreground hover:bg-background"
+                )}
+              >
+                {ui.tourBack}
+              </button>
+              <button
+                type="button"
+                onClick={() => advanceAutoTour(1)}
+                className={cn(
+                  "rounded-full border px-3 py-2 text-xs font-semibold",
+                  isDarkTheme
+                    ? "border-white/16 bg-white/10 text-white hover:bg-white/16"
+                    : "border-border/80 bg-background/82 text-foreground hover:bg-background"
+                )}
+              >
+                {ui.tourNext}
+              </button>
+              <button
+                type="button"
+                onClick={() => setVoiceEnabled((current) => !current)}
+                className={cn(
+                  "rounded-full border px-3 py-2 text-xs font-semibold",
+                  isDarkTheme
+                    ? "border-[#d6b071]/30 bg-[#d6b071]/14 text-[#f5ddb4] hover:bg-[#d6b071]/22"
+                    : "border-accent-soft/30 bg-accent-soft/14 text-accent-strong hover:bg-accent-soft/22"
+                )}
+              >
+                {voiceEnabled ? ui.tourVoiceOn : ui.tourVoiceOff}
+              </button>
+              <button
+                type="button"
+                onClick={stopAutoTour}
+                className={cn(
+                  "rounded-full border px-3 py-2 text-xs font-semibold",
+                  isDarkTheme
+                    ? "border-white/16 bg-white/10 text-white hover:bg-white/16"
+                    : "border-border/80 bg-background/82 text-foreground hover:bg-background"
+                )}
+              >
+                {ui.tourExit}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       <AnimatePresence>
@@ -1008,7 +1508,7 @@ export function PanoramaExperience({
                 mode="modal"
                 onClose={() => setIsSelfieModalOpen(false)}
                 initialBackdrop={{
-                  imageUrl: activePhoto.src,
+                  imageUrl: activePhotoSrc ?? activePhoto.src,
                   label: localize(activePhoto.caption),
                 }}
                 initialTitle={localize(activePlace.title)}

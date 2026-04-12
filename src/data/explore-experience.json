@@ -142,12 +142,12 @@
                                               "x":  62,
                                               "y":  74
                                           },
-                       "coverSrc":  "/places/Wide view of Tianyi Men.jpg",
+                       "coverSrc":  "/places/Wide view of Tianyi Men.png",
                        "defaultPhotoId":  "tianyi-1",
                        "gallery":  [
                                        {
                                            "id":  "tianyi-1",
-                                           "src":  "/places/Wide view of Tianyi Men.jpg",
+                                           "src":  "/places/Wide view of Tianyi Men.png",
                                            "alt":  {
                                                        "zh":  "天一门全景视角",
                                                        "en":  "Wide view of Tianyi Men"
@@ -160,7 +160,7 @@
                                        },
                                        {
                                            "id":  "tianyi-2",
-                                           "src":  "/places/Tree-lined approach angle.jpg",
+                                           "src":  "/places/Tree-lined approach angle.png",
                                            "alt":  {
                                                        "zh":  "林间门道角度",
                                                        "en":  "Tree-lined approach angle"
@@ -173,7 +173,7 @@
                                        },
                                        {
                                            "id":  "tianyi-3",
-                                           "src":  "/places/Axial walkway composition.jpg",
+                                           "src":  "/places/Axial walkway composition.png",
                                            "alt":  {
                                                        "zh":  "轴线步道组图",
                                                        "en":  "Axial walkway composition"
@@ -186,7 +186,7 @@
                                        },
                                        {
                                            "id":  "tianyi-4",
-                                           "src":  "/places/Garden-entry composition.jpg",
+                                           "src":  "/places/Garden-entry composition.png",
                                            "alt":  {
                                                        "zh":  "花园入境组图",
                                                        "en":  "Garden-entry composition"
@@ -221,12 +221,12 @@
                                               "x":  44,
                                               "y":  72
                                           },
-                       "coverSrc":  "/places/Forecourt view of Taihe Dian.jpg",
+                       "coverSrc":  "/places/Forecourt view of Taihe Dian.png",
                        "defaultPhotoId":  "taihe-1",
                        "gallery":  [
                                        {
                                            "id":  "taihe-1",
-                                           "src":  "/places/Forecourt view of Taihe Dian.jpg",
+                                           "src":  "/places/Forecourt view of Taihe Dian.png",
                                            "alt":  {
                                                        "zh":  "太和殿广场视角",
                                                        "en":  "Forecourt view of Taihe Dian"
@@ -239,7 +239,7 @@
                                        },
                                        {
                                            "id":  "taihe-2",
-                                           "src":  "/places/Layered roof composition.jpg",
+                                           "src":  "/places/Layered roof composition.png",
                                            "alt":  {
                                                        "zh":  "重檐立面组图",
                                                        "en":  "Layered roof composition"
@@ -252,7 +252,7 @@
                                        },
                                        {
                                            "id":  "taihe-3",
-                                           "src":  "/places/Raised plinth alignment.jpg",
+                                           "src":  "/places/Raised plinth alignment.png",
                                            "alt":  {
                                                        "zh":  "开阔台基组图",
                                                        "en":  "Raised plinth alignment"
@@ -287,12 +287,12 @@
                                               "x":  54,
                                               "y":  60
                                           },
-                       "coverSrc":  "/places/Front view of Yangxin Dian.jpg",
+                       "coverSrc":  "/places/Front view of Yangxin Dian.png",
                        "defaultPhotoId":  "yangxin-1",
                        "gallery":  [
                                        {
                                            "id":  "yangxin-1",
-                                           "src":  "/places/Front view of Yangxin Dian.jpg",
+                                           "src":  "/places/Front view of Yangxin Dian.png",
                                            "alt":  {
                                                        "zh":  "养心殿正面",
                                                        "en":  "Front view of Yangxin Dian"
@@ -305,7 +305,7 @@
                                        },
                                        {
                                            "id":  "yangxin-2",
-                                           "src":  "/places/Closer courtyard entrance.jpg",
+                                           "src":  "/places/Closer courtyard entrance.png",
                                            "alt":  {
                                                        "zh":  "院落入口近视",
                                                        "en":  "Closer courtyard entrance"
@@ -318,7 +318,7 @@
                                        },
                                        {
                                            "id":  "yangxin-3",
-                                           "src":  "/places/Domestic court angle.jpg",
+                                           "src":  "/places/Domestic court angle.png",
                                            "alt":  {
                                                        "zh":  "家常庭院角度",
                                                        "en":  "Domestic court angle"
@@ -353,12 +353,12 @@
                                               "x":  28,
                                               "y":  62
                                           },
-                       "coverSrc":  "/places/Residential court of Jingren Gong.jpg",
+                       "coverSrc":  "/places/Residential court of Jingren Gong.png",
                        "defaultPhotoId":  "jingren-1",
                        "gallery":  [
                                        {
                                            "id":  "jingren-1",
-                                           "src":  "/places/Residential court of Jingren Gong.jpg",
+                                           "src":  "/places/Residential court of Jingren Gong.png",
                                            "alt":  {
                                                        "zh":  "景仁宫居住院落",
                                                        "en":  "Residential court of Jingren Gong"
@@ -371,7 +371,7 @@
                                        },
                                        {
                                            "id":  "jingren-2",
-                                           "src":  "/places/Eaves and facade view.jpg",
+                                           "src":  "/places/Eaves and facade view.png",
                                            "alt":  {
                                                        "zh":  "屋檐与立面",
                                                        "en":  "Eaves and facade view"
@@ -384,7 +384,7 @@
                                        },
                                        {
                                            "id":  "jingren-3",
-                                           "src":  "/places/Quiet courtyard atmosphere.jpg",
+                                           "src":  "/places/Quiet courtyard atmosphere.png",
                                            "alt":  {
                                                        "zh":  "院落安静气氛",
                                                        "en":  "Quiet courtyard atmosphere"
@@ -419,12 +419,12 @@
                                               "x":  50,
                                               "y":  56
                                           },
-                       "coverSrc":  "/places/Axial front of Zhonghe Dian.jpg",
+                       "coverSrc":  "/places/Axial front of Zhonghe Dian.png",
                        "defaultPhotoId":  "zhonghe-1",
                        "gallery":  [
                                        {
                                            "id":  "zhonghe-1",
-                                           "src":  "/places/Axial front of Zhonghe Dian.jpg",
+                                           "src":  "/places/Axial front of Zhonghe Dian.png",
                                            "alt":  {
                                                        "zh":  "中和殿轴线正面",
                                                        "en":  "Axial front of Zhonghe Dian"
@@ -437,7 +437,7 @@
                                        },
                                        {
                                            "id":  "zhonghe-2",
-                                           "src":  "/places/Courtyard midline atmosphere.jpg",
+                                           "src":  "/places/Courtyard midline atmosphere.png",
                                            "alt":  {
                                                        "zh":  "庭院中间气氛",
                                                        "en":  "Courtyard midline atmosphere"
@@ -450,7 +450,7 @@
                                        },
                                        {
                                            "id":  "zhonghe-3",
-                                           "src":  "/places/Transition zone view.jpg",
+                                           "src":  "/places/Courtyard midline atmosphere.png",
                                            "alt":  {
                                                        "zh":  "过渡区域视角",
                                                        "en":  "Transition zone view"
@@ -485,12 +485,12 @@
                                               "x":  48,
                                               "y":  44
                                           },
-                       "coverSrc":  "/places/Fengxian Dian plinth composition.jpg",
+                       "coverSrc":  "/places/Fengxian Dian plinth composition.png",
                        "defaultPhotoId":  "fengxian-1",
                        "gallery":  [
                                        {
                                            "id":  "fengxian-1",
-                                           "src":  "/places/Fengxian Dian plinth composition.jpg",
+                                           "src":  "/places/Fengxian Dian plinth composition.png",
                                            "alt":  {
                                                        "zh":  "奉先殿台基组图",
                                                        "en":  "Fengxian Dian plinth composition"
@@ -503,7 +503,7 @@
                                        },
                                        {
                                            "id":  "fengxian-2",
-                                           "src":  "/places/Axial front-facing angle.jpg",
+                                           "src":  "/places/Axial front-facing angle.png",
                                            "alt":  {
                                                        "zh":  "轴线正面角度",
                                                        "en":  "Axial front-facing angle"
@@ -538,12 +538,12 @@
                                               "x":  50,
                                               "y":  40
                                           },
-                       "coverSrc":  "/places/Open forecourt of Baohe Dian.jpg",
+                       "coverSrc":  "/places/Open forecourt of Baohe Dian.png",
                        "defaultPhotoId":  "baohe-1",
                        "gallery":  [
                                        {
                                            "id":  "baohe-1",
-                                           "src":  "/places/Open forecourt of Baohe Dian.jpg",
+                                           "src":  "/places/Open forecourt of Baohe Dian.png",
                                            "alt":  {
                                                        "zh":  "保和殿开放前场",
                                                        "en":  "Open forecourt of Baohe Dian"
@@ -556,7 +556,7 @@
                                        },
                                        {
                                            "id":  "baohe-2",
-                                           "src":  "/places/Roofline composition.jpg",
+                                           "src":  "/places/Roofline composition.png",
                                            "alt":  {
                                                        "zh":  "屋檐线组图",
                                                        "en":  "Roofline composition"
@@ -604,12 +604,12 @@
                                               "x":  55,
                                               "y":  30
                                           },
-                       "coverSrc":  "/places/Close view of Qianqing Men doors.jpg",
+                       "coverSrc":  "/places/Close view of Qianqing Men doors.webp",
                        "defaultPhotoId":  "qianqing-1",
                        "gallery":  [
                                        {
                                            "id":  "qianqing-1",
-                                           "src":  "/places/Close view of Qianqing Men doors.jpg",
+                                           "src":  "/places/Close view of Qianqing Men doors.webp",
                                            "alt":  {
                                                        "zh":  "乾清门门叶近视",
                                                        "en":  "Close view of Qianqing Men doors"
@@ -635,7 +635,7 @@
                                        },
                                        {
                                            "id":  "qianqing-3",
-                                           "src":  "/places/Crimson gate sequence.jpg",
+                                           "src":  "/places/Crimson gate sequence.png",
                                            "alt":  {
                                                        "zh":  "赤红门序组图",
                                                        "en":  "Crimson gate sequence"
@@ -648,7 +648,7 @@
                                        },
                                        {
                                            "id":  "qianqing-4",
-                                           "src":  "/places/Inner threshold angle.jpg",
+                                           "src":  "/places/Inner threshold angle.png",
                                            "alt":  {
                                                        "zh":  "门内角度",
                                                        "en":  "Inner threshold angle"
@@ -683,12 +683,12 @@
                                               "x":  63,
                                               "y":  22
                                           },
-                       "coverSrc":  "/places/Wide view of Huangji Dian.jpg",
+                       "coverSrc":  "/places/Wide view of Huangji Dian.png",
                        "defaultPhotoId":  "huangji-1",
                        "gallery":  [
                                        {
                                            "id":  "huangji-1",
-                                           "src":  "/places/Wide view of Huangji Dian.jpg",
+                                           "src":  "/places/Wide view of Huangji Dian.png",
                                            "alt":  {
                                                        "zh":  "皇极殿宏观视角",
                                                        "en":  "Wide view of Huangji Dian"
@@ -701,7 +701,7 @@
                                        },
                                        {
                                            "id":  "huangji-2",
-                                           "src":  "/places/Facade and column rhythm.jpg",
+                                           "src":  "/places/Facade and column rhythm.png",
                                            "alt":  {
                                                        "zh":  "立面及柱列",
                                                        "en":  "Facade and column rhythm"
@@ -714,7 +714,7 @@
                                        },
                                        {
                                            "id":  "huangji-3",
-                                           "src":  "/places/Forecourt axial composition.jpg",
+                                           "src":  "/places/Forecourt axial composition.png",
                                            "alt":  {
                                                        "zh":  "前场轴线组图",
                                                        "en":  "Forecourt axial composition"
@@ -727,7 +727,7 @@
                                        },
                                        {
                                            "id":  "huangji-4",
-                                           "src":  "/places/Sunlit roof composition.jpg",
+                                           "src":  "/places/Sunlit roof composition.png",
                                            "alt":  {
                                                        "zh":  "明亮屋面组图",
                                                        "en":  "Sunlit roof composition"
@@ -740,7 +740,7 @@
                                        },
                                        {
                                            "id":  "huangji-5",
-                                           "src":  "/places/Longevity-court atmosphere.jpg",
+                                           "src":  "/places/Longevity-court atmosphere.png",
                                            "alt":  {
                                                        "zh":  "寿宫气象组图",
                                                        "en":  "Longevity-court atmosphere"
@@ -775,12 +775,12 @@
                                               "x":  35,
                                               "y":  18
                                           },
-                       "coverSrc":  "/places/Main court of Shoukang Gong.jpg",
+                       "coverSrc":  "/places/Main court of Shoukang Gong.png",
                        "defaultPhotoId":  "shoukang-1",
                        "gallery":  [
                                        {
                                            "id":  "shoukang-1",
-                                           "src":  "/places/Main court of Shoukang Gong.jpg",
+                                           "src":  "/places/Main court of Shoukang Gong.png",
                                            "alt":  {
                                                        "zh":  "寿康宫正院",
                                                        "en":  "Main court of Shoukang Gong"
@@ -793,7 +793,7 @@
                                        },
                                        {
                                            "id":  "shoukang-2",
-                                           "src":  "/places/Sunlit corridor angle.jpg",
+                                           "src":  "/places/Sunlit corridor angle.png",
                                            "alt":  {
                                                        "zh":  "日照回廊角度",
                                                        "en":  "Sunlit corridor angle"
