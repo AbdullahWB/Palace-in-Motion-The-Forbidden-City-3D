@@ -21,10 +21,13 @@ export default function ErrorPage({
       code={error.digest ?? "3D"}
       eyebrow={{ zh: "三维场景错误", en: "3D scene error" }}
       statusLabel={{ zh: "场景加载失败", en: "Scene load failed" }}
-      title={{ zh: "3D 故宫场景暂时不可用。", en: "The 3D Forbidden City scene is temporarily unavailable." }}
+      title={{
+        zh: "故宫三维展示暂时不可用。",
+        en: "The Forbidden City 3D showcase is temporarily unavailable.",
+      }}
       description={{
-        zh: "嵌入式三维场景没有正常完成加载。可以重试，或返回主页继续使用地图和场景探索。",
-        en: "The embedded 3D scene did not finish loading correctly. Retry the scene, or return to the homepage and continue with map-based exploration.",
+        zh: "嵌入式三维场景没有正常完成加载。可以重新尝试，或者返回首页继续从探索视图进入其他内容。",
+        en: "The embedded 3D scene did not finish loading correctly. Retry the scene, or return home and continue from the main exploration flow.",
       }}
       actions={
         <>

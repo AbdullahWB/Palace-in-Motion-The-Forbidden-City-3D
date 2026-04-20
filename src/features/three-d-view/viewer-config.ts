@@ -21,28 +21,29 @@ export type ThreeDViewerConfig = {
 
 export const forbiddenCityViewerConfig: ThreeDViewerConfig = {
   title: {
-    zh: "æ•…å®«ä¸‰ç»´è§†å›¾",
+    zh: "故宫三维视图",
     en: "Forbidden City 3D View",
   },
   subtitle: {
-    zh: "å…¨å±ä¸‰ç»´å±•ç¤º",
+    zh: "全屏三维展示",
     en: "Fullscreen ceremonial model showcase",
   },
   description: {
-    zh: "è¿™ä¸ªç‰ˆæœ¬æ˜¯ä¸€ä¸ªæ¨¡åž‹å°±ç»ªçš„ä¸‰ç»´å±•ç¤ºé¡µã€‚å½“çœŸå®žæ•…å®«æ¨¡åž‹æ”¾å…¥ `public/models/forbidden-city.glb` åŽï¼Œè¿™é‡Œå¯ä»¥ç›´æŽ¥åˆ‡æ¢åˆ°çœŸå®žæ¨¡åž‹æµè§ˆã€‚",
+    zh: "这个版本是一个模型就绪的三维展示页。当真实故宫模型放入 `public/models/forbidden-city.glb` 后，这里可以直接切换到真实模型浏览。",
     en: "This page is a model-ready 3D showcase. Once a real Forbidden City asset is added at `public/models/forbidden-city.glb`, the viewer can switch from the placeholder scene to the real model without changing the route.",
   },
   modelSrc: "/models/forbidden-city.glb",
   fallbackMode: "placeholder",
   initialCamera: {
-    position: [24, 15, 22],
-    target: [0, 4.2, -5.5],
-    fov: 34,
+    // Positioned south-east, elevated — looking north-west into the outer courts
+    position: [22, 17, 30],
+    target: [0, 4.0, -5.0],
+    fov: 38,
   },
   orbitLimits: {
-    minDistance: 12,
-    maxDistance: 36,
-    minPolarAngle: 0.72,
-    maxPolarAngle: 1.42,
+    minDistance: 14,
+    maxDistance: 52,
+    minPolarAngle: 0.58,
+    maxPolarAngle: 1.38,
   },
 };

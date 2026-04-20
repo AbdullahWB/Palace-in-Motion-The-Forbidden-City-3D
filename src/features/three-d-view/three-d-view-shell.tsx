@@ -20,15 +20,15 @@ type ThreeDViewShellProps = {
 
 const shellCopy = {
   zh: {
-    eyebrow: "ä¸‰ç»´æ¨¡åž‹å±•ç¤º",
-    readyLabel: "æ¨¡åž‹å°±ç»ª",
-    fallbackLabel: "å ä½åœºæ™¯",
-    orbitHint: "æ‹–åŠ¨æ—‹è½¬ï¼Œæ»šè½®æˆ–æåˆç¼©æ”¾",
-    resetView: "é‡ç½®è§†è§’",
-    backHome: "è¿”å›žé¦–é¡µ",
-    sceneNoteTitle: "åœºæ™¯è¯´æ˜Ž",
+    eyebrow: "三维模型展示",
+    readyLabel: "模型就绪",
+    fallbackLabel: "占位场景",
+    orbitHint: "拖动旋转，滚轮或捏合缩放",
+    resetView: "重置视角",
+    backHome: "返回首页",
+    sceneNoteTitle: "场景说明",
     sceneNoteBody:
-      "å½“å‰æ˜¯ä¸€ä¸ªé¢å‘çœŸå®žæ¨¡åž‹çš„å…¨å±æŸ¥çœ‹å™¨ï¼ŒçŽ°é˜¶æ®µç”¨æ›´å®Œæ•´çš„ç¦åŸŽä½“é‡å…³ç³»å’Œä¸­è½´æž„å›¾æ¥ä»£æ›¿çœŸå®ž GLB æ¨¡åž‹ã€‚",
+      "当前为增强版程序化场景，包含太和殿三台、午门、角楼、金水河、华表、石狮、铜鼎及御花园等主要建筑群。真实 GLB 模型加入后即可无缝切换。",
   },
   en: {
     eyebrow: "3D model showcase",
@@ -39,7 +39,7 @@ const shellCopy = {
     backHome: "Back home",
     sceneNoteTitle: "Scene note",
     sceneNoteBody:
-      "This is a fullscreen viewer shell prepared for a real Forbidden City model. Until the GLB is added, the page uses a fuller ceremonial placeholder scene with stronger massing and axial composition.",
+      "Enhanced procedural model featuring the Hall of Supreme Harmony on its triple marble terrace, Meridian Gate, corner watchtowers, Golden Water River, Huabiao pillars, stone lions, bronze urns, and Imperial Garden — built entirely from geometric primitives. Drop in a real GLB to replace instantly.",
   },
 } as const;
 
@@ -80,33 +80,38 @@ function ViewerScene({
         position={config.initialCamera.position}
         fov={config.initialCamera.fov}
       />
-      <color attach="background" args={["#c9d8ea"]} />
-      <fog attach="fog" args={["#d4dfec", 24, 78]} />
+      <color attach="background" args={["#c4d4e8"]} />
+      <fog attach="fog" args={["#cdd9ea", 28, 90]} />
       <Sky
         distance={450000}
-        sunPosition={[5.5, 2.6, 1.2]}
-        inclination={0.48}
-        azimuth={0.2}
-        turbidity={7.2}
-        rayleigh={1.3}
+        sunPosition={[6.0, 2.8, 1.0]}
+        inclination={0.46}
+        azimuth={0.18}
+        turbidity={6.8}
+        rayleigh={1.2}
       />
-      <hemisphereLight intensity={1.05} color="#f4ebd8" groundColor="#8a6140" />
-      <ambientLight intensity={0.42} />
+      {/* Warm afternoon hemisphere */}
+      <hemisphereLight intensity={1.1} color="#f5ead0" groundColor="#7a5a38" />
+      <ambientLight intensity={0.38} />
+      {/* Main sun */}
       <directionalLight
         castShadow
-        position={[26, 34, 18]}
-        intensity={2.2}
-        color="#fff3d6"
+        position={[28, 36, 20]}
+        intensity={2.4}
+        color="#fff1cc"
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
         shadow-camera-near={1}
-        shadow-camera-far={120}
-        shadow-camera-left={-42}
-        shadow-camera-right={42}
-        shadow-camera-top={42}
-        shadow-camera-bottom={-42}
+        shadow-camera-far={140}
+        shadow-camera-left={-52}
+        shadow-camera-right={52}
+        shadow-camera-top={52}
+        shadow-camera-bottom={-52}
       />
-      <directionalLight position={[-18, 14, -14]} intensity={0.72} color="#c98b54" />
+      {/* Warm fill from west */}
+      <directionalLight position={[-20, 16, -12]} intensity={0.7} color="#d08840" />
+      {/* Cool sky bounce */}
+      <directionalLight position={[0, 20, -30]} intensity={0.28} color="#98b8d8" />
 
       {hasModelAsset && config.modelSrc ? (
         <Suspense fallback={null}>
@@ -120,17 +125,17 @@ function ViewerScene({
 
       <ContactShadows
         position={[0, 0.01, 0]}
-        opacity={0.34}
-        scale={92}
-        blur={2.6}
-        far={28}
-        color="#4a2f21"
+        opacity={0.32}
+        scale={100}
+        blur={2.8}
+        far={32}
+        color="#3a2010"
       />
 
       <OrbitControls
         makeDefault
         enableDamping
-        dampingFactor={0.08}
+        dampingFactor={0.07}
         enablePan={false}
         minDistance={config.orbitLimits.minDistance}
         maxDistance={config.orbitLimits.maxDistance}

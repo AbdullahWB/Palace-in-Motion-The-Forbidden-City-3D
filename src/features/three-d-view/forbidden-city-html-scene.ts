@@ -16,6 +16,7 @@ const sceneStyleOverrides = `
     overflow: hidden;
     background: #04070d;
     color-scheme: dark;
+    overscroll-behavior: none;
   }
 
   body {
@@ -32,29 +33,19 @@ const sceneStyleOverrides = `
   #c3d {
     touch-action: none;
   }
-`;
 
-const markupReplacements: Array<[string, string]> = [
-  ["ä¸‰ç»´å±•ç¤º Â· 3D VIEW", "三维展示 · 3D VIEW"],
-  ["æ•…å®«", "故宫"],
-  ["The Forbidden City", "The Forbidden City"],
-  ["æ˜Žæ¸…çš‡å®« Â· ç´«ç¦åŸŽ", "明清皇宫 · 紫禁城"],
-  ["Drag Â· Orbit Â· Scroll", "Drag · Orbit · Scroll"],
-  ["Three.js Â· WebGL", "Three.js · WebGL"],
-];
+  a,
+  button {
+    font: inherit;
+  }
+`;
 
 export function hasForbiddenCityHtmlScene() {
   return existsSync(FORBIDDEN_CITY_HTML_SCENE_PATH);
 }
 
 function normalizeSceneMarkup(source: string) {
-  let normalized = source.trimStart();
-
-  for (const [from, to] of markupReplacements) {
-    normalized = normalized.replaceAll(from, to);
-  }
-
-  return normalized.replaceAll("Â·", "·");
+  return source.trimStart();
 }
 
 export function buildForbiddenCityHtmlSceneDocument() {
@@ -62,7 +53,7 @@ export function buildForbiddenCityHtmlSceneDocument() {
   const normalizedMarkup = normalizeSceneMarkup(rawMarkup);
 
   return `<!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta
