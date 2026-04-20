@@ -1,4 +1,4 @@
-export type AppRoute = "/" | "/explore" | "/tour" | "/selfie";
+export type AppRoute = "/" | "/explore" | "/tour" | "/selfie" | "/3d-view";
 export type HomeAnchor = "#ai-guide";
 export type LandingHref = AppRoute | HomeAnchor;
 

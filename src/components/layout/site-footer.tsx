@@ -11,7 +11,12 @@ import { APP_DESCRIPTION, APP_NAME, APP_TAGLINE } from "@/lib/constants";
 export function SiteFooter() {
   const pathname = usePathname();
 
-  if (pathname === "/" || pathname === "/selfie" || pathname === "/explore") {
+  if (
+    pathname === "/" ||
+    pathname === "/selfie" ||
+    pathname === "/explore" ||
+    pathname === "/3d-view"
+  ) {
     return null;
   }
 

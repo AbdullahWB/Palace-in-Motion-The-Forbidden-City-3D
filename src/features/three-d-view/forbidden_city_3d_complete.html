@@ -1,0 +1,526 @@
+
+<div id="wrap" style="position:relative;width:100%;height:680px;overflow:hidden;border-radius:14px;background:#0a0e18;">
+<canvas id="c3d" style="position:absolute;inset:0;width:100%;height:100%;cursor:grab;display:block;"></canvas>
+<div style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;background:linear-gradient(to bottom,rgba(0,0,0,0.12) 0%,transparent 30%,transparent 70%,rgba(0,0,0,0.38) 100%);"></div>
+<div style="position:absolute;top:16px;left:16px;max-width:210px;background:rgba(4,8,18,.84);border:1px solid rgba(212,165,32,.34);border-radius:14px;padding:16px 20px;backdrop-filter:blur(12px);">
+  <div style="font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:#d4a520;margin-bottom:8px;">三维展示 · 3D VIEW</div>
+  <div style="font-size:30px;font-weight:400;color:#f6f0e0;line-height:1;font-family:Georgia,serif;margin-bottom:2px;">故宫</div>
+  <div style="font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:rgba(246,240,224,.38);margin-bottom:10px;">The Forbidden City</div>
+  <div style="width:100%;height:1px;background:rgba(212,165,32,.22);margin-bottom:10px;"></div>
+  <div style="font-size:11px;line-height:1.9;color:rgba(246,240,224,.62);">明清皇宫 · 紫禁城<br>Beijing · Est. 1420 CE<br>180 acres · 980 halls</div>
+</div>
+<div style="position:absolute;top:16px;right:16px;display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
+  <div style="background:rgba(4,8,18,.72);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 14px;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:rgba(246,240,224,.48);">Drag · Orbit · Scroll</div>
+</div>
+<div style="position:absolute;bottom:16px;left:16px;right:16px;display:flex;justify-content:space-between;align-items:flex-end;">
+  <div style="font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:rgba(246,240,224,.3);">Three.js · WebGL</div>
+  <div style="background:rgba(212,165,32,.18);border:1px solid rgba(212,165,32,.36);border-radius:20px;padding:6px 16px;font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:#f3dcb3;">Enhanced Scene</div>
+</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const canvas=document.getElementById('c3d');
+const wrap=document.getElementById('wrap');
+
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.5));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.15;
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0xaecce0);
+scene.fog=new THREE.Fog(0xb8d4e8,60,150);
+
+const camera=new THREE.PerspectiveCamera(36,1,0.1,300);
+camera.position.set(32,22,38);
+camera.lookAt(0,5,-4);
+
+function onResize(){
+  const W=wrap.offsetWidth,H=wrap.offsetHeight;
+  renderer.setSize(W,H,false);
+  camera.aspect=W/H;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(onResize).observe(wrap);
+onResize();
+
+// LIGHTS
+const amb=new THREE.AmbientLight(0xfff4e0,0.38);
+scene.add(amb);
+const hemi=new THREE.HemisphereLight(0xc8dff4,0x9a7858,1.0);
+scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfffbe8,2.8);
+sun.position.set(34,52,28);
+sun.castShadow=true;
+sun.shadow.mapSize.width=2048;
+sun.shadow.mapSize.height=2048;
+sun.shadow.camera.left=-70;sun.shadow.camera.right=70;
+sun.shadow.camera.top=70;sun.shadow.camera.bottom=-70;
+sun.shadow.camera.near=1;sun.shadow.camera.far=200;
+sun.shadow.bias=-0.0006;
+scene.add(sun);
+const fill=new THREE.DirectionalLight(0xe8b870,0.55);
+fill.position.set(-25,12,-18);
+scene.add(fill);
+const rim=new THREE.DirectionalLight(0x8ab4d4,0.3);
+rim.position.set(-10,8,30);
+scene.add(rim);
+
+// MATERIALS
+const MAT={
+  roofGold:new THREE.MeshStandardMaterial({color:0xd4a017,roughness:0.20,metalness:0.26}),
+  roofRidge:new THREE.MeshStandardMaterial({color:0x7a1a22,roughness:0.50}),
+  wallRed:new THREE.MeshStandardMaterial({color:0xbe2e2e,roughness:0.52,metalness:0.04}),
+  wallDk:new THREE.MeshStandardMaterial({color:0x8a1e1e,roughness:0.58}),
+  column:new THREE.MeshStandardMaterial({color:0x7c2020,roughness:0.50,metalness:0.07}),
+  marble:new THREE.MeshStandardMaterial({color:0xf0ece2,roughness:0.38,metalness:0.02}),
+  marbleMid:new THREE.MeshStandardMaterial({color:0xddd5c0,roughness:0.44}),
+  marbleDk:new THREE.MeshStandardMaterial({color:0xc8bbA0,roughness:0.50}),
+  ground:new THREE.MeshStandardMaterial({color:0xcdb885,roughness:0.98}),
+  path:new THREE.MeshStandardMaterial({color:0xe0cc9a,roughness:0.95}),
+  pathCtr:new THREE.MeshStandardMaterial({color:0xc8b87a,roughness:0.92}),
+  water:new THREE.MeshStandardMaterial({color:0x3a6880,roughness:0.1,metalness:0.55}),
+  tree:new THREE.MeshStandardMaterial({color:0x3c5c38,roughness:0.96}),
+  treeDk:new THREE.MeshStandardMaterial({color:0x2a4228,roughness:0.97}),
+  treeLt:new THREE.MeshStandardMaterial({color:0x4a6e44,roughness:0.95}),
+  bark:new THREE.MeshStandardMaterial({color:0x4a3020,roughness:0.92}),
+  bronze:new THREE.MeshStandardMaterial({color:0x7a5818,roughness:0.34,metalness:0.78}),
+  gate:new THREE.MeshStandardMaterial({color:0x5a0e10,roughness:0.60}),
+  urnBronze:new THREE.MeshStandardMaterial({color:0x6a5010,roughness:0.38,metalness:0.72}),
+  tileDk:new THREE.MeshStandardMaterial({color:0x182030,roughness:0.70}),
+};
+
+function box(w,h,d){return new THREE.BoxGeometry(w,h,d);}
+function cyl(r1,r2,h,s){return new THREE.CylinderGeometry(r1,r2,h,s||18);}
+function sph(r,s){return new THREE.SphereGeometry(r,s||14,s||14);}
+
+function mesh(geo,mat,x,y,z,ry){
+  const m=new THREE.Mesh(geo,mat);
+  m.castShadow=m.receiveShadow=true;
+  m.position.set(x||0,y||0,z||0);
+  if(ry!==undefined)m.rotation.y=ry;
+  return m;
+}
+
+// Hipped roof geometry (Chinese hip roof shape)
+function makeHipRoof(W,D,H,ovX,ovZ){
+  ovX=ovX||1.6; ovZ=ovZ||1.4;
+  const hw=(W+ovX*2)/2, hd=(D+ovZ*2)/2;
+  const ridgeW=W*0.38/2;
+  const verts=new Float32Array([
+    -hw,0,hd,  hw,0,hd,  hw,0,-hd, -hw,0,-hd,
+    -ridgeW,H,0, ridgeW,H,0,
+  ]);
+  const idx=[0,1,5, 0,5,4, 5,1,2, 5,2,3, 3,4,5, 5,3,2,
+             4,3,0, 4,0,1, 4,1,5];
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(verts,3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+
+function addHall(parent,opts){
+  const {x=0,y=0,z=0, W=14,D=7,BH=4,RH=3.8,PH=1,
+    tiers=1,colCount=7,roofOvX=1.6,roofOvZ=1.4,
+    smallRoof=false}=opts;
+  const g=new THREE.Group();
+  g.position.set(x,y,z);
+
+  // Terraces
+  g.add(mesh(box(W+10,PH*0.55,D+10),MAT.marble,0,PH*0.28,0));
+  g.add(mesh(box(W+6,PH*0.35,D+6),MAT.marbleMid,0,PH*0.73,0));
+  g.add(mesh(box(W+2.5,PH*0.22,D+2.5),MAT.marbleDk,0,PH*0.94,0));
+
+  // Balustrade posts around terrace
+  const bW=W+6, bD=D+6;
+  const postSpacing=1.8;
+  for(let px=-bW/2;px<=bW/2;px+=postSpacing){
+    [-bD/2,bD/2].forEach(pz=>{
+      const p=mesh(box(0.14,0.5,0.14),MAT.marble,px,PH+0.25,pz);
+      g.add(p);
+    });
+  }
+  for(let pz=-bD/2+postSpacing;pz<bD/2;pz+=postSpacing){
+    [-bW/2,bW/2].forEach(px=>{
+      const p=mesh(box(0.14,0.5,0.14),MAT.marble,px,PH+0.25,pz);
+      g.add(p);
+    });
+  }
+
+  const bodyY=PH+BH/2;
+
+  // Main body
+  g.add(mesh(box(W,BH,D),MAT.wallRed,0,bodyY,0));
+
+  // Front & back facades - slightly darker face
+  g.add(mesh(box(W+0.1,BH,0.18),MAT.wallDk,0,bodyY,D/2));
+
+  // Door openings suggestion (dark panels)
+  const doorW=W/(colCount+1);
+  for(let i=0;i<colCount-1;i++){
+    const dx=-W/2+(i+1)*doorW*1.1;
+    g.add(mesh(box(doorW*0.55,BH*0.75,0.22),MAT.gate,dx,PH+BH*0.38,D/2));
+  }
+
+  // Columns front & back
+  const colSpacing=W/(colCount+1);
+  for(let i=0;i<=colCount;i++){
+    const cx=-W/2+colSpacing*(i+0.5)+colSpacing/2;
+    if(cx<W/2+0.1&&cx>-W/2-0.1){
+      [D/2+0.05,-D/2-0.05].forEach(cz=>{
+        g.add(mesh(cyl(0.17,0.19,BH),MAT.column,cx,PH+BH/2,cz));
+      });
+    }
+  }
+
+  // Double-tier eave base
+  g.add(mesh(box(W+roofOvX*2+0.4,0.20,D+roofOvZ*2+0.4),MAT.roofGold,0,PH+BH+0.1,0));
+
+  if(tiers===2||smallRoof){
+    // Lower roof
+    const lrH=RH*0.52;
+    const lrMesh=new THREE.Mesh(makeHipRoof(W,D,lrH,roofOvX+0.8,roofOvZ+0.8),MAT.roofGold);
+    lrMesh.position.y=PH+BH+0.1;
+    lrMesh.castShadow=true;
+    g.add(lrMesh);
+    g.add(mesh(box(W+roofOvX*2-0.5,0.18,D+roofOvZ*2-0.5),MAT.roofGold,0,PH+BH+lrH+0.1,0));
+    // Upper roof
+    const urMesh=new THREE.Mesh(makeHipRoof(W-2,D-2,RH,roofOvX-0.2,roofOvZ-0.2),MAT.roofGold);
+    urMesh.position.y=PH+BH+lrH+0.1;
+    urMesh.castShadow=true;
+    g.add(urMesh);
+    const ridgeY=PH+BH+lrH+RH+0.1;
+    g.add(mesh(box(W*0.36,0.18,0.28),MAT.roofRidge,0,ridgeY,0));
+    addRidgeDecorations(g,W*0.36,ridgeY);
+  } else {
+    const roofMesh=new THREE.Mesh(makeHipRoof(W,D,RH,roofOvX,roofOvZ),MAT.roofGold);
+    roofMesh.position.y=PH+BH+0.1;
+    roofMesh.castShadow=true;
+    g.add(roofMesh);
+    const ridgeY=PH+BH+RH+0.1;
+    g.add(mesh(box(W*0.36,0.18,0.28),MAT.roofRidge,0,ridgeY,0));
+    addRidgeDecorations(g,W*0.36,ridgeY);
+  }
+
+  parent.add(g);
+  return g;
+}
+
+function addRidgeDecorations(g,ridgeW,ridgeY){
+  // End ornaments (chiwei)
+  [-ridgeW/2,ridgeW/2].forEach(rx=>{
+    g.add(mesh(box(0.22,0.52,0.22),MAT.roofRidge,rx,ridgeY+0.26,0));
+    g.add(mesh(sph(0.16,8),MAT.roofRidge,rx,ridgeY+0.58,0));
+  });
+}
+
+function addCypress(parent,x,z,scale,variant){
+  scale=scale||1; variant=variant||0;
+  const g=new THREE.Group();
+  g.position.set(x,0,z);
+  // Trunk
+  g.add(mesh(cyl(0.15+variant*0.04,0.2+variant*0.04,3.2*scale),MAT.bark,0,1.6*scale,0));
+  // Foliage layers
+  const mats=[MAT.tree,MAT.treeDk,MAT.treeLt];
+  const offsets=[0,0.7*scale,1.3*scale,1.9*scale];
+  const radii=[1.3*scale,1.1*scale,0.8*scale,0.5*scale];
+  offsets.forEach((dy,i)=>{
+    const mt=mats[i%3];
+    g.add(mesh(sph(radii[i],10),mt,0,3.2*scale+dy,0));
+  });
+  parent.add(g);
+}
+
+function addGateHouse(parent,x,z,W,H,archCount){
+  const g=new THREE.Group();
+  g.position.set(x,0,z);
+  // Base wall
+  g.add(mesh(box(W,H,8),MAT.wallRed,0,H/2,0));
+  // Gate arches (simplified as dark openings)
+  const aw=W/(archCount*2);
+  for(let i=0;i<archCount;i++){
+    const ax=-W/2+(i*2+1)*aw+aw*(archCount-1)*0;
+    const spacing=W/(archCount+1);
+    const axx=-W/2+spacing*(i+1);
+    g.add(mesh(box(2.2,H*0.68,8.5),MAT.gate,axx,H*0.34,0));
+  }
+  // Crenellations
+  for(let cx=-W/2+1;cx<=W/2;cx+=2.2){
+    g.add(mesh(box(1.2,1.2,0.8),MAT.wallRed,cx,H+0.6,3.8));
+    g.add(mesh(box(1.2,1.2,0.8),MAT.wallRed,cx,H+0.6,-3.8));
+  }
+  // Roof on gatehouse
+  const rm=new THREE.Mesh(makeHipRoof(W,9,3.5,1.8,1.5),MAT.roofGold);
+  rm.position.y=H+0.2; rm.castShadow=true;
+  g.add(rm);
+  g.add(mesh(box(W*0.38,0.18,0.28),MAT.roofRidge,0,H+3.7,0));
+  parent.add(g);
+}
+
+function addWall(parent,x,y,z,W,H,D,ry){
+  const m=mesh(box(W,H,D),MAT.wallRed,x,y+H/2,z,ry||0);
+  parent.add(m);
+  // Crenels on top
+  const steps=ry?D:W;
+  const cnt=Math.floor(steps/2.2);
+  for(let i=0;i<cnt;i++){
+    const t=i/(cnt-1)-0.5;
+    const cx=ry?0:t*W*0.88;
+    const cz=ry?t*D*0.88:0;
+    const cr=mesh(box(1.3,0.9,ry?0.7:0.7),MAT.wallRed,
+      x+(ry?0:cx),y+H+0.45,z+(ry?cz:0),ry||0);
+    parent.add(cr);
+  }
+}
+
+function addCornerTower(parent,x,z){
+  const g=new THREE.Group();
+  g.position.set(x,0,z);
+  // Stacked platform
+  g.add(mesh(box(7,1.2,7),MAT.marble,0,0.6,0));
+  g.add(mesh(box(6,1,6),MAT.marbleMid,0,1.7,0));
+  // Tower body
+  g.add(mesh(box(5,6,5),MAT.wallRed,0,4.7,0));
+  // Tower roof - complex 3-tier
+  for(let t=0;t<3;t++){
+    const scale=1-t*0.22;
+    const rw=5*scale,rd=5*scale;
+    const ry2=2.2+t*7.2;
+    const rm=new THREE.Mesh(makeHipRoof(rw,rd,1.8,1.2,1.0),MAT.roofGold);
+    rm.position.y=ry2; rm.castShadow=true; g.add(rm);
+    g.add(mesh(box(rw+2.2,0.16,rd+2.0),MAT.roofGold,0,ry2,0));
+  }
+  parent.add(g);
+}
+
+function addBronzeUrn(parent,x,y,z){
+  const g=new THREE.Group();
+  g.position.set(x,y,z);
+  g.add(mesh(cyl(0.28,0.28,0.12,12),MAT.marbleDk,0,0.06,0));
+  g.add(mesh(cyl(0.22,0.3,0.35,12),MAT.urnBronze,0,0.32,0));
+  g.add(mesh(cyl(0.32,0.22,0.2,12),MAT.urnBronze,0,0.58,0));
+  g.add(mesh(cyl(0.18,0.18,0.12,12),MAT.urnBronze,0,0.74,0));
+  g.add(mesh(sph(0.22,10),MAT.urnBronze,0,0.92,0));
+  parent.add(g);
+}
+
+// ===== BUILD THE SCENE =====
+
+// GROUND
+const gnd=mesh(box(200,0.5,200),MAT.ground,0,-0.25,0);
+scene.add(gnd);
+
+// MAIN AXIS PATH
+scene.add(mesh(box(12,0.18,180),MAT.path,0,0.04,-20));
+scene.add(mesh(box(3,0.22,180),MAT.pathCtr,0,0.09,-20));
+
+// OUTER COURT GROUND PAVING
+scene.add(mesh(box(90,0.14,120),MAT.path,0,0.02,0));
+
+// GOLDEN WATER RIVER (Jinshui He)
+for(let seg=-1;seg<=1;seg++){
+  scene.add(mesh(box(26,0.18,2.4),MAT.water,seg*12,0.12,28));
+}
+// River bridges (marble arch)
+[-18,-6,6,18].forEach(bx=>{
+  scene.add(mesh(box(3.2,0.42,2.4),MAT.marble,bx,0.28,28));
+});
+
+// OUTER ENCLOSURE WALLS
+addWall(scene,-48,0,0,1.8,5.5,120,0);
+addWall(scene, 48,0,0,1.8,5.5,120,0);
+addWall(scene,0,0,60,98,5.5,1.8,0);
+addWall(scene,0,0,-60,98,5.5,1.8,0);
+
+// CORNER TOWERS
+addCornerTower(scene,-48,60);
+addCornerTower(scene, 48,60);
+addCornerTower(scene,-48,-60);
+addCornerTower(scene, 48,-60);
+
+// MERIDIAN GATE (Wu Men) - main south gate
+addGateHouse(scene,0,50,58,7.5,3);
+
+// INNER WALLS
+addWall(scene,-36,0,-4,1.4,4.2,88,0);
+addWall(scene, 36,0,-4,1.4,4.2,88,0);
+addWall(scene,0,0,42,74,4.2,1.4,0);
+addWall(scene,0,0,-48,74,4.2,1.4,0);
+addGateHouse(scene,0,42,38,6.2,2);
+addGateHouse(scene,0,-48,38,6.2,2);
+
+// HALL OF SUPREME HARMONY (Taihedian) - the grand main hall
+addHall(scene,{x:0,y:0,z:-5,W:26,D:12,BH:5.8,RH:5.2,PH:2.2,tiers:2,colCount:9,roofOvX:2.2,roofOvZ:1.8});
+
+// HALL OF CENTRAL HARMONY (Zhonghedian)
+addHall(scene,{x:0,y:0,z:12,W:14,D:11,BH:4.2,RH:3.8,PH:1.5,tiers:1,colCount:5,smallRoof:true});
+
+// HALL OF PRESERVING HARMONY (Baohedian)
+addHall(scene,{x:0,y:0,z:26,W:19,D:9.5,BH:4.8,RH:4.4,PH:1.8,tiers:2,colCount:7});
+
+// QIANQING PALACE (Palace of Heavenly Purity) - inner court
+addHall(scene,{x:0,y:0,z:-24,W:17,D:8.5,BH:4.5,RH:4.0,PH:1.6,tiers:2,colCount:7});
+
+// JIAOTAI HALL (Hall of Union)
+addHall(scene,{x:0,y:0,z:-35,W:10,D:8,BH:3.8,RH:3.4,PH:1.2,tiers:1,colCount:5,smallRoof:true});
+
+// KUNNING PALACE (Palace of Earthly Tranquility)
+addHall(scene,{x:0,y:0,z:-45,W:14,D:7.5,BH:4.0,RH:3.6,PH:1.4,tiers:1,colCount:7});
+
+// SIDE HALLS - east wing
+[-18,18].forEach(sx=>{
+  const flip=sx<0?1:-1;
+  addHall(scene,{x:sx,y:0,z:10,W:9,D:6,BH:3.2,RH:2.8,PH:1.0,colCount:5});
+  addHall(scene,{x:sx,y:0,z:-5,W:8,D:6,BH:3.0,RH:2.6,PH:0.9,colCount:5});
+  addHall(scene,{x:sx,y:0,z:-20,W:8,D:5.5,BH:2.8,RH:2.4,PH:0.8,colCount:5});
+  addHall(scene,{x:sx,y:0,z:-36,W:9,D:6,BH:3.0,RH:2.6,PH:0.9,colCount:5});
+  // Smaller outbuildings
+  addHall(scene,{x:sx+flip*9,y:0,z:18,W:5.5,D:4.5,BH:2.5,RH:2.2,PH:0.7,colCount:3});
+  addHall(scene,{x:sx+flip*9,y:0,z:4,W:5.5,D:4.5,BH:2.5,RH:2.2,PH:0.7,colCount:3});
+  addHall(scene,{x:sx+flip*9,y:0,z:-10,W:5.5,D:4.5,BH:2.5,RH:2.2,PH:0.7,colCount:3});
+  addHall(scene,{x:sx+flip*9,y:0,z:-26,W:5.5,D:4.5,BH:2.5,RH:2.2,PH:0.7,colCount:3});
+});
+
+// BRONZE URNS (flanking main halls)
+[-8,-3,3,8].forEach(ux=>{
+  addBronzeUrn(scene,ux,2.2,-5);
+  addBronzeUrn(scene,ux,1.5,26);
+});
+
+// CYPRESS TREES
+const treeLayout=[
+  [-10,34],[-6,34],[6,34],[10,34],
+  [-13,18],[-13,4],[-13,-10],[-13,-28],[-13,-43],
+  [13,18],[13,4],[13,-10],[13,-28],[13,-43],
+  [-25,30],[25,30],[-26,10],[26,10],[-26,-10],[26,-10],
+  [-26,-28],[26,-28],[-26,-44],[26,-44],
+  [-38,20],[38,20],[-38,0],[38,0],[-38,-20],[38,-20],
+  [-38,-38],[38,-38],[-40,42],[40,42],[-40,-52],[40,-52],
+];
+treeLayout.forEach(([tx,tz],i)=>{
+  const sc2=0.85+Math.sin(i*2.3)*0.22;
+  addCypress(scene,tx,tz,sc2,i%3);
+});
+
+// IMPERIAL MOAT (outer)
+const moatGeo=new THREE.BufferGeometry();
+const moatPos=[];
+const steps=64;
+for(let i=0;i<steps;i++){
+  const a0=i/steps*Math.PI*2, a1=(i+1)/steps*Math.PI*2;
+  const r0=56,r1=60;
+  moatPos.push(
+    Math.cos(a0)*r0,0.02,Math.sin(a0)*r0,
+    Math.cos(a1)*r0,0.02,Math.sin(a1)*r0,
+    Math.cos(a0)*r1,0.02,Math.sin(a0)*r1,
+    Math.cos(a1)*r0,0.02,Math.sin(a1)*r0,
+    Math.cos(a1)*r1,0.02,Math.sin(a1)*r1,
+    Math.cos(a0)*r1,0.02,Math.sin(a0)*r1,
+  );
+}
+moatGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(moatPos),3));
+moatGeo.computeVertexNormals();
+const moat=new THREE.Mesh(moatGeo,MAT.water);
+moat.receiveShadow=true;
+scene.add(moat);
+
+// RECTANGULAR MOAT with outer stone bank
+scene.add(mesh(box(132,0.28,8),MAT.water,0,0.04,68));
+scene.add(mesh(box(132,0.28,8),MAT.water,0,0.04,-72));
+scene.add(mesh(box(8,0.28,152),MAT.water,70,0.04,-2));
+scene.add(mesh(box(8,0.28,152),MAT.water,-70,0.04,-2));
+
+// SKY backdrop (gradient via a large sphere shell)
+const skyGeo=new THREE.SphereGeometry(180,24,12);
+skyGeo.scale(-1,1,1);
+const skyMat=new THREE.MeshBasicMaterial({
+  vertexColors:true,
+  side:THREE.BackSide
+});
+const skyColors=[];
+const skyPos=skyGeo.attributes.position;
+for(let i=0;i<skyPos.count;i++){
+  const y=skyPos.getY(i);
+  const t=Math.max(0,y/180);
+  skyColors.push(0.65+t*0.2, 0.79+t*0.1, 0.88+t*0.05);
+}
+skyGeo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(skyColors),3));
+const skyMesh=new THREE.Mesh(skyGeo,skyMat);
+scene.add(skyMesh);
+
+// ===== ORBIT CONTROLS (manual) =====
+let phi=0.58, theta=0.72, radius=62;
+let isDragging=false, lastX=0, lastY=0;
+let targetPhi=phi, targetTheta=theta, targetRadius=radius;
+
+function updateCamera(){
+  camera.position.set(
+    radius*Math.sin(phi)*Math.cos(theta),
+    radius*Math.cos(phi),
+    radius*Math.sin(phi)*Math.sin(theta)
+  );
+  camera.lookAt(0,4,-4);
+}
+updateCamera();
+
+canvas.addEventListener('mousedown',e=>{isDragging=true;lastX=e.clientX;lastY=e.clientY;canvas.style.cursor='grabbing';});
+window.addEventListener('mouseup',()=>{isDragging=false;canvas.style.cursor='grab';});
+window.addEventListener('mousemove',e=>{
+  if(!isDragging)return;
+  const dx=(e.clientX-lastX)*0.005, dy=(e.clientY-lastY)*0.005;
+  targetTheta-=dx; targetPhi=Math.max(0.25,Math.min(1.38,targetPhi+dy));
+  lastX=e.clientX; lastY=e.clientY;
+});
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  targetRadius=Math.max(14,Math.min(100,targetRadius+e.deltaY*0.05));
+},{passive:false});
+
+// Touch
+let touch0=null,touch1=null,lastPinch=0;
+canvas.addEventListener('touchstart',e=>{
+  if(e.touches.length===1){isDragging=true;lastX=e.touches[0].clientX;lastY=e.touches[0].clientY;}
+  else if(e.touches.length===2){
+    touch0=e.touches[0];touch1=e.touches[1];
+    lastPinch=Math.hypot(touch1.clientX-touch0.clientX,touch1.clientY-touch0.clientY);
+  }
+  e.preventDefault();
+},{passive:false});
+canvas.addEventListener('touchend',()=>{isDragging=false;touch0=touch1=null;});
+canvas.addEventListener('touchmove',e=>{
+  if(e.touches.length===1&&isDragging){
+    const dx=(e.touches[0].clientX-lastX)*0.006,dy=(e.touches[0].clientY-lastY)*0.006;
+    targetTheta-=dx;targetPhi=Math.max(0.25,Math.min(1.38,targetPhi+dy));
+    lastX=e.touches[0].clientX;lastY=e.touches[0].clientY;
+  } else if(e.touches.length===2&&touch0&&touch1){
+    const d=Math.hypot(e.touches[1].clientX-e.touches[0].clientX,e.touches[1].clientY-e.touches[0].clientY);
+    targetRadius=Math.max(14,Math.min(100,targetRadius+(lastPinch-d)*0.12));
+    lastPinch=d;
+  }
+  e.preventDefault();
+},{passive:false});
+
+// AUTO ROTATE when idle
+let idleTimer=0, autoRotate=true;
+['mousedown','touchstart','wheel'].forEach(ev=>canvas.addEventListener(ev,()=>{autoRotate=false;idleTimer=0;}));
+
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.05);
+  idleTimer+=dt;
+  if(idleTimer>5)autoRotate=true;
+  if(autoRotate&&!isDragging)targetTheta+=dt*0.12;
+  // Smooth damp
+  phi+=(targetPhi-phi)*0.08;
+  theta+=(targetTheta-theta)*0.08;
+  radius+=(targetRadius-radius)*0.08;
+  updateCamera();
+  renderer.render(scene,camera);
+}
+animate();
+})();
+</script>

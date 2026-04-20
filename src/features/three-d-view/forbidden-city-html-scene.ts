@@ -1,0 +1,79 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const FORBIDDEN_CITY_HTML_SCENE_PATH = join(
+  process.cwd(),
+  "src",
+  "features",
+  "three-d-view",
+  "forbidden_city_3d_complete.html"
+);
+
+const sceneStyleOverrides = `
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #04070d;
+    color-scheme: dark;
+  }
+
+  body {
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  #wrap {
+    width: 100% !important;
+    height: 100svh !important;
+    min-height: 100svh !important;
+    border-radius: 0 !important;
+  }
+
+  #c3d {
+    touch-action: none;
+  }
+`;
+
+const markupReplacements: Array<[string, string]> = [
+  ["ä¸‰ç»´å±•ç¤º Â· 3D VIEW", "三维展示 · 3D VIEW"],
+  ["æ•…å®«", "故宫"],
+  ["The Forbidden City", "The Forbidden City"],
+  ["æ˜Žæ¸…çš‡å®« Â· ç´«ç¦åŸŽ", "明清皇宫 · 紫禁城"],
+  ["Drag Â· Orbit Â· Scroll", "Drag · Orbit · Scroll"],
+  ["Three.js Â· WebGL", "Three.js · WebGL"],
+];
+
+export function hasForbiddenCityHtmlScene() {
+  return existsSync(FORBIDDEN_CITY_HTML_SCENE_PATH);
+}
+
+function normalizeSceneMarkup(source: string) {
+  let normalized = source.trimStart();
+
+  for (const [from, to] of markupReplacements) {
+    normalized = normalized.replaceAll(from, to);
+  }
+
+  return normalized.replaceAll("Â·", "·");
+}
+
+export function buildForbiddenCityHtmlSceneDocument() {
+  const rawMarkup = readFileSync(FORBIDDEN_CITY_HTML_SCENE_PATH, "utf8");
+  const normalizedMarkup = normalizeSceneMarkup(rawMarkup);
+
+  return `<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+    />
+    <title>Forbidden City 3D View</title>
+    <style>${sceneStyleOverrides}</style>
+  </head>
+  <body>
+    ${normalizedMarkup}
+  </body>
+</html>`;
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   AnimatePresence,
@@ -13,6 +14,7 @@ import {
   startTransition,
   useDeferredValue,
   useEffect,
+  useEffectEvent,
   useMemo,
   useRef,
   useState,
@@ -23,6 +25,7 @@ import { LanguageToggleButton } from "@/components/preferences/language-toggle-b
 import { MusicToggleButton } from "@/components/media/music-toggle-button";
 import { ThemeToggleButton } from "@/components/preferences/theme-toggle-button";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
+import { ImmersiveAssetLoadingOverlay } from "@/components/ui/app-status-screens";
 import {
   exploreExperience,
   getExplorePhotoById,
@@ -78,6 +81,7 @@ const exploreUiCopy = {
     views: "张视图",
     activeFrame: "当前画面",
     closeSelfieModal: "关闭合影弹窗",
+    threeDView: "3D 视图",
     autoTour: "自动导览",
     tourPaused: "暂停中",
     tourNarrating: "讲解中",
@@ -113,6 +117,7 @@ const exploreUiCopy = {
     views: "views",
     activeFrame: "Active frame",
     closeSelfieModal: "Close selfie modal",
+    threeDView: "3D View",
     autoTour: "Auto tour",
     tourPaused: "Paused",
     tourNarrating: "Narrating",
@@ -286,6 +291,9 @@ export function PanoramaExperience({
   const [autoTourNarration, setAutoTourNarration] = useState("");
   const [autoTourError, setAutoTourError] = useState("");
   const [isAutoTourLoading, setIsAutoTourLoading] = useState(false);
+  const [isBackdropImageLoaded, setIsBackdropImageLoaded] = useState(false);
+  const [isWelcomeVideoLoaded, setIsWelcomeVideoLoaded] = useState(false);
+  const [isMapImageLoaded, setIsMapImageLoaded] = useState(false);
 
   const mapDragRef = useRef<{
     pointerId: number;
@@ -338,6 +346,14 @@ export function PanoramaExperience({
     activeTourPlace?.gallery[autoTourPhotoIndex] ??
     activeTourPlace?.gallery[0] ??
     null;
+  const syncAutoTourPlace = useEffectEvent(
+    (placeSlug: ExplorePlaceSlug, photoId: string) => {
+      openPlace(placeSlug, photoId);
+    }
+  );
+  const advanceAutoTourEvent = useEffectEvent((direction: 1 | -1) => {
+    advanceAutoTour(direction);
+  });
 
   useEffect(() => {
     if (searchState.view === "place" && activePlace) {
@@ -381,7 +397,7 @@ export function PanoramaExperience({
       activePlace?.slug !== activeTourPlace.slug ||
       activePhoto?.id !== activeTourPhoto.id
     ) {
-      openPlace(activeTourPlace.slug, activeTourPhoto.id);
+      syncAutoTourPlace(activeTourPlace.slug, activeTourPhoto.id);
     }
   }, [
     isAutoTourActive,
@@ -493,7 +509,13 @@ export function PanoramaExperience({
     return () => {
       cancelled = true;
     };
-  }, [activeTourPlace, activeTourPhoto, isAutoTourActive, language]);
+  }, [
+    activeTourPlace,
+    activeTourPhoto,
+    autoTourPhotoIndex,
+    isAutoTourActive,
+    language,
+  ]);
 
   useEffect(() => {
     if (!isAutoTourActive) {
@@ -512,7 +534,7 @@ export function PanoramaExperience({
       clearAutoTourTimer();
       const delayMs = estimateNarrationMs(autoTourNarration, language);
       autoTourTimerRef.current = window.setTimeout(() => {
-        advanceAutoTour(1);
+        advanceAutoTourEvent(1);
       }, delayMs);
       return;
     }
@@ -530,14 +552,14 @@ export function PanoramaExperience({
       setIsSpeaking(false);
       clearAutoTourTimer();
       autoTourTimerRef.current = window.setTimeout(() => {
-        advanceAutoTour(1);
+        advanceAutoTourEvent(1);
       }, 1200);
     };
     utterance.onerror = () => {
       setIsSpeaking(false);
       clearAutoTourTimer();
       autoTourTimerRef.current = window.setTimeout(() => {
-        advanceAutoTour(1);
+        advanceAutoTourEvent(1);
       }, 1200);
     };
 
@@ -587,6 +609,21 @@ export function PanoramaExperience({
       : welcomeHeroSrc;
   const localize = (copy: { zh: string; en: string }) =>
     pickLocalizedText(copy, language);
+  const showSceneMediaLoader = Boolean(backdropSrc) && !isBackdropImageLoaded;
+  const showWelcomeVideoStatus =
+    showWelcomeVideo && isBackdropImageLoaded && !isWelcomeVideoLoaded;
+
+  useEffect(() => {
+    setIsBackdropImageLoaded(!backdropSrc);
+  }, [backdropSrc]);
+
+  useEffect(() => {
+    setIsWelcomeVideoLoaded(!showWelcomeVideo);
+  }, [showWelcomeVideo]);
+
+  useEffect(() => {
+    setIsMapImageLoaded(searchState.view !== "map");
+  }, [searchState.view]);
 
   function clampMapOffset(
     nextOffset: {
@@ -818,18 +855,29 @@ export function PanoramaExperience({
             : { duration: 18, ease: "easeInOut", repeat: Number.POSITIVE_INFINITY }
         }
       >
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={
-            backdropSrc
-              ? { backgroundImage: `url("${backdropSrc}")` }
-              : undefined
-          }
-        />
+        {backdropSrc ? (
+          <Image
+            key={backdropSrc}
+            src={backdropSrc}
+            alt=""
+            aria-hidden="true"
+            fill
+            priority={searchState.view !== "place"}
+            sizes="100vw"
+            className={cn(
+              "object-cover transition-opacity duration-700",
+              isBackdropImageLoaded ? "opacity-100" : "opacity-0"
+            )}
+            onLoad={() => setIsBackdropImageLoaded(true)}
+          />
+        ) : null}
         {showWelcomeVideo ? (
           <video
             key={exploreExperience.welcome.heroVideoSrc}
-            className="absolute inset-0 h-full w-full object-cover"
+            className={cn(
+              "absolute inset-0 h-full w-full object-cover transition-opacity duration-700",
+              isWelcomeVideoLoaded ? "opacity-100" : "opacity-0"
+            )}
             autoPlay
             muted
             loop
@@ -839,6 +887,8 @@ export function PanoramaExperience({
               exploreExperience.welcome.heroVideoPosterSrc ??
               exploreExperience.welcome.heroSrc
             }
+            onLoadedData={() => setIsWelcomeVideoLoaded(true)}
+            onCanPlay={() => setIsWelcomeVideoLoaded(true)}
           >
             <source
               src={exploreExperience.welcome.heroVideoSrc}
@@ -855,15 +905,57 @@ export function PanoramaExperience({
             className="absolute inset-[-4%] opacity-50 blur-2xl"
             style={reduceMotion ? { scale: 1.08 } : { x: smoothX, y: smoothY, scale: 1.1 }}
           >
-            <div
-              className="absolute inset-0 bg-cover bg-center mix-blend-screen"
-              style={{ backgroundImage: `url("${activePhotoSrc}")` }}
+            <Image
+              key={`${activePhotoSrc}-glow`}
+              src={activePhotoSrc}
+              alt=""
+              aria-hidden="true"
+              fill
+              sizes="100vw"
+              className={cn(
+                "object-cover mix-blend-screen transition-opacity duration-700",
+                isBackdropImageLoaded ? "opacity-100" : "opacity-0"
+              )}
             />
           </motion.div>
         ) : null}
 
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,transparent_56%,rgba(4,6,10,0.48)_100%)]" />
       <div className="absolute inset-x-0 bottom-0 h-[42%] bg-[linear-gradient(180deg,rgba(5,7,12,0)_0%,rgba(5,7,12,0.18)_30%,rgba(5,7,12,0.82)_100%)]" />
+      <ImmersiveAssetLoadingOverlay
+        visible={showSceneMediaLoader}
+        eyebrow={{ zh: "场景资源", en: "Scene assets" }}
+        title={
+          searchState.view === "place"
+            ? { zh: "正在加载当前场景画面…", en: "Loading the current scene frame..." }
+            : searchState.view === "map"
+              ? { zh: "正在准备地图背景场景…", en: "Preparing the map backdrop..." }
+              : { zh: "正在加载欢迎场景…", en: "Loading the welcome scene..." }
+        }
+        description={
+          searchState.view === "place"
+            ? { zh: "正在同步当前地点的主画面与景深层，加载完成后会平滑淡入。", en: "Syncing the active place frame and depth layer. The scene will fade in once the media is ready." }
+            : searchState.view === "map"
+              ? { zh: "正在准备地图入口的背景资源，避免在慢网络下出现空白场景。", en: "Preparing the map entry backdrop so the scene does not flash blank on slower connections." }
+              : { zh: "正在准备欢迎画面和入口背景资源。", en: "Preparing the welcome artwork and entry background media." }
+        }
+      />
+      {showWelcomeVideoStatus ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-12 z-20 flex justify-center px-6">
+          <div
+            className={cn(
+              "rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] shadow-[0_18px_50px_rgba(0,0,0,0.16)] backdrop-blur-xl",
+              isDarkTheme
+                ? "border-[#d6b071]/24 bg-[rgba(8,12,20,0.72)] text-[#f1d8b2]"
+                : "border-border/80 bg-[rgba(255,248,240,0.86)] text-accent-soft"
+            )}
+          >
+            {language === "zh"
+              ? "欢迎影片正在缓冲"
+              : "Welcome film buffering"}
+          </div>
+        </div>
+      ) : null}
 
       {searchState.view !== "place" ? (
         <div className="absolute left-4 top-4 z-30 w-[min(22rem,calc(100vw-2rem))] md:left-6 md:top-6">
@@ -1000,6 +1092,18 @@ export function PanoramaExperience({
                   </span>
                 </button>
 
+                <Link
+                  href="/3d-view"
+                  className={cn(
+                    "inline-flex items-center justify-center rounded-full border px-7 py-4 text-center shadow-[0_18px_40px_rgba(14,10,6,0.18)]",
+                    isDarkTheme
+                      ? "border-white/16 bg-white/10 text-white hover:bg-white/16"
+                      : "border-border/80 bg-background/82 text-foreground hover:bg-background"
+                  )}
+                >
+                  <span className="text-sm font-semibold">{ui.threeDView}</span>
+                </Link>
+
                 <MusicToggleButton tone={isDarkTheme ? "dark" : "light"} />
               </div>
             </div>
@@ -1108,6 +1212,7 @@ export function PanoramaExperience({
                         priority
                         sizes="(max-width: 1024px) 92vw, 70rem"
                         className="object-contain select-none"
+                        onLoad={() => setIsMapImageLoaded(true)}
                       />
 
                       {exploreExperience.map.markers.map((marker, index) => (
@@ -1134,6 +1239,17 @@ export function PanoramaExperience({
                     </div>
                   </div>
                 </div>
+
+                <ImmersiveAssetLoadingOverlay
+                  visible={!isMapImageLoaded}
+                  compact
+                  eyebrow={{ zh: "地图资源", en: "Map assets" }}
+                  title={{ zh: "正在加载宫城地图…", en: "Loading the palace map..." }}
+                  description={{
+                    zh: "地图标记和场所入口已就绪，正在等待地图画面完成显示。",
+                    en: "Markers and place entry points are ready. Waiting for the palace map image to finish loading.",
+                  }}
+                />
 
                 <div
                   className={cn(
@@ -1372,6 +1488,7 @@ export function PanoramaExperience({
                 ? "border-[#d6b071]/24 bg-[rgba(8,12,20,0.76)] text-white"
                 : "border-border/70 bg-[rgba(255,248,240,0.9)] text-foreground"
             )}
+            aria-busy={isAutoTourLoading || isSpeaking}
           >
             <p
               className={cn(

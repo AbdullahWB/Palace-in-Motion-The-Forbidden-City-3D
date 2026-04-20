@@ -25,7 +25,7 @@ type ChatMessage = {
 
 type AssistantRouteContext = {
   key: string;
-  kind: "home" | "welcome" | "map" | "place" | "tour";
+  kind: "home" | "welcome" | "map" | "place" | "tour" | "model";
   label: LocalizedCopy;
   title: LocalizedCopy;
   intro: LocalizedCopy;
@@ -217,6 +217,24 @@ function buildRouteContext(
   pathname: string,
   searchParams: SearchParamsLike
 ): AssistantRouteContext {
+  if (pathname === "/3d-view") {
+    return {
+      key: "three-d-view",
+      kind: "model",
+      label: localized("3D è§†å›¾", "3D view"),
+      title: localized("æ•…å®«ä¸‰ç»´æ¨¡åž‹", "Forbidden City 3D model"),
+      intro: localized(
+        "å¯ä»¥è¯¢é—®è¿™ä¸ªä¸‰ç»´æ¨¡åž‹å¼ºè°ƒäº†å“ªäº›ç©ºé—´å…³ç³»ã€ä¸­è½´ç§©åºï¼Œæˆ–åŽç»­æ›¿æ¢çœŸå®žæ¨¡åž‹æ—¶åº”ä¿ç•™ä»€ä¹ˆè§‚çœ‹é‡ç‚¹ã€‚",
+        "Ask what the 3D model emphasizes, how the ceremonial axis is being framed, or what should remain important once a real model replaces the placeholder scene."
+      ),
+      starters: [
+        localized("è¿™ä¸ªä¸‰ç»´è§†å›¾çŽ°åœ¨å¼ºè°ƒäº†ä»€ä¹ˆï¼Ÿ", "What does this 3D view emphasize right now?"),
+        localized("ä¸­è½´çº¿åœ¨ä¸‰ç»´æ¨¡åž‹é‡Œæ€Žæ ·è¢«è¡¨çŽ°ï¼Ÿ", "How is the central axis expressed in this 3D scene?"),
+        localized("åŽç»­æ¢æˆçœŸå®žæ¨¡åž‹æ—¶ï¼Œå“ªäº›è§‚çœ‹é‡ç‚¹ä¸åº”æ”¹å˜ï¼Ÿ", "When a real model is added later, what viewing priorities should stay the same?"),
+      ],
+    };
+  }
+
   if (pathname === "/" || pathname === "/explore") {
     const searchState = normalizeExploreSearchState({
       view: searchParams.get("view") ?? undefined,
@@ -333,6 +351,10 @@ function getDefaultLensId(routeContext: AssistantRouteContext): AssistantLensId 
 
   if (routeContext.kind === "map") {
     return "axis";
+  }
+
+  if (routeContext.kind === "model") {
+    return "scenery";
   }
 
   return "palace";
