@@ -1,4 +1,5 @@
 import type {
+  ExploreJourneyRouteId,
   HeritageZoneId,
   HotspotContent,
   QuickFact,
@@ -14,6 +15,12 @@ export type GuideRequest = {
   hotspotId?: HeritageZoneId | null;
   tourStepId?: string | null;
   focusId?: HeritageZoneId | "central-axis" | null;
+  journeyRouteId?: ExploreJourneyRouteId | null;
+  journeyTitle?: string | null;
+  journeyDescription?: string | null;
+  journeyStopIndex?: number | null;
+  journeyStopTotal?: number | null;
+  frameCaption?: string | null;
   contextHint?: string | null;
   postcardThemeId?: string | null;
   title?: string | null;

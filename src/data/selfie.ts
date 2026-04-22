@@ -1,7 +1,11 @@
 import { hotspotContent } from "@/data/heritage/hotspots";
 import { siteOverview } from "@/data/heritage/site-overview";
 import { PALACE_PANORAMA_PLACEHOLDER_SRC } from "@/lib/constants";
-import type { HeritageZoneId, PostcardFrame } from "@/types/content";
+import type {
+  ExploreJourneyRouteId,
+  HeritageZoneId,
+  PostcardFrame,
+} from "@/types/content";
 
 export type SelfieFocusId = HeritageZoneId | "central-axis";
 
@@ -45,7 +49,41 @@ export const postcardFrames: PostcardFrame[] = [
     ribbonLabel: "Memory Card",
     defaultTitle: "Forbidden City Memory Card",
   },
+  {
+    id: "journey-ceremonial-axis",
+    title: "Ceremonial Axis Journey",
+    accentToken: "sunlit-bronze",
+    description:
+      "A formal gold route frame for the central ceremonial progression through the main halls.",
+    ribbonLabel: "Ceremonial Axis",
+    defaultTitle: "Ceremonial Axis Journey",
+  },
+  {
+    id: "journey-inner-court-life",
+    title: "Inner Court Life Journey",
+    accentToken: "imperial-red",
+    description:
+      "A warmer cinnabar route frame for the tighter, more intimate rooms of court life.",
+    ribbonLabel: "Inner Court Life",
+    defaultTitle: "Inner Court Life Journey",
+  },
+  {
+    id: "journey-garden-quiet-spaces",
+    title: "Garden & Quiet Spaces Journey",
+    accentToken: "jade-ink",
+    description:
+      "A calmer jade route frame tuned for garden thresholds, residence courts, and quieter sequences.",
+    ribbonLabel: "Quiet Spaces",
+    defaultTitle: "Garden & Quiet Spaces Journey",
+  },
 ];
+
+export const postcardFrameByJourneyRouteId: Record<ExploreJourneyRouteId, PostcardFrame["id"]> =
+  {
+    "ceremonial-axis": "journey-ceremonial-axis",
+    "inner-court-life": "journey-inner-court-life",
+    "garden-quiet-spaces": "journey-garden-quiet-spaces",
+  };
 
 const zoneFocusOptions: SelfieFocusOption[] = hotspotContent.map((zone) => ({
   id: zone.id,
@@ -98,4 +136,14 @@ export function getSelfieBackdropById(backdropId: string | null | undefined) {
     selfieBackdropOptions.find((backdrop) => backdrop.id === backdropId) ??
     selfieBackdropOptions[0]
   );
+}
+
+export function getPostcardFrameIdForJourneyRoute(
+  routeId: ExploreJourneyRouteId | null | undefined
+) {
+  if (!routeId) {
+    return null;
+  }
+
+  return postcardFrameByJourneyRouteId[routeId] ?? null;
 }

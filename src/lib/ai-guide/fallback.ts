@@ -14,6 +14,50 @@ function pickRelevantFact(context: ResolvedGuideContext, question: string) {
   );
 }
 
+function buildRouteLead({
+  journeyTitle,
+  journeyDescription,
+  journeyStopIndex,
+  journeyStopTotal,
+  frameCaption,
+  language,
+}: {
+  journeyTitle?: string | null;
+  journeyDescription?: string | null;
+  journeyStopIndex?: number | null;
+  journeyStopTotal?: number | null;
+  frameCaption?: string | null;
+  language: AppLanguage;
+}) {
+  const segments: string[] = [];
+
+  if (journeyTitle && journeyDescription) {
+    segments.push(
+      language === "zh"
+        ? `当前路线“${journeyTitle}”强调：${journeyDescription}`
+        : `The active journey "${journeyTitle}" emphasizes ${journeyDescription}.`
+    );
+  }
+
+  if (journeyStopIndex && journeyStopTotal) {
+    segments.push(
+      language === "zh"
+        ? `当前停留为第 ${journeyStopIndex}/${journeyStopTotal} 站。`
+        : `This is stop ${journeyStopIndex}/${journeyStopTotal}.`
+    );
+  }
+
+  if (frameCaption) {
+    segments.push(
+      language === "zh"
+        ? `当前子场景：${frameCaption}。`
+        : `Current frame: ${frameCaption}.`
+    );
+  }
+
+  return segments;
+}
+
 function buildFallbackCaption({
   context,
   mode,
@@ -77,12 +121,22 @@ function buildFallbackAnswer({
   question,
   mode,
   contextHint,
+  journeyTitle,
+  journeyDescription,
+  journeyStopIndex,
+  journeyStopTotal,
+  frameCaption,
   language,
 }: {
   context: ResolvedGuideContext;
   question: string;
   mode: GuideMode;
   contextHint?: string | null;
+  journeyTitle?: string | null;
+  journeyDescription?: string | null;
+  journeyStopIndex?: number | null;
+  journeyStopTotal?: number | null;
+  frameCaption?: string | null;
   language: AppLanguage;
 }) {
   const focusSummary =
@@ -91,11 +145,20 @@ function buildFallbackAnswer({
     context.hotspot?.hotspotDescription ??
     context.site.summary;
   const relevantFact = pickRelevantFact(context, question);
+  const routeLead = buildRouteLead({
+    journeyTitle,
+    journeyDescription,
+    journeyStopIndex,
+    journeyStopTotal,
+    frameCaption,
+    language,
+  });
 
   if (!context.hasSpecificContext && language === "zh") {
     return [
       "我会依据当前页面内可用的本地场景资料谨慎回答。",
       contextHint ? `当前视角：${contextHint}。` : "",
+      ...routeLead,
       context.site.summary,
       relevantFact ? `可参考的一条信息是：${relevantFact.body}` : "",
     ]
@@ -107,6 +170,7 @@ function buildFallbackAnswer({
     return [
       "I can answer cautiously from the current local scene material.",
       contextHint ? `Current lens: ${contextHint}.` : "",
+      ...routeLead,
       context.site.summary,
       relevantFact ? `A useful anchor here is: ${relevantFact.body}` : "",
     ]
@@ -120,18 +184,30 @@ function buildFallbackAnswer({
         return [
           `${context.contextLabel}：${focusSummary}`,
           contextHint ? `观察视角：${contextHint}。` : "",
+          ...routeLead,
           relevantFact ? `可抓住的一点：${relevantFact.body}` : "",
         ]
           .filter(Boolean)
           .join(" ");
       case "fun":
         return relevantFact
-          ? `关于${context.contextLabel}${contextHint ? `，从${contextHint}角度看` : ""}，有一个值得注意的细节：${relevantFact.body}`
-          : `关于${context.contextLabel}${contextHint ? `，从${contextHint}角度看` : ""}，可先把握这个重点：${focusSummary}`;
+          ? [
+              `关于${context.contextLabel}${contextHint ? `，从${contextHint}角度看` : ""}，有一个值得注意的细节：${relevantFact.body}`,
+              ...routeLead,
+            ]
+              .filter(Boolean)
+              .join(" ")
+          : [
+              `关于${context.contextLabel}${contextHint ? `，从${contextHint}角度看` : ""}，可先把握这个重点：${focusSummary}`,
+              ...routeLead,
+            ]
+              .filter(Boolean)
+              .join(" ");
       default:
         return [
           `在当前${context.contextLabel}的语境下，${focusSummary}`,
           contextHint ? `这次回答按照“${contextHint}”的视角来组织。` : "",
+          ...routeLead,
           relevantFact ? `支撑这一点的细节是：${relevantFact.body}` : "",
           "这个回答保持保守，因为我只依据应用内可用的本地文化内容进行说明。",
         ]
@@ -145,18 +221,25 @@ function buildFallbackAnswer({
       return [
         `${context.contextLabel}: ${focusSummary}`,
         contextHint ? `Lens: ${contextHint}.` : "",
+        ...routeLead,
         relevantFact ? `Quick anchor: ${relevantFact.body}` : "",
       ]
         .filter(Boolean)
         .join(" ");
     case "fun":
-      return relevantFact
-        ? `A scene-aware detail about ${context.contextLabel}${contextHint ? ` through the ${contextHint} lens` : ""}: ${relevantFact.body}`
-        : `A scene-aware detail about ${context.contextLabel}${contextHint ? ` through the ${contextHint} lens` : ""}: ${focusSummary}`;
+      return [
+        relevantFact
+          ? `A scene-aware detail about ${context.contextLabel}${contextHint ? ` through the ${contextHint} lens` : ""}: ${relevantFact.body}`
+          : `A scene-aware detail about ${context.contextLabel}${contextHint ? ` through the ${contextHint} lens` : ""}: ${focusSummary}`,
+        ...routeLead,
+      ]
+        .filter(Boolean)
+        .join(" ");
     default:
       return [
         `Within the current context of ${context.contextLabel}, ${focusSummary}`,
         contextHint ? `This answer is being framed through the ${contextHint} lens.` : "",
+        ...routeLead,
         relevantFact ? `One supporting detail is that ${relevantFact.body}` : "",
         "I am keeping this answer conservative because I am only using the local heritage content available in the app.",
       ]
@@ -189,6 +272,11 @@ export function buildFallbackGuideResult({
     question: request.question,
     mode: request.mode,
     contextHint: request.contextHint,
+    journeyTitle: request.journeyTitle,
+    journeyDescription: request.journeyDescription,
+    journeyStopIndex: request.journeyStopIndex,
+    journeyStopTotal: request.journeyStopTotal,
+    frameCaption: request.frameCaption,
     language: request.language ?? "en",
   });
 }

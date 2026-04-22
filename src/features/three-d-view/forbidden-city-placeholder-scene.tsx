@@ -649,7 +649,7 @@ export function ForbiddenCityPlaceholderScene() {
 
       {/* Side hall corridors (廊庑) – east and west */}
       {([-22, 22] as number[]).map((x, i) => (
-        <CorridorWall key={i} p={[x, 0, -20]} w={8} z={0} />
+        <CorridorWall key={i} p={[x, 0, -20]} w={8} />
       ))}
 
       {/* Side pavilions flanking main halls */}

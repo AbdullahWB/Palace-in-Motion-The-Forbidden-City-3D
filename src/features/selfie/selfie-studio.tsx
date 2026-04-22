@@ -6,6 +6,7 @@ import type { ChangeEvent, RefObject } from "react";
 import {
   defaultSelfieBackdropId,
   defaultSelfieFocusId,
+  getPostcardFrameIdForJourneyRoute,
   getPostcardFrameById,
   getSelfieBackdropById,
   getSelfieFocusById,
@@ -31,6 +32,7 @@ import type {
   SelfieEnhanceRequest,
   SelfieEnhanceResponse,
 } from "@/types/selfie";
+import type { ExploreJourneyRouteId } from "@/types/content";
 
 type StepId = "capture" | "adjust" | "compose";
 type PreparedForeground = { source: string; imageSrc: string; wasBackgroundRemoved: boolean };
@@ -46,6 +48,13 @@ type SelfieStudioProps = {
   initialTitle?: string | null;
   initialCaption?: string | null;
   placeLabel?: string | null;
+  journey?: {
+    routeId: ExploreJourneyRouteId;
+    title: string;
+    frameId?: string | null;
+    sealLabel?: string | null;
+    isCompleted: boolean;
+  } | null;
 };
 
 const steps: Array<{ id: StepId; label: string }> = [
@@ -150,6 +159,7 @@ export function SelfieStudio({
   initialTitle = null,
   initialCaption = null,
   placeLabel = null,
+  journey = null,
 }: SelfieStudioProps) {
   const isModal = mode === "modal";
   const { language, theme } = useSitePreferences();
@@ -159,6 +169,8 @@ export function SelfieStudio({
   const setHasGeneratedPostcard = useAppStore((state) => state.setHasGeneratedPostcard);
 
   const activeFrame = getPostcardFrameById(selectedPostcardFrame);
+  const preferredJourneyFrameId =
+    journey?.frameId ?? getPostcardFrameIdForJourneyRoute(journey?.routeId);
   const [activeStep, setActiveStep] = useState<StepId>("capture");
   const [selectedFocusId, setSelectedFocusId] = useState(defaultSelfieFocusId);
   const [selectedPresetBackdropId, setSelectedPresetBackdropId] = useState(defaultSelfieBackdropId);
@@ -212,6 +224,14 @@ export function SelfieStudio({
     previewMode === "ai" && aiComposition && !isAiResultStale
       ? aiComposition
       : composition;
+
+  useEffect(() => {
+    if (!preferredJourneyFrameId || selectedPostcardFrame === preferredJourneyFrameId) {
+      return;
+    }
+
+    setSelectedPostcardFrame(preferredJourneyFrameId);
+  }, [preferredJourneyFrameId, selectedPostcardFrame, setSelectedPostcardFrame]);
 
   useEffect(() => () => streamRef.current?.getTracks().forEach((track) => track.stop()), []);
   useEffect(
@@ -284,6 +304,8 @@ export function SelfieStudio({
       title: resolvedTitle,
       caption: resolvedCaption,
       focusLabel: activeFocus.label,
+      journeyLabel: journey?.title ?? null,
+      journeySealLabel: journey?.isCompleted ? journey.sealLabel ?? journey.title : null,
       sceneOverrideSrc: manualScene.dataUrl,
     });
     setTitle(resolvedTitle);
@@ -459,6 +481,8 @@ export function SelfieStudio({
         title: title.trim() || activeFrame.defaultTitle || activeFrame.title,
         caption: caption.trim() || activeFocus.description,
         focusLabel: activeFocus.label,
+        journeyLabel: journey?.title ?? null,
+        journeySealLabel: journey?.isCompleted ? journey.sealLabel ?? journey.title : null,
         sceneOverrideSrc: data.enhancedSceneDataUrl,
       });
 
@@ -507,6 +531,9 @@ export function SelfieStudio({
         sceneId: HERITAGE_SCENE_ID,
         hotspotId: activeFocus.id === "central-axis" ? null : activeFocus.id,
         focusId: activeFocus.id,
+        journeyRouteId: journey?.routeId ?? null,
+        journeyTitle: journey?.title ?? null,
+        journeyDescription: journey ? `Journey frame for ${journey.title}` : null,
         language,
         question:
           language === "zh"
@@ -836,6 +863,21 @@ export function SelfieStudio({
               {activeStep === "compose" ? (
                 <>
                   <input value={title} onChange={(event) => { setTitle(event.target.value); markStale(); }} placeholder={activeFrame.defaultTitle || activeFrame.title} className="w-full rounded-[1rem] border border-white/25 bg-white/12 px-4 py-3 text-sm leading-6 text-white outline-none placeholder:text-white/55 focus:border-[#f1d8b2]/60" />
+                  {journey ? (
+                    <div className="rounded-[1rem] border border-[#f1d8b2]/28 bg-[#f1d8b2]/10 px-4 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#f1d8b2]">
+                        Journey frame
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-white">
+                        {journey.title}
+                      </p>
+                      <p className="mt-1 text-xs text-white/72">
+                        {journey.isCompleted
+                          ? "The postcard will include the route seal in the export."
+                          : "Complete the journey to unlock the route seal on export."}
+                      </p>
+                    </div>
+                  ) : null}
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f1d8b2]">Caption</span>
                     <button type="button" onClick={() => { void handleSuggestCaption(); }} disabled={isSuggestingCaption} className={cn("rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em]", isSuggestingCaption ? "cursor-wait border-white/25 bg-white/15 text-white/60" : "border-white/35 bg-white/12 text-white hover:bg-white/20")}>{isSuggestingCaption ? "Suggesting" : "Suggest caption"}</button>

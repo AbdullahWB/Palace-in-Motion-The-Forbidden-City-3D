@@ -29,6 +29,8 @@ export type ComposePostcardInput = {
   title: string;
   caption: string;
   focusLabel: string;
+  journeyLabel?: string | null;
+  journeySealLabel?: string | null;
   sceneOverrideSrc?: string | null;
 };
 
@@ -564,6 +566,8 @@ export async function composePostcard({
   title,
   caption,
   focusLabel,
+  journeyLabel = null,
+  journeySealLabel = null,
   sceneOverrideSrc = null,
 }: ComposePostcardInput): Promise<PostcardCompositionResult> {
   const palette = paletteByAccentToken[frame.accentToken];
@@ -771,6 +775,31 @@ export async function composePostcard({
   context.textBaseline = "alphabetic";
   context.fillText("Palace in Motion souvenir", headingX, cursorY);
 
+  if (journeyLabel) {
+    const pillText = journeyLabel.toUpperCase();
+    const pillWidth = Math.min(
+      detailsWidth - 88,
+      Math.max(220, context.measureText(pillText).width + 42)
+    );
+    const pillHeight = 38;
+    const pillX = detailsX + detailsWidth - 44 - pillWidth;
+    const pillY = ribbonY + 6;
+
+    context.fillStyle = "rgba(255, 245, 228, 0.12)";
+    roundedRectPath(context, pillX, pillY, pillWidth, pillHeight, 18);
+    context.fill();
+    context.strokeStyle = "rgba(255, 245, 228, 0.28)";
+    context.lineWidth = 1.5;
+    roundedRectPath(context, pillX, pillY, pillWidth, pillHeight, 18);
+    context.stroke();
+
+    context.fillStyle = "#fff7ee";
+    context.font = "600 16px Inter, sans-serif";
+    context.textBaseline = "middle";
+    context.fillText(pillText, pillX + 20, pillY + pillHeight / 2);
+    context.textBaseline = "alphabetic";
+  }
+
   cursorY += 46;
   context.fillStyle = "#fff7ee";
   context.font = "600 66px 'Cormorant Garamond', serif";
@@ -817,6 +846,48 @@ export async function composePostcard({
   context.fillStyle = "rgba(255, 245, 228, 0.8)";
   context.font = "500 18px Inter, sans-serif";
   context.fillText(`Backdrop: ${backdropLabel}`, headingX, footerY + 86);
+
+  if (journeySealLabel) {
+    const sealRadius = 56;
+    const sealCenterX = detailsX + detailsWidth - 74;
+    const sealCenterY = detailsY + detailsHeight - 92;
+
+    context.save();
+    const sealGradient = context.createRadialGradient(
+      sealCenterX - 12,
+      sealCenterY - 14,
+      8,
+      sealCenterX,
+      sealCenterY,
+      sealRadius
+    );
+    sealGradient.addColorStop(0, "rgba(255, 248, 232, 0.92)");
+    sealGradient.addColorStop(1, palette.panel);
+    context.fillStyle = sealGradient;
+    context.beginPath();
+    context.arc(sealCenterX, sealCenterY, sealRadius, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = palette.line;
+    context.lineWidth = 3;
+    context.stroke();
+
+    context.fillStyle = palette.ribbonText;
+    context.font = "600 12px Inter, sans-serif";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText("ROUTE SEAL", sealCenterX, sealCenterY - 16);
+    context.font = "600 11px Inter, sans-serif";
+    drawWrappedText({
+      context,
+      text: journeySealLabel,
+      x: sealCenterX,
+      y: sealCenterY + 4,
+      maxWidth: 76,
+      lineHeight: 14,
+      maxLines: 3,
+    });
+    context.restore();
+  }
 
   const blob = await canvasToBlob(canvas);
 

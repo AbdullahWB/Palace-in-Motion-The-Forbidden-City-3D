@@ -119,6 +119,158 @@
                                 }
                             ]
             },
+    "journeys":  [
+                      {
+                          "id":  "ceremonial-axis",
+                          "title":  {
+                                        "zh":  "中轴礼制",
+                                        "en":  "Ceremonial Axis"
+                                    },
+                          "description":  {
+                                              "zh":  "沿着外朝主线进入最具礼制感的宫殿序列。",
+                                              "en":  "Follow the ceremonial spine through the most formal halls of the outer court."
+                                          },
+                          "intro":  {
+                                        "zh":  "这条路线以中轴礼制为核心，强调门序、台基、屋顶层级和朝会秩序的递进关系。",
+                                        "en":  "This journey focuses on the ceremonial axis, reading gates, plinths, roof hierarchy, and court procession as one continuous sequence."
+                                    },
+                          "coverSrc":  "/places/Forecourt view of Taihe Dian.png",
+                          "accent":  "#d2ae6d",
+                          "placeOrder":  [
+                                             "tianyi-men",
+                                             "taihe-dian",
+                                             "zhonghe-dian",
+                                             "baohe-dian",
+                                             "qianqing-men"
+                                         ]
+                      },
+                      {
+                          "id":  "inner-court-life",
+                          "title":  {
+                                        "zh":  "内廷起居",
+                                        "en":  "Inner Court Life"
+                                    },
+                          "description":  {
+                                              "zh":  "从日常政务与居住空间切入，观察更贴近宫廷生活的一面。",
+                                              "en":  "Read the palace through daily governance, residence, and the more intimate rhythms of court life."
+                                          },
+                          "intro":  {
+                                        "zh":  "这条路线避开最宏大的前朝广场，转向内廷居住、祭祀与日常秩序的空间组织。",
+                                        "en":  "This journey steps away from the grand outer-court forecourts and focuses on residence, devotion, and the tighter order of the inner court."
+                                    },
+                          "coverSrc":  "/places/Front view of Yangxin Dian.png",
+                          "accent":  "#a34845",
+                          "placeOrder":  [
+                                             "yangxin-dian",
+                                             "jingren-gong",
+                                             "fengxian-dian",
+                                             "qianqing-men",
+                                             "huangji-dian"
+                                         ]
+                      },
+                      {
+                          "id":  "garden-quiet-spaces",
+                          "title":  {
+                                        "zh":  "园林静观",
+                                        "en":  "Garden & Quiet Spaces"
+                                    },
+                          "description":  {
+                                              "zh":  "从柔和的门序、庭院与安静居所中阅读故宫更缓慢的一面。",
+                                              "en":  "Move through softer thresholds, courts, and quieter residences to read the palace at a calmer pace."
+                                          },
+                          "intro":  {
+                                        "zh":  "这条路线强调树影、庭院光线与较安静的院落氛围，让探索节奏从仪式转向停留与观看。",
+                                        "en":  "This journey leans into trees, court light, and quieter residential atmospheres, slowing the experience from ceremony toward observation."
+                                    },
+                          "coverSrc":  "/places/Main court of Shoukang Gong.png",
+                          "accent":  "#68856c",
+                          "placeOrder":  [
+                                             "tianyi-men",
+                                             "shoukang-gong",
+                                             "jingren-gong",
+                                             "yangxin-dian"
+                                         ]
+                      }
+                  ],
+    "passport":  {
+                     "title":  {
+                                   "zh":  "故宫行旅簿",
+                                   "en":  "Palace Passport"
+                               },
+                     "subtitle":  {
+                                      "zh":  "收集已造访场所与完成路线的印记，保留你的故宫探索轨迹。",
+                                      "en":  "Collect visited-place stamps and completed-route seals to keep a record of your palace journey."
+                                  },
+                     "placeCollectionLabel":  {
+                                                  "zh":  "场所印记",
+                                                  "en":  "Place stamps"
+                                              },
+                     "routeSealsLabel":  {
+                                              "zh":  "路线徽记",
+                                              "en":  "Route seals"
+                                          },
+                     "visitedSummaryLabel":  {
+                                                 "zh":  "已造访场所",
+                                                 "en":  "Visited places"
+                                             },
+                     "completedSummaryLabel":  {
+                                                   "zh":  "已完成路线",
+                                                   "en":  "Completed routes"
+                                               },
+                     "completedLabel":  {
+                                            "zh":  "已完成",
+                                            "en":  "Completed"
+                                        },
+                     "resetLabel":  {
+                                        "zh":  "重置进度",
+                                        "en":  "Reset progress"
+                                    },
+                     "closeLabel":  {
+                                        "zh":  "关闭行旅簿",
+                                        "en":  "Close passport"
+                                    },
+                     "routeSeals":  [
+                                        {
+                                            "id":  "seal-ceremonial-axis",
+                                            "routeId":  "ceremonial-axis",
+                                            "title":  {
+                                                          "zh":  "中轴礼制徽记",
+                                                          "en":  "Ceremonial Axis Seal"
+                                                      },
+                                            "description":  {
+                                                                "zh":  "完成中轴礼制路线后解锁，象征外朝礼制与中轴秩序的完整阅读。",
+                                                                "en":  "Unlocked after finishing the Ceremonial Axis route, marking a full reading of the outer-court ceremonial spine."
+                                                            },
+                                            "accent":  "#d2ae6d"
+                                        },
+                                        {
+                                            "id":  "seal-inner-court-life",
+                                            "routeId":  "inner-court-life",
+                                            "title":  {
+                                                          "zh":  "内廷起居徽记",
+                                                          "en":  "Inner Court Life Seal"
+                                                      },
+                                            "description":  {
+                                                                "zh":  "完成内廷起居路线后解锁，象征你已走入更贴近宫廷生活的空间层次。",
+                                                                "en":  "Unlocked after finishing the Inner Court Life route, recognizing the more intimate residential layers of the palace."
+                                                            },
+                                            "accent":  "#a34845"
+                                        },
+                                        {
+                                            "id":  "seal-garden-quiet-spaces",
+                                            "routeId":  "garden-quiet-spaces",
+                                            "title":  {
+                                                          "zh":  "园林静观徽记",
+                                                          "en":  "Garden & Quiet Spaces Seal"
+                                                      },
+                                            "description":  {
+                                                                "zh":  "完成园林静观路线后解锁，记录一条更缓慢、更安静的故宫观察路径。",
+                                                                "en":  "Unlocked after finishing the Garden & Quiet Spaces route, preserving a slower and quieter way through the palace."
+                                                            },
+                                            "accent":  "#68856c"
+                                        }
+                                    ]
+                 },
     "places":  [
                    {
                        "slug":  "tianyi-men",

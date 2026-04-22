@@ -129,15 +129,6 @@ export type ExploreZone = {
   quickFactIds: QuickFact["id"][];
 };
 
-export type PostcardFrame = {
-  id: string;
-  title: string;
-  accentToken: "imperial-red" | "sunlit-bronze" | "jade-ink";
-  description: string;
-  ribbonLabel: string;
-  defaultTitle?: string;
-};
-
 export type ExploreView = "welcome" | "map" | "place";
 
 export type ExplorePlaceSlug =
@@ -151,6 +142,20 @@ export type ExplorePlaceSlug =
   | "zhonghe-dian"
   | "baohe-dian"
   | "jingren-gong";
+
+export type ExploreJourneyRouteId =
+  | "ceremonial-axis"
+  | "inner-court-life"
+  | "garden-quiet-spaces";
+
+export type PostcardFrame = {
+  id: string;
+  title: string;
+  accentToken: "imperial-red" | "sunlit-bronze" | "jade-ink";
+  description: string;
+  ribbonLabel: string;
+  defaultTitle?: string;
+};
 
 export type ExploreWelcomeScene = {
   id: string;
@@ -201,9 +206,42 @@ export type ExplorePlace = {
   gallery: ExplorePlacePhoto[];
 };
 
+export type ExploreJourneyRoute = {
+  id: ExploreJourneyRouteId;
+  title: BilingualText;
+  description: BilingualText;
+  intro: BilingualText;
+  coverSrc: string;
+  accent: string;
+  placeOrder: ExplorePlaceSlug[];
+};
+
+export type ExplorePassportSeal = {
+  id: string;
+  routeId: ExploreJourneyRouteId;
+  title: BilingualText;
+  description: BilingualText;
+  accent: string;
+};
+
+export type ExplorePassportData = {
+  title: BilingualText;
+  subtitle: BilingualText;
+  placeCollectionLabel: BilingualText;
+  routeSealsLabel: BilingualText;
+  visitedSummaryLabel: BilingualText;
+  completedSummaryLabel: BilingualText;
+  completedLabel: BilingualText;
+  resetLabel: BilingualText;
+  closeLabel: BilingualText;
+  routeSeals: ExplorePassportSeal[];
+};
+
 export type ExploreExperienceData = {
   welcome: ExploreWelcomeScene;
   map: ExploreMap;
+  journeys: ExploreJourneyRoute[];
+  passport: ExplorePassportData;
   places: ExplorePlace[];
 };
 
@@ -211,4 +249,5 @@ export type ExploreSearchState = {
   view: ExploreView;
   placeSlug: ExplorePlaceSlug | null;
   photoId: string | null;
+  routeId: ExploreJourneyRouteId | null;
 };

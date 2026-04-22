@@ -13,7 +13,7 @@ import type {
   GuideRequest,
   GuideResponse,
 } from "@/types/ai-guide";
-import type { HeritageZoneId } from "@/types/content";
+import type { ExploreJourneyRouteId, HeritageZoneId } from "@/types/content";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,6 +64,19 @@ function normalizeSizedNullableString(value: unknown, maxLength = MAX_FIELD_LENG
   }
 
   return normalized.slice(0, maxLength);
+}
+
+function normalizeNullableNumber(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
 }
 
 function normalizeCaptionText(input: string) {
@@ -119,6 +132,12 @@ export async function POST(request: Request) {
       | HeritageZoneId
       | "central-axis"
       | null,
+    journeyRouteId: normalizeSizedNullableString(body.journeyRouteId) as ExploreJourneyRouteId | null,
+    journeyTitle: normalizeSizedNullableString(body.journeyTitle, 100),
+    journeyDescription: normalizeSizedNullableString(body.journeyDescription, 240),
+    journeyStopIndex: normalizeNullableNumber(body.journeyStopIndex),
+    journeyStopTotal: normalizeNullableNumber(body.journeyStopTotal),
+    frameCaption: normalizeSizedNullableString(body.frameCaption, 120),
     postcardThemeId: normalizeSizedNullableString(body.postcardThemeId),
     contextHint: normalizeSizedNullableString(body.contextHint, 80),
     title: normalizeSizedNullableString(body.title, 80),

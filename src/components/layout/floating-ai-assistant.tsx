@@ -5,7 +5,13 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
-import { getExplorePlaceBySlug, normalizeExploreSearchState } from "@/data/panorama";
+import {
+  getExploreJourneyById,
+  getExploreJourneyStopIndex,
+  getExplorePhotoById,
+  getExplorePlaceBySlug,
+  normalizeExploreSearchState,
+} from "@/data/panorama";
 import { pickLocalizedText } from "@/lib/i18n";
 import { HERITAGE_SCENE_ID } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -30,6 +36,11 @@ type AssistantRouteContext = {
   title: LocalizedCopy;
   intro: LocalizedCopy;
   starters: LocalizedCopy[];
+  journeyTitle?: LocalizedCopy | null;
+  journeyDescription?: LocalizedCopy | null;
+  journeyStopIndex?: number | null;
+  journeyStopTotal?: number | null;
+  frameCaption?: LocalizedCopy | null;
 };
 
 type AssistantLensId = "palace" | "axis" | "ritual" | "scenery";
@@ -240,6 +251,7 @@ function buildRouteContext(
       view: searchParams.get("view") ?? undefined,
       place: searchParams.get("place") ?? undefined,
       photo: searchParams.get("photo") ?? undefined,
+      route: searchParams.get("route") ?? undefined,
     });
     const activePlace = getExplorePlaceBySlug(searchState.placeSlug);
 
@@ -399,6 +411,41 @@ export function FloatingAIAssistant() {
     () => buildRouteContext(pathname, searchParams),
     [pathname, searchParams]
   );
+  const assistantJourneyContext = useMemo(() => {
+    if (!(pathname === "/" || pathname === "/explore")) {
+      return null;
+    }
+
+    const searchState = normalizeExploreSearchState({
+      view: searchParams.get("view") ?? undefined,
+      place: searchParams.get("place") ?? undefined,
+      photo: searchParams.get("photo") ?? undefined,
+      route: searchParams.get("route") ?? undefined,
+    });
+    const activeJourney = getExploreJourneyById(searchState.routeId);
+    if (!activeJourney) {
+      return null;
+    }
+
+    const activePlace = getExplorePlaceBySlug(searchState.placeSlug);
+    const activePhoto = getExplorePhotoById(activePlace, searchState.photoId);
+    const stopIndex =
+      activePlace ? getExploreJourneyStopIndex(activeJourney, activePlace.slug) : -1;
+
+    return {
+      routeId: activeJourney.id,
+      title: pickLocalizedText(activeJourney.title, language),
+      description: pickLocalizedText(
+        activeJourney.description ?? activeJourney.intro,
+        language
+      ),
+      stopIndex: stopIndex >= 0 ? stopIndex + 1 : null,
+      stopTotal: activeJourney.placeOrder.length,
+      frameCaption: activePhoto
+        ? pickLocalizedText(activePhoto.caption, language)
+        : null,
+    };
+  }, [language, pathname, searchParams]);
 
   const activeLens = getLensById(activeLensId);
   const localizedRouteLabel = pickLocalizedText(routeContext.label, language);
@@ -487,11 +534,23 @@ export function FloatingAIAssistant() {
       const payload: GuideRequest = {
         sceneId: HERITAGE_SCENE_ID,
         focusId: activeLens.focusId,
-        contextHint: pickLocalizedText(activeLens.contextHint, language),
-        title: `${localizedRouteTitle} - ${localizedLensTitle}`,
+        contextHint: assistantJourneyContext
+          ? `${pickLocalizedText(activeLens.contextHint, language)} ${
+              language === "zh" ? "å½“å‰è·¯çº¿" : "Journey"
+            }: ${assistantJourneyContext.title}.`
+          : pickLocalizedText(activeLens.contextHint, language),
+        title: assistantJourneyContext
+          ? `${assistantJourneyContext.title} - ${localizedRouteTitle} - ${localizedLensTitle}`
+          : `${localizedRouteTitle} - ${localizedLensTitle}`,
         language,
         question: trimmedQuestion,
         mode,
+        journeyRouteId: assistantJourneyContext?.routeId ?? null,
+        journeyTitle: assistantJourneyContext?.title ?? null,
+        journeyDescription: assistantJourneyContext?.description ?? null,
+        journeyStopIndex: assistantJourneyContext?.stopIndex ?? null,
+        journeyStopTotal: assistantJourneyContext?.stopTotal ?? null,
+        frameCaption: assistantJourneyContext?.frameCaption ?? null,
       };
 
       const response = await fetch("/api/chat", {

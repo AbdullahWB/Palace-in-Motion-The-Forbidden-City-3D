@@ -58,7 +58,16 @@ function buildAnswerPrompts({
   context: ResolvedGuideContext;
   request: Pick<
     GuideRequest,
-    "mode" | "question" | "title" | "contextHint" | "language"
+    | "mode"
+    | "question"
+    | "title"
+    | "contextHint"
+    | "language"
+    | "journeyTitle"
+    | "journeyDescription"
+    | "journeyStopIndex"
+    | "journeyStopTotal"
+    | "frameCaption"
   >;
 }) {
   const systemPrompt = [
@@ -79,6 +88,14 @@ function buildAnswerPrompts({
     `Has specific hotspot or tour context: ${context.hasSpecificContext ? "yes" : "no"}`,
     `Assistant lens: ${request.contextHint?.trim() || "Default cultural guide"}`,
     `Visitor page context: ${request.title?.trim() || "None."}`,
+    `Journey title: ${request.journeyTitle?.trim() || "None."}`,
+    `Journey description: ${request.journeyDescription?.trim() || "None."}`,
+    `Journey stop: ${
+      request.journeyStopIndex && request.journeyStopTotal
+        ? `${request.journeyStopIndex}/${request.journeyStopTotal}`
+        : "None."
+    }`,
+    `Frame caption: ${request.frameCaption?.trim() || "None."}`,
     "",
     "Site overview:",
     `${context.site.headline} ${context.site.summary}`,
@@ -119,6 +136,8 @@ function buildCaptionPrompts({
     | "focusId"
     | "contextHint"
     | "language"
+    | "journeyTitle"
+    | "journeyDescription"
   >;
 }) {
   const frame = request.postcardThemeId
@@ -144,6 +163,8 @@ function buildCaptionPrompts({
     `Ribbon label: ${frame?.ribbonLabel ?? "None."}`,
     `Focus label: ${context.focusLabel ?? context.contextLabel}`,
     `Optional postcard title: ${request.title?.trim() || "None."}`,
+    `Journey title: ${request.journeyTitle?.trim() || "None."}`,
+    `Journey description: ${request.journeyDescription?.trim() || "None."}`,
     "",
     "Site overview:",
     `${context.site.headline} ${context.site.summary}`,
