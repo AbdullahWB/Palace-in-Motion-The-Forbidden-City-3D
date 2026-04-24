@@ -36,13 +36,13 @@ export const forbiddenCityViewerConfig: ThreeDViewerConfig = {
   fallbackMode: "placeholder",
   initialCamera: {
     // Positioned south-east, elevated — looking north-west into the outer courts
-    position: [22, 17, 30],
-    target: [0, 4.0, -5.0],
-    fov: 38,
+    position: [30, 18, 40],
+    target: [0, 5.6, -16],
+    fov: 34,
   },
   orbitLimits: {
-    minDistance: 14,
-    maxDistance: 52,
+    minDistance: 16,
+    maxDistance: 68,
     minPolarAngle: 0.58,
     maxPolarAngle: 1.38,
   },

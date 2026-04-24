@@ -27,6 +27,7 @@ export function MobileNav({ pathname, isOpen, onNavigate }: MobileNavProps) {
                 <li key={item.href}>
                   <Link
                     href={item.href}
+                    prefetch={item.href === "/3d-view" ? false : undefined}
                     onClick={onNavigate}
                     aria-current={isActive ? "page" : undefined}
                     className={cn(

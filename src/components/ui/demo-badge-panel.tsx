@@ -1,5 +1,6 @@
 "use client";
 
+import { getCompletedJourneyRouteIds } from "@/data/panorama";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/use-app-store";
 
@@ -13,19 +14,24 @@ type DemoBadgePanelProps = {
 
 export function DemoBadgePanel({
   title = "Competition demo badge",
-  description = "Complete the Explore route and generate a souvenir postcard inside Explore to unlock the final submission badge.",
+  description = "Complete a journey route and generate a souvenir postcard inside Explore to unlock the final submission badge.",
   compact = false,
   announce = false,
   className,
 }: DemoBadgePanelProps) {
   const hasCompletedTour = useAppStore((state) => state.hasCompletedTour);
   const hasGeneratedPostcard = useAppStore((state) => state.hasGeneratedPostcard);
+  const visitedExplorePlaceSlugs = useAppStore(
+    (state) => state.visitedExplorePlaceSlugs
+  );
+  const hasCompletedJourneyRoute =
+    getCompletedJourneyRouteIds(visitedExplorePlaceSlugs).length > 0;
 
   const milestones = [
     {
       id: "tour",
-      label: "Explore route completed",
-      isDone: hasCompletedTour,
+      label: "Journey route completed",
+      isDone: hasCompletedTour || hasCompletedJourneyRoute,
     },
     {
       id: "postcard",

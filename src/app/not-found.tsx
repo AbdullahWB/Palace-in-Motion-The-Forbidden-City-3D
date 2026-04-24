@@ -29,6 +29,7 @@ export default function NotFound() {
           </Link>
           <Link
             href="/3d-view"
+            prefetch={false}
             className="inline-flex rounded-full border border-border bg-surface-strong px-5 py-3 text-sm font-semibold text-foreground hover:bg-white/80"
           >
             Open 3D view

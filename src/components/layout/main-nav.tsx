@@ -17,6 +17,7 @@ export function MainNav({ pathname }: MainNavProps) {
             <li key={item.href}>
               <Link
                 href={item.href}
+                prefetch={item.href === "/3d-view" ? false : undefined}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "inline-flex rounded-full border px-4 py-2 text-sm font-semibold",

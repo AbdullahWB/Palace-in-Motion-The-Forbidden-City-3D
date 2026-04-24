@@ -33,6 +33,7 @@ import {
   getExploreJourneyById,
   getExploreJourneyPlaces,
   getExploreJourneyStopIndex,
+  getExploreJourneyVisitedCount,
   getExplorePassportSealByRouteId,
   getExplorePlaceBySlug,
   getUnlockedPassportSealIds,
@@ -57,6 +58,12 @@ type PanoramaExperienceProps = {
 };
 
 type ExploreUiCopy = (typeof exploreUiCopy)[keyof typeof exploreUiCopy];
+type JourneyProgress = {
+  visitedStops: number;
+  totalStops: number;
+  completionRate: number;
+  isCompleted: boolean;
+};
 
 type PlaceInfoPanelProps = {
   place: ExplorePlace;
@@ -216,6 +223,28 @@ function estimateNarrationMs(text: string, language: AppLanguage) {
   return Math.max(3500, Math.round(wordCount * 420));
 }
 
+function formatJourneyProgressLabel(
+  progress: JourneyProgress,
+  journeyStopsLabel: string,
+  language: AppLanguage
+) {
+  if (progress.isCompleted) {
+    return `${
+      language === "zh" ? "å·²å®Œæˆ" : "Completed"
+    } · ${progress.visitedStops}/${progress.totalStops} ${journeyStopsLabel}`;
+  }
+
+  if (progress.visitedStops > 0) {
+    return `${progress.visitedStops}/${progress.totalStops} ${
+      language === "zh" ? "å·²è®¿ç«™ç‚¹" : "stops visited"
+    }`;
+  }
+
+  return `${progress.totalStops} ${
+    language === "zh" ? "ç«™å¾…æŽ¢ç´¢" : "stops to explore"
+  }`;
+}
+
 function PlaceInfoPanel({
   place,
   activePhoto,
@@ -301,7 +330,9 @@ function PlaceInfoPanel({
 
 type JourneyRouteCardProps = {
   journey: ExploreJourneyRoute;
+  progress: JourneyProgress;
   language: AppLanguage;
+  journeyStopsLabel: string;
   theme: "dark" | "light";
   isSelected: boolean;
   compact?: boolean;
@@ -310,7 +341,9 @@ type JourneyRouteCardProps = {
 
 function JourneyRouteCard({
   journey,
+  progress,
   language,
+  journeyStopsLabel,
   theme,
   isSelected,
   compact = false,
@@ -354,6 +387,36 @@ function JourneyRouteCard({
         <p className={cn("text-sm font-semibold", isDarkTheme ? "text-white" : "text-foreground")}>
           {pickLocalizedText(journey.description, language)}
         </p>
+        <div className="mt-3">
+          <p
+            className={cn(
+              "text-[11px] font-semibold uppercase tracking-[0.18em]",
+              progress.isCompleted
+                ? isDarkTheme
+                  ? "text-[#f1d8b2]"
+                  : "text-accent-soft"
+                : isDarkTheme
+                  ? "text-white/62"
+                  : "text-foreground/58"
+            )}
+          >
+            {formatJourneyProgressLabel(progress, journeyStopsLabel, language)}
+          </p>
+          <div
+            className={cn(
+              "mt-2 h-1.5 overflow-hidden rounded-full",
+              isDarkTheme ? "bg-white/10" : "bg-black/8"
+            )}
+          >
+            <div
+              className="h-full rounded-full transition-[width]"
+              style={{
+                width: `${progress.completionRate}%`,
+                backgroundColor: journey.accent,
+              }}
+            />
+          </div>
+        </div>
         {!compact ? (
           <p
             className={cn(
@@ -375,6 +438,7 @@ type PassportDrawerProps = {
   visitedPlaceSlugs: ExplorePlaceSlug[];
   completedRouteIds: ExploreJourneyRoute["id"][];
   unlockedSealIds: string[];
+  journeyProgressById: Map<ExploreJourneyRoute["id"], JourneyProgress>;
   onClose: () => void;
   onReset: () => void;
 };
@@ -385,6 +449,7 @@ function PassportDrawer({
   visitedPlaceSlugs,
   completedRouteIds,
   unlockedSealIds,
+  journeyProgressById,
   onClose,
   onReset,
 }: PassportDrawerProps) {
@@ -523,6 +588,12 @@ function PassportDrawer({
             <div className="mt-4 space-y-3">
               {passport.routeSeals.map((seal) => {
                 const isUnlocked = unlockedSealSet.has(seal.id) || completedSet.has(seal.routeId);
+                const progress = journeyProgressById.get(seal.routeId) ?? {
+                  visitedStops: 0,
+                  totalStops: getExploreJourneyById(seal.routeId)?.placeOrder.length ?? 0,
+                  completionRate: 0,
+                  isCompleted: false,
+                };
 
                 return (
                   <div
@@ -554,13 +625,26 @@ function PassportDrawer({
                           {pickLocalizedText(seal.description, language)}
                         </p>
                         <p className={cn("mt-2 text-[11px] uppercase tracking-[0.18em]", isUnlocked ? (isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft") : (isDarkTheme ? "text-white/42" : "text-foreground/46"))}>
-                          {isUnlocked
-                            ? pickLocalizedText(passport.completedLabel, language)
-                            : pickLocalizedText(
-                                getExploreJourneyById(seal.routeId)?.title ?? seal.title,
-                                language
-                              )}
+                          {formatJourneyProgressLabel(
+                            progress,
+                            language === "zh" ? "ç«™ç‚¹" : "stops",
+                            language
+                          )}
                         </p>
+                        <div
+                          className={cn(
+                            "mt-3 h-1.5 overflow-hidden rounded-full",
+                            isDarkTheme ? "bg-white/10" : "bg-black/8"
+                          )}
+                        >
+                          <div
+                            className="h-full rounded-full transition-[width]"
+                            style={{
+                              width: `${progress.completionRate}%`,
+                              backgroundColor: seal.accent,
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -608,19 +692,8 @@ export function PanoramaExperience({
     (state) => state.markExplorePlaceVisited
   );
   const activeExploreRouteId = useAppStore((state) => state.activeExploreRouteId);
-  const completedExploreRouteIds = useAppStore(
-    (state) => state.completedExploreRouteIds
-  );
-  const unlockedPassportSealIds = useAppStore(
-    (state) => state.unlockedPassportSealIds
-  );
   const setActiveExploreRoute = useAppStore((state) => state.setActiveExploreRoute);
-  const markExploreRouteCompleted = useAppStore(
-    (state) => state.markExploreRouteCompleted
-  );
-  const unlockPassportSeal = useAppStore((state) => state.unlockPassportSeal);
   const resetExploreProgress = useAppStore((state) => state.resetExploreProgress);
-  const setHasCompletedTour = useAppStore((state) => state.setHasCompletedTour);
 
   const [mapScale, setMapScale] = useState(exploreExperience.map.initialScale);
   const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
@@ -686,6 +759,39 @@ export function PanoramaExperience({
       ),
     [activeJourney]
   );
+  const completedExploreRouteIds = useMemo(
+    () => getCompletedJourneyRouteIds(visitedExplorePlaceSlugs),
+    [visitedExplorePlaceSlugs]
+  );
+  const unlockedPassportSealIds = useMemo(
+    () => getUnlockedPassportSealIds(completedExploreRouteIds),
+    [completedExploreRouteIds]
+  );
+  const journeyProgressById = useMemo(
+    () =>
+      new Map(
+        exploreExperience.journeys.map((journey) => {
+          const visitedStops = getExploreJourneyVisitedCount(
+            journey,
+            visitedExplorePlaceSlugs
+          );
+          const totalStops = journey.placeOrder.length;
+
+          return [
+            journey.id,
+            {
+              visitedStops,
+              totalStops,
+              completionRate: totalStops
+                ? Math.round((visitedStops / totalStops) * 100)
+                : 0,
+              isCompleted: visitedStops === totalStops,
+            },
+          ] as const;
+        })
+      ),
+    [visitedExplorePlaceSlugs]
+  );
   const activeJourneySeal = getExplorePassportSealByRouteId(activeJourney?.id);
   const isActiveJourneyCompleted = activeJourney
     ? completedExploreRouteIds.includes(activeJourney.id)
@@ -737,27 +843,6 @@ export function PanoramaExperience({
       markExplorePlaceVisited(activePlace.slug);
     }
   }, [activePlace, markExplorePlaceVisited, searchState.view]);
-
-  useEffect(() => {
-    setHasCompletedTour(visitedCount >= exploreExperience.places.length);
-  }, [setHasCompletedTour, visitedCount]);
-
-  useEffect(() => {
-    const completedRouteIds = getCompletedJourneyRouteIds(visitedExplorePlaceSlugs);
-    const unlockedSealIds = getUnlockedPassportSealIds(completedRouteIds);
-
-    completedRouteIds.forEach((routeId) => {
-      markExploreRouteCompleted(routeId);
-    });
-
-    unlockedSealIds.forEach((sealId) => {
-      unlockPassportSeal(sealId);
-    });
-  }, [
-    markExploreRouteCompleted,
-    unlockPassportSeal,
-    visitedExplorePlaceSlugs,
-  ]);
 
   useEffect(() => {
     if (!isSelfieModalOpen && !isPassportOpen) {
@@ -1665,6 +1750,7 @@ export function PanoramaExperience({
 
                 <Link
                   href="/3d-view"
+                  prefetch={false}
                   className={cn(
                     "inline-flex items-center justify-center rounded-full border px-7 py-4 text-center shadow-[0_18px_40px_rgba(14,10,6,0.18)]",
                     isDarkTheme
@@ -1724,7 +1810,16 @@ export function PanoramaExperience({
                     <JourneyRouteCard
                       key={journey.id}
                       journey={journey}
+                      progress={
+                        journeyProgressById.get(journey.id) ?? {
+                          visitedStops: 0,
+                          totalStops: journey.placeOrder.length,
+                          completionRate: 0,
+                          isCompleted: false,
+                        }
+                      }
                       language={language}
+                      journeyStopsLabel={journeyUi.journeyStops}
                       theme={theme}
                       isSelected={activeJourney?.id === journey.id}
                       onSelect={selectJourney}
@@ -1951,7 +2046,16 @@ export function PanoramaExperience({
                         <JourneyRouteCard
                           key={journey.id}
                           journey={journey}
+                          progress={
+                            journeyProgressById.get(journey.id) ?? {
+                              visitedStops: 0,
+                              totalStops: journey.placeOrder.length,
+                              completionRate: 0,
+                              isCompleted: false,
+                            }
+                          }
                           language={language}
+                          journeyStopsLabel={journeyUi.journeyStops}
                           theme={theme}
                           compact
                           isSelected={false}
@@ -2487,6 +2591,7 @@ export function PanoramaExperience({
                 visitedPlaceSlugs={visitedExplorePlaceSlugs}
                 completedRouteIds={completedExploreRouteIds}
                 unlockedSealIds={unlockedPassportSealIds}
+                journeyProgressById={journeyProgressById}
                 onClose={() => setIsPassportOpen(false)}
                 onReset={() => {
                   resetExploreProgress();

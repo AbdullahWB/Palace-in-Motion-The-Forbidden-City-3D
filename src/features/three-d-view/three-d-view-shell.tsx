@@ -80,8 +80,8 @@ function ViewerScene({
         position={config.initialCamera.position}
         fov={config.initialCamera.fov}
       />
-      <color attach="background" args={["#c4d4e8"]} />
-      <fog attach="fog" args={["#cdd9ea", 28, 90]} />
+      <color attach="background" args={["#d5dfeb"]} />
+      <fog attach="fog" args={["#dbe3ec", 36, 128]} />
       <Sky
         distance={450000}
         sunPosition={[6.0, 2.8, 1.0]}
@@ -91,13 +91,13 @@ function ViewerScene({
         rayleigh={1.2}
       />
       {/* Warm afternoon hemisphere */}
-      <hemisphereLight intensity={1.1} color="#f5ead0" groundColor="#7a5a38" />
-      <ambientLight intensity={0.38} />
+      <hemisphereLight intensity={1.05} color="#f8edd5" groundColor="#71573b" />
+      <ambientLight intensity={0.32} />
       {/* Main sun */}
       <directionalLight
         castShadow
         position={[28, 36, 20]}
-        intensity={2.4}
+        intensity={2.15}
         color="#fff1cc"
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
@@ -109,9 +109,9 @@ function ViewerScene({
         shadow-camera-bottom={-52}
       />
       {/* Warm fill from west */}
-      <directionalLight position={[-20, 16, -12]} intensity={0.7} color="#d08840" />
+      <directionalLight position={[-20, 16, -12]} intensity={0.62} color="#c88944" />
       {/* Cool sky bounce */}
-      <directionalLight position={[0, 20, -30]} intensity={0.28} color="#98b8d8" />
+      <directionalLight position={[0, 20, -30]} intensity={0.24} color="#98b8d8" />
 
       {hasModelAsset && config.modelSrc ? (
         <Suspense fallback={null}>
@@ -125,10 +125,10 @@ function ViewerScene({
 
       <ContactShadows
         position={[0, 0.01, 0]}
-        opacity={0.32}
-        scale={100}
-        blur={2.8}
-        far={32}
+        opacity={0.28}
+        scale={118}
+        blur={3.2}
+        far={40}
         color="#3a2010"
       />
 

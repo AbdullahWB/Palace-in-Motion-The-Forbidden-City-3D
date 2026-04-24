@@ -80,6 +80,23 @@ export function getExploreJourneyStopIndex(
   return resolvedRoute?.placeOrder.findIndex((slug) => slug === placeSlug) ?? -1;
 }
 
+export function getExploreJourneyVisitedCount(
+  route: ExploreJourneyRoute | ExploreJourneyRouteId | null | undefined,
+  visitedPlaceSlugs: ExplorePlaceSlug[]
+) {
+  const resolvedRoute =
+    typeof route === "string" ? getExploreJourneyById(route) : route ?? null;
+
+  if (!resolvedRoute) {
+    return 0;
+  }
+
+  const visitedSet = new Set(visitedPlaceSlugs);
+
+  return resolvedRoute.placeOrder.filter((placeSlug) => visitedSet.has(placeSlug))
+    .length;
+}
+
 function firstString(value: string | string[] | undefined) {
   return Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
 }

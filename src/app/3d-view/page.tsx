@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { ThreeDViewShell } from "@/features/three-d-view/three-d-view-shell";
+import { ThreeDViewPageClient } from "@/app/3d-view/three-d-view-page-client";
 import { forbiddenCityViewerConfig } from "@/features/three-d-view/viewer-config";
 
 export default function ThreeDViewPage() {
@@ -9,7 +9,7 @@ export default function ThreeDViewPage() {
   );
 
   return (
-    <ThreeDViewShell
+    <ThreeDViewPageClient
       config={forbiddenCityViewerConfig}
       hasModelAsset={hasModelAsset}
     />

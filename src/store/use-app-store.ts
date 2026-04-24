@@ -3,7 +3,6 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { defaultPostcardFrameId } from "@/data/selfie";
 import type {
   ExploreJourneyRouteId,
-  ExplorePassportSeal,
   ExplorePlaceSlug,
   ExploreZone,
   PostcardFrame,
@@ -18,8 +17,6 @@ type PersistedAppStoreState = Pick<
   | "hasCompletedTour"
   | "hasGeneratedPostcard"
   | "activeExploreRouteId"
-  | "completedExploreRouteIds"
-  | "unlockedPassportSealIds"
 >;
 
 export type AppStoreState = {
@@ -31,15 +28,11 @@ export type AppStoreState = {
   hasCompletedTour: boolean;
   hasGeneratedPostcard: boolean;
   activeExploreRouteId: ExploreJourneyRouteId | null;
-  completedExploreRouteIds: ExploreJourneyRouteId[];
-  unlockedPassportSealIds: ExplorePassportSeal["id"][];
   setNavOpen: (isOpen: boolean) => void;
   setSelectedExploreZoneId: (zoneId: ExploreZone["id"] | null) => void;
   markExploreZoneVisited: (zoneId: ExploreZone["id"]) => void;
   markExplorePlaceVisited: (placeSlug: ExplorePlaceSlug) => void;
   setActiveExploreRoute: (routeId: ExploreJourneyRouteId | null) => void;
-  markExploreRouteCompleted: (routeId: ExploreJourneyRouteId) => void;
-  unlockPassportSeal: (sealId: ExplorePassportSeal["id"]) => void;
   resetExploreProgress: () => void;
   setSelectedPostcardFrame: (frameId: PostcardFrame["id"]) => void;
   setHasCompletedTour: (value: boolean) => void;
@@ -54,9 +47,42 @@ const initialPersistedState: PersistedAppStoreState = {
   hasCompletedTour: false,
   hasGeneratedPostcard: false,
   activeExploreRouteId: null,
-  completedExploreRouteIds: [],
-  unlockedPassportSealIds: [],
 };
+
+function migratePersistedAppState(value: unknown): PersistedAppStoreState {
+  if (!value || typeof value !== "object") {
+    return initialPersistedState;
+  }
+
+  const persisted = value as Record<string, unknown>;
+
+  return {
+    selectedExploreZoneId:
+      typeof persisted.selectedExploreZoneId === "string"
+        ? (persisted.selectedExploreZoneId as ExploreZone["id"])
+        : null,
+    visitedExploreZoneIds: Array.isArray(persisted.visitedExploreZoneIds)
+      ? (persisted.visitedExploreZoneIds.filter(
+          (zoneId): zoneId is ExploreZone["id"] => typeof zoneId === "string"
+        ) as ExploreZone["id"][])
+      : [],
+    visitedExplorePlaceSlugs: Array.isArray(persisted.visitedExplorePlaceSlugs)
+      ? (persisted.visitedExplorePlaceSlugs.filter(
+          (placeSlug): placeSlug is ExplorePlaceSlug => typeof placeSlug === "string"
+        ) as ExplorePlaceSlug[])
+      : [],
+    selectedPostcardFrame:
+      typeof persisted.selectedPostcardFrame === "string"
+        ? persisted.selectedPostcardFrame
+        : defaultPostcardFrameId,
+    hasCompletedTour: persisted.hasCompletedTour === true,
+    hasGeneratedPostcard: persisted.hasGeneratedPostcard === true,
+    activeExploreRouteId:
+      typeof persisted.activeExploreRouteId === "string"
+        ? (persisted.activeExploreRouteId as ExploreJourneyRouteId)
+        : null,
+  };
+}
 
 export const useAppStore = create<AppStoreState>()(
   persist(
@@ -78,18 +104,6 @@ export const useAppStore = create<AppStoreState>()(
             : [...state.visitedExplorePlaceSlugs, placeSlug],
         })),
       setActiveExploreRoute: (routeId) => set({ activeExploreRouteId: routeId }),
-      markExploreRouteCompleted: (routeId) =>
-        set((state) => ({
-          completedExploreRouteIds: state.completedExploreRouteIds.includes(routeId)
-            ? state.completedExploreRouteIds
-            : [...state.completedExploreRouteIds, routeId],
-        })),
-      unlockPassportSeal: (sealId) =>
-        set((state) => ({
-          unlockedPassportSealIds: state.unlockedPassportSealIds.includes(sealId)
-            ? state.unlockedPassportSealIds
-            : [...state.unlockedPassportSealIds, sealId],
-        })),
       resetExploreProgress: () =>
         set({
           ...initialPersistedState,
@@ -101,6 +115,8 @@ export const useAppStore = create<AppStoreState>()(
     {
       name: "palace-in-motion-app",
       storage: createJSONStorage(() => localStorage),
+      version: 2,
+      migrate: migratePersistedAppState,
       partialize: (state) => ({
         selectedExploreZoneId: state.selectedExploreZoneId,
         visitedExploreZoneIds: state.visitedExploreZoneIds,
@@ -109,8 +125,6 @@ export const useAppStore = create<AppStoreState>()(
         hasCompletedTour: state.hasCompletedTour,
         hasGeneratedPostcard: state.hasGeneratedPostcard,
         activeExploreRouteId: state.activeExploreRouteId,
-        completedExploreRouteIds: state.completedExploreRouteIds,
-        unlockedPassportSealIds: state.unlockedPassportSealIds,
       }),
     }
   )

@@ -49,7 +49,11 @@ export function SiteFooter() {
                   <ul className="space-y-3 text-sm text-muted">
                     {navigationItems.map((item) => (
                       <li key={item.href}>
-                        <Link href={item.href} className="font-semibold text-foreground hover:text-accent">
+                        <Link
+                          href={item.href}
+                          prefetch={item.href === "/3d-view" ? false : undefined}
+                          className="font-semibold text-foreground hover:text-accent"
+                        >
                           {item.label}
                         </Link>
                         <p className="mt-1 leading-6">{item.description}</p>
