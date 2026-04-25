@@ -35,6 +35,9 @@ type ImmersiveAssetLoadingOverlayProps = {
   eyebrow: LocalizedCopy;
   title: LocalizedCopy;
   description: LocalizedCopy;
+  statusLabel?: LocalizedCopy;
+  actions?: ReactNode;
+  kind?: "loading" | "error";
   className?: string;
   compact?: boolean;
 };
@@ -201,6 +204,9 @@ export function ImmersiveAssetLoadingOverlay({
   eyebrow,
   title,
   description,
+  statusLabel,
+  actions,
+  kind = "loading",
   className,
   compact = false,
 }: ImmersiveAssetLoadingOverlayProps) {

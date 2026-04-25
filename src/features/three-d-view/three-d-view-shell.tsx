@@ -11,7 +11,10 @@ import { useSitePreferences } from "@/components/preferences/site-preferences-pr
 import { ForbiddenCityPlaceholderScene } from "@/features/three-d-view/forbidden-city-placeholder-scene";
 import { pickLocalizedText } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import type { ThreeDViewerConfig } from "@/features/three-d-view/viewer-config";
+import type {
+  ThreeDCameraView,
+  ThreeDViewerConfig,
+} from "@/features/three-d-view/viewer-config";
 
 type ThreeDViewShellProps = {
   config: ThreeDViewerConfig;
@@ -68,17 +71,19 @@ function RealModelLayer({ src }: { src: string }) {
 
 function ViewerScene({
   config,
+  cameraView,
   hasModelAsset,
 }: {
   config: ThreeDViewerConfig;
+  cameraView: ThreeDCameraView;
   hasModelAsset: boolean;
 }) {
   return (
     <>
       <PerspectiveCamera
         makeDefault
-        position={config.initialCamera.position}
-        fov={config.initialCamera.fov}
+        position={cameraView.position}
+        fov={cameraView.fov}
       />
       <color attach="background" args={["#d5dfeb"]} />
       <fog attach="fog" args={["#dbe3ec", 36, 128]} />
@@ -141,7 +146,7 @@ function ViewerScene({
         maxDistance={config.orbitLimits.maxDistance}
         minPolarAngle={config.orbitLimits.minPolarAngle}
         maxPolarAngle={config.orbitLimits.maxPolarAngle}
-        target={config.initialCamera.target}
+        target={cameraView.target}
       />
     </>
   );
@@ -153,11 +158,15 @@ export function ThreeDViewShell({
 }: ThreeDViewShellProps) {
   const { language, theme } = useSitePreferences();
   const [viewerVersion, setViewerVersion] = useState(0);
+  const [activeCameraId, setActiveCameraId] = useState(config.initialCamera.id);
   const isDarkTheme = theme === "dark";
   const copy = shellCopy[language];
   const localizedTitle = pickLocalizedText(config.title, language);
   const localizedSubtitle = pickLocalizedText(config.subtitle, language);
   const localizedDescription = pickLocalizedText(config.description, language);
+  const cameraView =
+    config.cameraPresets.find((preset) => preset.id === activeCameraId) ??
+    config.initialCamera;
 
   return (
     <section
@@ -168,23 +177,28 @@ export function ThreeDViewShell({
     >
       <div className="absolute inset-0">
         <Canvas
-          key={viewerVersion}
+          key={`${viewerVersion}:${cameraView.id}`}
+          aria-label={localizedTitle}
           dpr={[1, 1.5]}
           shadows
           gl={{ antialias: true, powerPreference: "high-performance" }}
           performance={{ min: 0.8 }}
         >
-          <ViewerScene config={config} hasModelAsset={hasModelAsset} />
+          <ViewerScene
+            config={config}
+            cameraView={cameraView}
+            hasModelAsset={hasModelAsset}
+          />
         </Canvas>
       </div>
 
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(249,214,155,0.22),transparent_24%),radial-gradient(circle_at_82%_18%,rgba(95,138,189,0.2),transparent_28%),linear-gradient(180deg,rgba(3,7,12,0.08),rgba(3,7,12,0.18)_40%,rgba(3,7,12,0.5)_100%)]" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[32%] bg-[linear-gradient(180deg,rgba(4,7,13,0),rgba(4,7,13,0.66))]" />
 
-      <div className="absolute left-4 top-4 z-20 w-[min(28rem,calc(100vw-2rem))] pointer-events-auto md:left-6 md:top-6">
+      <div className="absolute left-3 top-3 z-20 w-[min(24rem,calc(100vw-1.5rem))] pointer-events-auto sm:left-4 sm:top-4 md:left-6 md:top-6">
         <div
           className={cn(
-            "rounded-[1.9rem] border p-5 shadow-[0_24px_90px_rgba(0,0,0,0.22)] backdrop-blur-xl",
+            "max-h-[42svh] overflow-y-auto rounded-[1.5rem] border p-4 shadow-[0_24px_90px_rgba(0,0,0,0.22)] backdrop-blur-xl sm:max-h-none sm:rounded-[1.9rem] sm:p-5",
             isDarkTheme
               ? "border-white/12 bg-[rgba(7,10,16,0.58)] text-white"
               : "border-white/55 bg-[rgba(255,248,238,0.8)] text-foreground"
@@ -217,7 +231,7 @@ export function ThreeDViewShell({
             </span>
           </div>
 
-          <p className={cn("mt-5 font-display text-4xl leading-none md:text-5xl", isDarkTheme ? "text-white" : "text-foreground")}>
+          <p className={cn("mt-5 font-display text-3xl leading-none md:text-5xl", isDarkTheme ? "text-white" : "text-foreground")}>
             {localizedTitle}
           </p>
           <p className={cn("mt-3 text-[11px] font-semibold uppercase tracking-[0.28em]", isDarkTheme ? "text-white/58" : "text-foreground/58")}>
@@ -229,10 +243,10 @@ export function ThreeDViewShell({
         </div>
       </div>
 
-      <div className="absolute right-4 top-4 z-20 flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-end gap-2 pointer-events-auto md:right-6 md:top-6">
+      <div className="absolute bottom-24 right-3 z-20 flex max-w-[calc(100vw-1.5rem)] flex-wrap items-center justify-end gap-2 pointer-events-auto sm:right-4 sm:top-4 sm:bottom-auto md:right-6 md:top-6">
         <span
           className={cn(
-            "rounded-full border px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em]",
+            "hidden rounded-full border px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] sm:inline-flex",
             isDarkTheme
               ? "border-white/12 bg-[rgba(7,10,16,0.54)] text-white/72"
               : "border-white/55 bg-[rgba(255,248,238,0.78)] text-foreground/72"
@@ -240,9 +254,47 @@ export function ThreeDViewShell({
         >
           {copy.orbitHint}
         </span>
+        <div
+          className={cn(
+            "flex max-w-full flex-wrap items-center gap-1 rounded-full border p-1 backdrop-blur-xl",
+            isDarkTheme
+              ? "border-white/12 bg-[rgba(7,10,16,0.54)]"
+              : "border-white/55 bg-[rgba(255,248,238,0.78)]"
+          )}
+          role="group"
+          aria-label="Camera viewpoints"
+        >
+          {config.cameraPresets.map((preset) => {
+            const isActive = preset.id === cameraView.id;
+
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => setActiveCameraId(preset.id)}
+                aria-pressed={isActive}
+                className={cn(
+                  "rounded-full px-3 py-2 text-xs font-semibold",
+                  isActive
+                    ? isDarkTheme
+                      ? "bg-[#d5b27a]/22 text-[#f3dcb3]"
+                      : "bg-accent/12 text-accent-strong"
+                    : isDarkTheme
+                      ? "text-white/72 hover:bg-white/10"
+                      : "text-foreground/72 hover:bg-white/70"
+                )}
+              >
+                {pickLocalizedText(preset.label, language)}
+              </button>
+            );
+          })}
+        </div>
         <button
           type="button"
-          onClick={() => setViewerVersion((current) => current + 1)}
+          onClick={() => {
+            setActiveCameraId(config.initialCamera.id);
+            setViewerVersion((current) => current + 1);
+          }}
           className={cn(
             "rounded-full border px-4 py-3 text-sm font-semibold",
             isDarkTheme
@@ -271,7 +323,7 @@ export function ThreeDViewShell({
         <ThemeToggleButton tone={isDarkTheme ? "dark" : "light"} />
       </div>
 
-      <div className="absolute right-4 bottom-4 z-20 w-[min(25rem,calc(100vw-2rem))] pointer-events-auto md:right-6 md:bottom-6">
+      <div className="absolute right-4 bottom-4 z-20 hidden w-[min(25rem,calc(100vw-2rem))] pointer-events-auto lg:block md:right-6 md:bottom-6">
         <div
           className={cn(
             "rounded-[1.7rem] border p-5 shadow-[0_20px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl",

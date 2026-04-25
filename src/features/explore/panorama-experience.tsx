@@ -65,6 +65,11 @@ type JourneyProgress = {
   isCompleted: boolean;
 };
 
+type JourneyOnboardingStep = {
+  title: string;
+  body: string;
+};
+
 type PlaceInfoPanelProps = {
   place: ExplorePlace;
   activePhoto: ExplorePlacePhoto;
@@ -175,6 +180,52 @@ const journeyUiCopy = {
     freePalace: "Full palace",
   },
 } as const;
+
+const passportActionCopy = {
+  zh: {
+    openPlace: "打开场所",
+    continueRoute: "继续路线",
+    nextUnvisited: "下一站",
+    mapFallback: "地图图像加载延迟，场所标记仍可使用。",
+  },
+  en: {
+    openPlace: "Open place",
+    continueRoute: "Continue route",
+    nextUnvisited: "Next stop",
+    mapFallback: "Map artwork is delayed. Place markers are still available.",
+  },
+} as const;
+
+const journeyOnboardingSteps: Record<AppLanguage, JourneyOnboardingStep[]> = {
+  zh: [
+    {
+      title: "选择路线",
+      body: "先选一条旅程，地图会突出显示主要站点。",
+    },
+    {
+      title: "进入地图",
+      body: "可以手动打开标记，也可以从地图开始路线。",
+    },
+    {
+      title: "收集印记",
+      body: "每到访一个场所，行旅簿都会更新并推进路线徽记。",
+    },
+  ],
+  en: [
+    {
+      title: "Pick a route",
+      body: "Choose one journey so the map can highlight its main stops.",
+    },
+    {
+      title: "Enter the map",
+      body: "Open a marker manually or start the guided route from the map.",
+    },
+    {
+      title: "Collect stamps",
+      body: "Every visited place updates the Passport and unlocks route seals.",
+    },
+  ],
+};
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -439,6 +490,9 @@ type PassportDrawerProps = {
   completedRouteIds: ExploreJourneyRoute["id"][];
   unlockedSealIds: string[];
   journeyProgressById: Map<ExploreJourneyRoute["id"], JourneyProgress>;
+  onOpenPlace: (placeSlug: ExplorePlaceSlug) => void;
+  onOpenRouteMap: (routeId: ExploreJourneyRoute["id"]) => void;
+  onContinueRoute: (routeId: ExploreJourneyRoute["id"]) => void;
   onClose: () => void;
   onReset: () => void;
 };
@@ -450,11 +504,15 @@ function PassportDrawer({
   completedRouteIds,
   unlockedSealIds,
   journeyProgressById,
+  onOpenPlace,
+  onOpenRouteMap,
+  onContinueRoute,
   onClose,
   onReset,
 }: PassportDrawerProps) {
   const isDarkTheme = theme === "dark";
   const passport = exploreExperience.passport;
+  const actionCopy = passportActionCopy[language];
   const visitedSet = new Set(visitedPlaceSlugs);
   const completedSet = new Set(completedRouteIds);
   const unlockedSealSet = new Set(unlockedSealIds);
@@ -462,7 +520,7 @@ function PassportDrawer({
   return (
     <div
       className={cn(
-        "absolute right-0 top-0 h-full w-full max-w-[min(28rem,100vw)] overflow-hidden border-l shadow-[-24px_0_90px_rgba(0,0,0,0.26)] backdrop-blur-2xl",
+        "relative h-full w-full overflow-hidden border-l shadow-[-24px_0_90px_rgba(0,0,0,0.26)] backdrop-blur-2xl",
         isDarkTheme
           ? "border-white/12 bg-[rgba(8,12,20,0.9)] text-white"
           : "border-border/70 bg-[rgba(255,248,240,0.94)] text-foreground"
@@ -542,10 +600,13 @@ function PassportDrawer({
                 const isVisited = visitedSet.has(place.slug);
 
                 return (
-                  <div
+                  <button
+                    type="button"
+                    onClick={() => onOpenPlace(place.slug)}
+                    aria-label={`${actionCopy.openPlace}: ${pickLocalizedText(place.title, language)}`}
                     key={place.slug}
                     className={cn(
-                      "overflow-hidden rounded-[1.15rem] border",
+                      "overflow-hidden rounded-[1.15rem] border text-left transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d6b071]",
                       isVisited
                         ? isDarkTheme
                           ? "border-[#f1d8b2]/26 bg-white/6"
@@ -574,8 +635,11 @@ function PassportDrawer({
                           ? pickLocalizedText(passport.completedLabel, language)
                           : `${place.gallery.length} ${language === "zh" ? "画面" : "frames"}`}
                       </p>
+                      <p className={cn("mt-2 text-[11px] font-semibold", isDarkTheme ? "text-white/58" : "text-foreground/58")}>
+                        {actionCopy.openPlace}
+                      </p>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -588,6 +652,12 @@ function PassportDrawer({
             <div className="mt-4 space-y-3">
               {passport.routeSeals.map((seal) => {
                 const isUnlocked = unlockedSealSet.has(seal.id) || completedSet.has(seal.routeId);
+                const route = getExploreJourneyById(seal.routeId);
+                const nextPlaceSlug =
+                  route?.placeOrder.find((placeSlug) => !visitedSet.has(placeSlug)) ??
+                  route?.placeOrder[0] ??
+                  null;
+                const nextPlace = getExplorePlaceBySlug(nextPlaceSlug);
                 const progress = journeyProgressById.get(seal.routeId) ?? {
                   visitedStops: 0,
                   totalStops: getExploreJourneyById(seal.routeId)?.placeOrder.length ?? 0,
@@ -631,6 +701,11 @@ function PassportDrawer({
                             language
                           )}
                         </p>
+                        {nextPlace ? (
+                          <p className={cn("mt-2 text-xs", isDarkTheme ? "text-white/62" : "text-foreground/62")}>
+                            {actionCopy.nextUnvisited}: {pickLocalizedText(nextPlace.title, language)}
+                          </p>
+                        ) : null}
                         <div
                           className={cn(
                             "mt-3 h-1.5 overflow-hidden rounded-full",
@@ -644,6 +719,32 @@ function PassportDrawer({
                               backgroundColor: seal.accent,
                             }}
                           />
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => onContinueRoute(seal.routeId)}
+                            className={cn(
+                              "rounded-full border px-3 py-2 text-xs font-semibold",
+                              isDarkTheme
+                                ? "border-[#d6b071]/28 bg-[#d6b071]/14 text-[#f5ddb4] hover:bg-[#d6b071]/22"
+                                : "border-accent-soft/30 bg-accent-soft/14 text-accent-strong hover:bg-accent-soft/22"
+                            )}
+                          >
+                            {actionCopy.continueRoute}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onOpenRouteMap(seal.routeId)}
+                            className={cn(
+                              "rounded-full border px-3 py-2 text-xs font-semibold",
+                              isDarkTheme
+                                ? "border-white/14 bg-white/10 text-white hover:bg-white/16"
+                                : "border-border/70 bg-background/80 text-foreground hover:bg-background"
+                            )}
+                          >
+                            {journeyUiCopy[language].routeMap}
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -711,6 +812,7 @@ export function PanoramaExperience({
   const [isBackdropImageLoaded, setIsBackdropImageLoaded] = useState(false);
   const [isWelcomeVideoLoaded, setIsWelcomeVideoLoaded] = useState(false);
   const [isMapImageLoaded, setIsMapImageLoaded] = useState(false);
+  const [mapImageError, setMapImageError] = useState(false);
 
   const mapDragRef = useRef<{
     pointerId: number;
@@ -719,6 +821,7 @@ export function PanoramaExperience({
     originX: number;
     originY: number;
   } | null>(null);
+  const mapImageRef = useRef<HTMLImageElement | null>(null);
 
   const panX = useMotionValue(0);
   const panY = useMotionValue(0);
@@ -792,6 +895,9 @@ export function PanoramaExperience({
       ),
     [visitedExplorePlaceSlugs]
   );
+  const activeJourneyProgress = activeJourney
+    ? journeyProgressById.get(activeJourney.id) ?? null
+    : null;
   const activeJourneySeal = getExplorePassportSealByRouteId(activeJourney?.id);
   const isActiveJourneyCompleted = activeJourney
     ? completedExploreRouteIds.includes(activeJourney.id)
@@ -809,6 +915,8 @@ export function PanoramaExperience({
   const activePhotoSrc = normalizeImageSrc(activePhoto?.src);
   const activeCoverSrc = normalizeImageSrc(activePlace?.coverSrc);
   const welcomeHeroSrc = normalizeImageSrc(exploreExperience.welcome.heroSrc);
+  const mapImageSrc =
+    normalizeImageSrc(exploreExperience.map.imageSrc) ?? exploreExperience.map.imageSrc;
   const fullTourPlaces = useMemo(() => {
     const placeMap = new Map(
       exploreExperience.places.map((place) => [place.slug, place])
@@ -1164,8 +1272,33 @@ export function PanoramaExperience({
   }, [showWelcomeVideo]);
 
   useEffect(() => {
-    setIsMapImageLoaded(searchState.view !== "map");
-  }, [searchState.view]);
+    if (searchState.view !== "map") {
+      setIsMapImageLoaded(true);
+      setMapImageError(false);
+      return;
+    }
+
+    const image = mapImageRef.current;
+
+    if (image?.complete) {
+      setMapImageError(image.naturalWidth === 0);
+      setIsMapImageLoaded(true);
+      return;
+    }
+
+    setIsMapImageLoaded(false);
+    setMapImageError(false);
+
+    const fallbackTimer = window.setTimeout(() => {
+      const latestImage = mapImageRef.current;
+      setMapImageError(!latestImage?.complete || latestImage.naturalWidth === 0);
+      setIsMapImageLoaded(true);
+    }, 6500);
+
+    return () => {
+      window.clearTimeout(fallbackTimer);
+    };
+  }, [mapImageSrc, searchState.view]);
 
   function clampMapOffset(
     nextOffset: {
@@ -1191,6 +1324,17 @@ export function PanoramaExperience({
     startTransition(() => {
       router.push(nextHref, { scroll: false });
     });
+  }
+
+  function openPassport() {
+    setIsSelfieModalOpen(false);
+    setIsPassportOpen(true);
+
+    if (isAutoTourActive) {
+      setIsAutoTourPaused(true);
+      clearAutoTourTimer();
+      stopSpeech();
+    }
   }
 
   function openWelcome() {
@@ -1237,6 +1381,33 @@ export function PanoramaExperience({
       photoId: searchState.view === "place" ? null : searchState.photoId,
       routeId: null,
     });
+  }
+
+  function openRouteMapFromPassport(routeId: ExploreJourneyRoute["id"]) {
+    setIsPassportOpen(false);
+    selectJourney(routeId);
+  }
+
+  function continueRouteFromPassport(routeId: ExploreJourneyRoute["id"]) {
+    const journey = getExploreJourneyById(routeId);
+
+    if (!journey) {
+      openRouteMapFromPassport(routeId);
+      return;
+    }
+
+    const nextPlaceSlug =
+      journey.placeOrder.find(
+        (placeSlug) => !visitedExplorePlaceSlugs.includes(placeSlug)
+      ) ?? journey.placeOrder[0];
+
+    if (!nextPlaceSlug) {
+      openRouteMapFromPassport(routeId);
+      return;
+    }
+
+    setIsPassportOpen(false);
+    openPlaceInJourney(nextPlaceSlug, null, routeId);
   }
 
   function openPlace(placeSlug: ExplorePlaceSlug, photoId?: string | null) {
@@ -1598,7 +1769,7 @@ export function PanoramaExperience({
         </div>
       ) : null}
 
-      {searchState.view !== "place" ? (
+      {searchState.view === "welcome" ? (
         <div className="absolute left-4 top-4 z-30 w-[min(22rem,calc(100vw-2rem))] md:left-6 md:top-6">
           <div
             className={cn(
@@ -1643,10 +1814,8 @@ export function PanoramaExperience({
               <ThemeToggleButton tone={isDarkTheme ? "dark" : "light"} />
               <button
                 type="button"
-                onClick={() => {
-                  setIsSelfieModalOpen(false);
-                  setIsPassportOpen(true);
-                }}
+                onClick={openPassport}
+                aria-label={journeyUi.passport}
                 className={cn(
                   "rounded-full border px-4 py-3 text-sm font-semibold",
                   isDarkTheme
@@ -1694,7 +1863,7 @@ export function PanoramaExperience({
           >
             <div
               className={cn(
-                "w-full max-w-3xl rounded-[2.1rem] border px-6 py-8 text-center shadow-[0_28px_80px_rgba(0,0,0,0.3)] backdrop-blur-2xl md:px-10 md:py-10",
+                "max-h-[calc(100svh-2rem)] w-full max-w-3xl overflow-y-auto rounded-[2.1rem] border px-6 py-8 text-center shadow-[0_28px_80px_rgba(0,0,0,0.3)] backdrop-blur-2xl md:px-10 md:py-10",
                 isDarkTheme
                   ? "border-white/14 bg-[rgba(8,10,14,0.42)] text-white"
                   : "border-border/70 bg-[rgba(255,248,240,0.78)] text-foreground"
@@ -1726,6 +1895,37 @@ export function PanoramaExperience({
               >
                 {localize(exploreExperience.welcome.subtitle)}
               </p>
+
+              <div className="mx-auto mt-7 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
+                {journeyOnboardingSteps[language].map((step, index) => (
+                  <div
+                    key={step.title}
+                    className={cn(
+                      "rounded-[1.15rem] border px-4 py-4",
+                      isDarkTheme
+                        ? "border-white/12 bg-white/8"
+                        : "border-border/70 bg-background/68"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold",
+                        isDarkTheme
+                          ? "bg-[#d6b071]/18 text-[#f1d8b2]"
+                          : "bg-accent-soft/14 text-accent-strong"
+                      )}
+                    >
+                      {index + 1}
+                    </span>
+                    <p className={cn("mt-3 text-sm font-semibold", isDarkTheme ? "text-white" : "text-foreground")}>
+                      {step.title}
+                    </p>
+                    <p className={cn("mt-2 text-xs leading-6", isDarkTheme ? "text-white/68" : "text-foreground/68")}>
+                      {step.body}
+                    </p>
+                  </div>
+                ))}
+              </div>
 
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <button
@@ -1791,9 +1991,8 @@ export function PanoramaExperience({
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsPassportOpen(true);
-                    }}
+                    onClick={openPassport}
+                    aria-label={journeyUi.passport}
                     className={cn(
                       "rounded-full border px-4 py-3 text-sm font-semibold",
                       isDarkTheme
@@ -1840,7 +2039,7 @@ export function PanoramaExperience({
             animate={{ opacity: 1 }}
             exit={reduceMotion ? undefined : { opacity: 0 }}
             transition={reduceMotion ? undefined : { duration: 0.24 }}
-            className="absolute inset-0 z-40 flex items-center justify-center px-4 py-6"
+            className="absolute inset-0 z-40 flex items-center justify-center px-3 py-3 sm:px-4 sm:py-6"
           >
             <div className="absolute inset-0 bg-[rgba(4,6,10,0.46)] backdrop-blur-[10px]" />
 
@@ -1854,13 +2053,13 @@ export function PanoramaExperience({
                   : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }
               }
               className={cn(
-                "relative z-10 w-full max-w-[82rem] rounded-[2rem] border p-4 shadow-[0_32px_90px_rgba(0,0,0,0.26)] backdrop-blur-2xl",
+                "relative z-10 max-h-[calc(100svh-1.5rem)] w-full max-w-[82rem] overflow-y-auto rounded-[2rem] border p-3 shadow-[0_32px_90px_rgba(0,0,0,0.26)] backdrop-blur-2xl sm:p-4",
                 isDarkTheme
                   ? "border-[#d6b071]/22 bg-[rgba(8,12,20,0.78)] text-white"
                   : "border-border/70 bg-[rgba(255,248,240,0.86)] text-foreground"
               )}
             >
-              <div className="flex items-center justify-between gap-4 px-2 pb-4">
+              <div className="flex flex-col items-stretch justify-between gap-4 px-2 pb-4 sm:flex-row sm:items-center">
                 <div>
                   <div className="flex items-center gap-3">
                     <p
@@ -1885,7 +2084,8 @@ export function PanoramaExperience({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setIsPassportOpen(true)}
+                      onClick={openPassport}
+                      aria-label={journeyUi.passport}
                       className={cn(
                         "rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em]",
                         isDarkTheme
@@ -1964,6 +2164,31 @@ export function PanoramaExperience({
                       >
                         {localize(activeJourney.intro)}
                       </p>
+                      {activeJourneyProgress ? (
+                        <div className="mt-4 max-w-xl">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className={cn("text-xs font-semibold uppercase tracking-[0.18em]", isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft")}>
+                              {formatJourneyProgressLabel(
+                                activeJourneyProgress,
+                                journeyUi.journeyStops,
+                                language
+                              )}
+                            </p>
+                            <p className={cn("text-xs font-semibold", isDarkTheme ? "text-white/58" : "text-foreground/58")}>
+                              {activeJourneyProgress.completionRate}%
+                            </p>
+                          </div>
+                          <div className={cn("mt-2 h-2 overflow-hidden rounded-full", isDarkTheme ? "bg-white/10" : "bg-black/8")}>
+                            <div
+                              className="h-full rounded-full transition-[width]"
+                              style={{
+                                width: `${activeJourneyProgress.completionRate}%`,
+                                backgroundColor: activeJourney.accent,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
@@ -2067,7 +2292,7 @@ export function PanoramaExperience({
                 )}
               </div>
 
-              <div className="relative h-[min(72svh,44rem)] overflow-hidden rounded-[1.65rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,246,227,0.9),rgba(246,233,208,0.78))]">
+              <div className="relative h-[min(54svh,38rem)] overflow-hidden rounded-[1.65rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,246,227,0.9),rgba(246,233,208,0.78))] md:h-[min(68svh,44rem)]">
                 <div
                   className="absolute inset-0 touch-none cursor-grab active:cursor-grabbing"
                   onWheel={handleMapWheel}
@@ -2085,13 +2310,21 @@ export function PanoramaExperience({
                   >
                     <div className="relative h-full w-full">
                       <Image
-                        src={exploreExperience.map.imageSrc}
+                        ref={mapImageRef}
+                        src={mapImageSrc}
                         alt={localize(exploreExperience.map.alt)}
                         fill
                         priority
                         sizes="(max-width: 1024px) 92vw, 70rem"
                         className="object-contain select-none"
-                        onLoad={() => setIsMapImageLoaded(true)}
+                        onLoad={() => {
+                          setMapImageError(false);
+                          setIsMapImageLoaded(true);
+                        }}
+                        onError={() => {
+                          setMapImageError(true);
+                          setIsMapImageLoaded(true);
+                        }}
                       />
 
                       {exploreExperience.map.markers.map((marker, index) => {
@@ -2103,8 +2336,9 @@ export function PanoramaExperience({
                             key={marker.placeSlug}
                             type="button"
                             onClick={() => openPlace(marker.placeSlug)}
+                            aria-label={`${passportActionCopy[language].openPlace}: ${localize(marker.label)}`}
                             className={cn(
-                              "absolute -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-[1.03]",
+                              "absolute -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-[1.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#d6b071]",
                               activeJourney && !isInRoute ? "opacity-45" : "opacity-100"
                             )}
                             style={{
@@ -2151,6 +2385,19 @@ export function PanoramaExperience({
                     en: "Markers and place entry points are ready. Waiting for the palace map image to finish loading.",
                   }}
                 />
+                {mapImageError ? (
+                  <div
+                    role="status"
+                    className={cn(
+                      "absolute left-1/2 top-4 z-10 max-w-[calc(100%-2rem)] -translate-x-1/2 rounded-full border px-4 py-2 text-center text-xs font-semibold backdrop-blur-md",
+                      isDarkTheme
+                        ? "border-[#d6b071]/24 bg-[rgba(8,12,20,0.78)] text-[#f6dfb8]"
+                        : "border-border/80 bg-[rgba(255,248,240,0.9)] text-accent-strong"
+                    )}
+                  >
+                    {passportActionCopy[language].mapFallback}
+                  </div>
+                ) : null}
 
                 <div
                   className={cn(
@@ -2283,10 +2530,10 @@ export function PanoramaExperience({
             />
           </div>
 
-          <div className="absolute left-4 bottom-4 z-30 inline-flex max-w-[calc(100vw-2rem)] flex-col gap-3">
+          <div className="absolute inset-x-4 bottom-4 z-30 flex max-h-[42svh] max-w-[calc(100vw-2rem)] flex-col gap-3 overflow-y-auto lg:left-4 lg:right-auto lg:inline-flex lg:max-h-none lg:overflow-visible">
             <div
               className={cn(
-                "flex flex-wrap items-center gap-3 rounded-[1.5rem] border px-4 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur-2xl",
+                "flex flex-wrap items-center gap-2 rounded-[1.5rem] border px-3 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur-2xl sm:gap-3 sm:px-4",
                 isDarkTheme
                   ? "border-white/12 bg-[rgba(8,12,20,0.54)]"
                   : "border-border/70 bg-[rgba(255,248,240,0.84)]"
@@ -2363,10 +2610,8 @@ export function PanoramaExperience({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setIsSelfieModalOpen(false);
-                  setIsPassportOpen(true);
-                }}
+                onClick={openPassport}
+                aria-label={journeyUi.passport}
                 className={cn(
                   "rounded-full border px-4 py-3 text-sm font-semibold",
                   isDarkTheme
@@ -2566,12 +2811,12 @@ export function PanoramaExperience({
             animate={{ opacity: 1 }}
             exit={reduceMotion ? undefined : { opacity: 0 }}
             transition={reduceMotion ? undefined : { duration: 0.22 }}
-            className="absolute inset-0 z-50"
+            className="absolute inset-0 z-[80]"
           >
             <button
               type="button"
               onClick={() => setIsPassportOpen(false)}
-              className="absolute inset-0 bg-[rgba(4,6,10,0.56)] backdrop-blur-[10px]"
+              className="absolute inset-0 z-0 bg-[rgba(4,6,10,0.56)] backdrop-blur-[10px]"
               aria-label={pickLocalizedText(exploreExperience.passport.closeLabel, language)}
             />
             <motion.div
@@ -2583,7 +2828,7 @@ export function PanoramaExperience({
                   ? undefined
                   : { duration: 0.24, ease: [0.22, 1, 0.36, 1] }
               }
-              className="absolute inset-y-0 right-0"
+              className="absolute inset-y-0 right-0 z-10 w-full max-w-[min(28rem,100vw)]"
             >
               <PassportDrawer
                 language={language}
@@ -2592,6 +2837,9 @@ export function PanoramaExperience({
                 completedRouteIds={completedExploreRouteIds}
                 unlockedSealIds={unlockedPassportSealIds}
                 journeyProgressById={journeyProgressById}
+                onOpenPlace={openPlace}
+                onOpenRouteMap={openRouteMapFromPassport}
+                onContinueRoute={continueRouteFromPassport}
                 onClose={() => setIsPassportOpen(false)}
                 onReset={() => {
                   resetExploreProgress();

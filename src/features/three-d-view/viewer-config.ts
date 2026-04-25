@@ -1,16 +1,21 @@
 import type { BilingualText } from "@/types/content";
 
+export type ThreeDCameraView = {
+  id: string;
+  label: BilingualText;
+  position: [number, number, number];
+  target: [number, number, number];
+  fov: number;
+};
+
 export type ThreeDViewerConfig = {
   title: BilingualText;
   subtitle: BilingualText;
   description: BilingualText;
   modelSrc: string | null;
   fallbackMode: "placeholder";
-  initialCamera: {
-    position: [number, number, number];
-    target: [number, number, number];
-    fov: number;
-  };
+  initialCamera: ThreeDCameraView;
+  cameraPresets: ThreeDCameraView[];
   orbitLimits: {
     minDistance: number;
     maxDistance: number;
@@ -35,11 +40,58 @@ export const forbiddenCityViewerConfig: ThreeDViewerConfig = {
   modelSrc: "/models/forbidden-city.glb",
   fallbackMode: "placeholder",
   initialCamera: {
+    id: "overview",
+    label: {
+      zh: "总览",
+      en: "Overview",
+    },
     // Positioned south-east, elevated — looking north-west into the outer courts
     position: [30, 18, 40],
     target: [0, 5.6, -16],
     fov: 34,
   },
+  cameraPresets: [
+    {
+      id: "overview",
+      label: {
+        zh: "总览",
+        en: "Overview",
+      },
+      position: [30, 18, 40],
+      target: [0, 5.6, -16],
+      fov: 34,
+    },
+    {
+      id: "axis",
+      label: {
+        zh: "中轴",
+        en: "Axis",
+      },
+      position: [0, 13, 48],
+      target: [0, 5.4, -15],
+      fov: 30,
+    },
+    {
+      id: "terraces",
+      label: {
+        zh: "台基",
+        en: "Terraces",
+      },
+      position: [19, 10, 15],
+      target: [0, 5.8, -8],
+      fov: 28,
+    },
+    {
+      id: "garden",
+      label: {
+        zh: "园林",
+        en: "Garden",
+      },
+      position: [-18, 9, -48],
+      target: [0, 3.8, -36],
+      fov: 32,
+    },
+  ],
   orbitLimits: {
     minDistance: 16,
     maxDistance: 68,
