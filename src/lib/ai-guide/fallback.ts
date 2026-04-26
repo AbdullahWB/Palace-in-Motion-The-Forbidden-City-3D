@@ -1,4 +1,5 @@
 import { getPostcardFrameById } from "@/data/selfie";
+import { pickLocalizedText } from "@/lib/i18n";
 import type { GuideMode, GuideRequest, ResolvedGuideContext } from "@/types/ai-guide";
 import type { AppLanguage } from "@/types/preferences";
 
@@ -139,7 +140,17 @@ function buildFallbackAnswer({
   frameCaption?: string | null;
   language: AppLanguage;
 }) {
+  const knowledgeSummary = context.placeKnowledge
+    ? pickLocalizedText(context.placeKnowledge.historyNote, language)
+    : null;
+  const noticeSummary = context.placeKnowledge?.thingsToNotice.length
+    ? context.placeKnowledge.thingsToNotice
+        .slice(0, 2)
+        .map((item) => pickLocalizedText(item, language))
+        .join(" ")
+    : null;
   const focusSummary =
+    knowledgeSummary ??
     context.tourStep?.explanation ??
     context.hotspot?.tourExplanation ??
     context.hotspot?.hotspotDescription ??
@@ -222,7 +233,32 @@ function buildFallbackAnswer({
         `${context.contextLabel}: ${focusSummary}`,
         contextHint ? `Lens: ${contextHint}.` : "",
         ...routeLead,
+        noticeSummary ? `Notice: ${noticeSummary}` : "",
         relevantFact ? `Quick anchor: ${relevantFact.body}` : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+    case "child":
+      return [
+        `${context.contextLabel} is one stop in the palace story.`,
+        focusSummary,
+        noticeSummary ? `Look for this: ${noticeSummary}` : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+    case "tourist":
+      return [
+        `For a first visit, use ${context.contextLabel} as a clear orientation point.`,
+        focusSummary,
+        noticeSummary ? `What to notice: ${noticeSummary}` : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+    case "quiz":
+      return [
+        `${context.contextLabel}: ${focusSummary}`,
+        noticeSummary ? `Quiz hint: ${noticeSummary}` : "",
+        "Try answering one passport quiz question to unlock a stamp.",
       ]
         .filter(Boolean)
         .join(" ");

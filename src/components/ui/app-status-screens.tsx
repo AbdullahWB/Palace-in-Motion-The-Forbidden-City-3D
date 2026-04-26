@@ -240,11 +240,25 @@ export function ImmersiveAssetLoadingOverlay({
           {localize(description, language)}
         </p>
         <div className="mt-5 flex items-center justify-center gap-3">
-          <span className="h-3 w-3 rounded-full bg-accent-soft animate-pulse" />
+          <span
+            className={cn(
+              "h-3 w-3 rounded-full bg-accent-soft",
+              kind === "loading" ? "animate-pulse" : ""
+            )}
+          />
           <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted">
-            {language === "zh" ? "资源加载中" : "Loading assets"}
+            {statusLabel
+              ? localize(statusLabel, language)
+              : language === "zh"
+                ? "资源加载中"
+                : "Loading assets"}
           </span>
         </div>
+        {actions ? (
+          <div className="pointer-events-auto mt-5 flex flex-wrap items-center justify-center gap-3">
+            {actions}
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -39,6 +39,11 @@ import {
   getUnlockedPassportSealIds,
   normalizeExploreSearchState,
 } from "@/data/panorama";
+import {
+  buildCustomTourRecommendation,
+  getPalaceKnowledgeByPlaceSlug,
+  getQuizQuestionForPlace,
+} from "@/data/palace-knowledge";
 import { getPostcardFrameIdForJourneyRoute } from "@/data/selfie";
 import { SelfieStudio } from "@/features/selfie/selfie-studio";
 import { pickLocalizedText } from "@/lib/i18n";
@@ -51,6 +56,14 @@ import type {
   ExplorePlaceSlug,
   ExploreSearchState,
 } from "@/types/content";
+import type {
+  CustomTourState,
+  GuideQuizPayload,
+  GuideResponse,
+  GuideSiteActionPayload,
+  PassportMissionState,
+  TourBuilderInterest,
+} from "@/types/ai-guide";
 import type { AppLanguage } from "@/types/preferences";
 
 type PanoramaExperienceProps = {
@@ -196,6 +209,75 @@ const passportActionCopy = {
   },
 } as const;
 
+const tourBuilderCopy = {
+  zh: {
+    eyebrow: "智能路线规划",
+    title: "规划我的路线",
+    body: "选择时间和兴趣，系统会用本地导览内容与现有宫殿站点生成一条短路线。",
+    timeLabel: "时间",
+    interestLabel: "兴趣",
+    build: "生成路线",
+    building: "生成中...",
+    start: "开始自定义路线",
+    continue: "继续自定义路线",
+    active: "当前自定义路线",
+    saved: "已保存智能路线",
+    fallbackError: "AI 暂不可用，已使用本地导览内容生成路线。",
+  },
+  en: {
+    eyebrow: "Smart tour builder",
+    title: "Build my tour",
+    body: "Choose your time and interest. The route uses local guide content and existing palace stops.",
+    timeLabel: "Time",
+    interestLabel: "Interest",
+    build: "Build tour",
+    building: "Building...",
+    start: "Start custom tour",
+    continue: "Continue custom tour",
+    active: "Active custom tour",
+    saved: "Saved smart tour",
+    fallbackError: "Tour builder used local guide content because AI was unavailable.",
+  },
+} as const;
+
+const passportMissionCopy = {
+  zh: {
+    completion: "完成度",
+    quizStamps: "问答印记",
+    continueLast: "从上次位置继续",
+    missionTitle: "行旅簿问答任务",
+    missionBody: "回答一个基于导览内容的问题即可解锁问答印记；到访场所也会解锁到访印记。",
+    correct: "回答正确，印记已解锁。",
+    incorrect: "还不正确。可以先阅读导览提示，再尝试其他场所。",
+    source: "导览来源",
+    earned: "已获印记",
+    locked: "未盖印",
+  },
+  en: {
+    completion: "Completion",
+    quizStamps: "Quiz stamps",
+    continueLast: "Continue from last place",
+    missionTitle: "Passport quiz missions",
+    missionBody: "Answer one grounded question to unlock a quiz stamp. Visiting a place also unlocks its visit stamp.",
+    correct: "Correct. Stamp unlocked.",
+    incorrect: "Not yet. Review the guide note and try another place.",
+    source: "Guide source",
+    earned: "Stamp earned",
+    locked: "Not stamped",
+  },
+} as const;
+
+const tourBuilderInterestOptions: Array<{
+  value: TourBuilderInterest;
+  label: Record<AppLanguage, string>;
+}> = [
+  { value: "architecture", label: { zh: "建筑", en: "Architecture" } },
+  { value: "history", label: { zh: "历史", en: "History" } },
+  { value: "gardens", label: { zh: "园林", en: "Gardens" } },
+  { value: "photography", label: { zh: "摄影", en: "Photography" } },
+  { value: "overview", label: { zh: "快速总览", en: "Quick overview" } },
+];
+
 const journeyOnboardingSteps: Record<AppLanguage, JourneyOnboardingStep[]> = {
   zh: [
     {
@@ -294,6 +376,56 @@ function formatJourneyProgressLabel(
   return `${progress.totalStops} ${
     language === "zh" ? "ç«™å¾…æŽ¢ç´¢" : "stops to explore"
   }`;
+}
+
+function getMissionForPlace(
+  missionStates: PassportMissionState[],
+  placeSlug: ExplorePlaceSlug
+) {
+  return (
+    missionStates.find((mission) => mission.placeSlug === placeSlug) ?? null
+  );
+}
+
+function isPlaceStamped({
+  placeSlug,
+  visitedSet,
+  missionStates,
+}: {
+  placeSlug: ExplorePlaceSlug;
+  visitedSet: Set<ExplorePlaceSlug>;
+  missionStates: PassportMissionState[];
+}) {
+  return (
+    visitedSet.has(placeSlug) ||
+    getMissionForPlace(missionStates, placeSlug)?.stampUnlocked === true
+  );
+}
+
+function buildLocalizedQuizPayload(
+  placeSlug: ExplorePlaceSlug,
+  language: AppLanguage
+): GuideQuizPayload | null {
+  const question = getQuizQuestionForPlace(placeSlug);
+  const knowledge = getPalaceKnowledgeByPlaceSlug(placeSlug);
+
+  if (!question || !knowledge) {
+    return null;
+  }
+
+  return {
+    placeSlug,
+    questionId: question.id,
+    question: pickLocalizedText(question.question, language),
+    options: question.options.map((option) => ({
+      id: option.id,
+      text: pickLocalizedText(option.text, language),
+    })),
+    correctOptionId: question.correctOptionId,
+    explanation: pickLocalizedText(question.explanation, language),
+    stampLabel: pickLocalizedText(question.stampLabel, language),
+    sourceNote: pickLocalizedText(knowledge.sourceNote, language),
+  };
 }
 
 function PlaceInfoPanel({
@@ -483,6 +615,214 @@ function JourneyRouteCard({
   );
 }
 
+type PersonalizedTourBuilderProps = {
+  language: AppLanguage;
+  theme: "dark" | "light";
+  selectedTimeBudget: 5 | 10 | 20;
+  selectedInterests: TourBuilderInterest[];
+  customTour: CustomTourState | null;
+  isBuilding: boolean;
+  error: string | null;
+  onTimeBudgetChange: (timeBudget: 5 | 10 | 20) => void;
+  onToggleInterest: (interest: TourBuilderInterest) => void;
+  onBuildTour: () => void;
+  onStartTour: () => void;
+};
+
+function PersonalizedTourBuilder({
+  language,
+  theme,
+  selectedTimeBudget,
+  selectedInterests,
+  customTour,
+  isBuilding,
+  error,
+  onTimeBudgetChange,
+  onToggleInterest,
+  onBuildTour,
+  onStartTour,
+}: PersonalizedTourBuilderProps) {
+  const isDarkTheme = theme === "dark";
+  const copy = tourBuilderCopy[language];
+
+  return (
+    <section
+      className={cn(
+        "rounded-[1.55rem] border p-4 text-left",
+        isDarkTheme
+          ? "border-[#d6b071]/20 bg-[#d6b071]/8"
+          : "border-accent-soft/20 bg-accent-soft/8"
+      )}
+    >
+      <p
+        className={cn(
+          "text-[11px] font-semibold uppercase tracking-[0.24em]",
+          isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft"
+        )}
+      >
+        {copy.eyebrow}
+      </p>
+      <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h3 className={cn("text-xl font-semibold", isDarkTheme ? "text-white" : "text-foreground")}>
+            {copy.title}
+          </h3>
+          <p className={cn("mt-2 text-sm leading-7", isDarkTheme ? "text-white/72" : "text-foreground/70")}>
+            {copy.body}
+          </p>
+        </div>
+        {customTour ? (
+          <span
+            className={cn(
+              "w-fit rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em]",
+              isDarkTheme
+                ? "border-[#d6b071]/24 bg-[#d6b071]/12 text-[#f5ddb4]"
+                : "border-accent-soft/24 bg-background/74 text-accent-strong"
+            )}
+          >
+            {copy.saved}
+          </span>
+        ) : null}
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
+        <div>
+          <p className={cn("text-[11px] font-semibold uppercase tracking-[0.2em]", isDarkTheme ? "text-white/58" : "text-foreground/58")}>
+            {copy.timeLabel}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {[5, 10, 20].map((timeBudget) => {
+              const isActive = selectedTimeBudget === timeBudget;
+
+              return (
+                <button
+                  key={timeBudget}
+                  type="button"
+                  onClick={() => onTimeBudgetChange(timeBudget as 5 | 10 | 20)}
+                  className={cn(
+                    "rounded-full border px-4 py-2 text-sm font-semibold",
+                    isActive
+                      ? isDarkTheme
+                        ? "border-[#d6b071] bg-[#d6b071] text-black"
+                        : "border-accent bg-accent text-white"
+                      : isDarkTheme
+                        ? "border-white/12 bg-white/8 text-white/72 hover:bg-white/12"
+                        : "border-border/70 bg-background/72 text-foreground/72 hover:bg-background"
+                  )}
+                >
+                  {timeBudget} min
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <p className={cn("text-[11px] font-semibold uppercase tracking-[0.2em]", isDarkTheme ? "text-white/58" : "text-foreground/58")}>
+            {copy.interestLabel}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {tourBuilderInterestOptions.map((option) => {
+              const isActive = selectedInterests.includes(option.value);
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => onToggleInterest(option.value)}
+                  className={cn(
+                    "rounded-full border px-4 py-2 text-sm font-semibold",
+                    isActive
+                      ? isDarkTheme
+                        ? "border-[#d6b071] bg-[#d6b071] text-black"
+                        : "border-accent bg-accent text-white"
+                      : isDarkTheme
+                        ? "border-white/12 bg-white/8 text-white/72 hover:bg-white/12"
+                        : "border-border/70 bg-background/72 text-foreground/72 hover:bg-background"
+                  )}
+                >
+                  {option.label[language]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {customTour ? (
+        <div
+          className={cn(
+            "mt-4 rounded-[1.15rem] border p-4",
+            isDarkTheme ? "border-white/10 bg-white/7" : "border-border/70 bg-background/74"
+          )}
+        >
+          <p className={cn("text-sm font-semibold", isDarkTheme ? "text-white" : "text-foreground")}>
+            {customTour.title}
+          </p>
+          <p className={cn("mt-2 text-sm leading-7", isDarkTheme ? "text-white/72" : "text-foreground/70")}>
+            {customTour.explanation}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {customTour.orderedPlaceSlugs.map((placeSlug, index) => {
+              const place = getExplorePlaceBySlug(placeSlug);
+
+              return (
+                <span
+                  key={placeSlug}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]",
+                    isDarkTheme
+                      ? "border-white/12 bg-white/8 text-white/72"
+                      : "border-border/70 bg-background/72 text-foreground/72"
+                  )}
+                >
+                  {index + 1}. {pickLocalizedText(place?.title, language)}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {error ? (
+        <p className={cn("mt-3 text-xs font-semibold", isDarkTheme ? "text-[#f5ddb4]" : "text-accent-strong")}>
+          {error}
+        </p>
+      ) : null}
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onBuildTour}
+          disabled={isBuilding}
+          className={cn(
+            "rounded-full border px-5 py-3 text-sm font-semibold disabled:cursor-wait disabled:opacity-60",
+            isDarkTheme
+              ? "border-[#d6b071]/30 bg-[#d6b071]/14 text-[#f5ddb4] hover:bg-[#d6b071]/22"
+              : "border-accent-soft/30 bg-accent-soft/14 text-accent-strong hover:bg-accent-soft/22"
+          )}
+        >
+          {isBuilding ? copy.building : copy.build}
+        </button>
+        {customTour ? (
+          <button
+            type="button"
+            onClick={onStartTour}
+            className={cn(
+              "rounded-full border px-5 py-3 text-sm font-semibold",
+              isDarkTheme
+                ? "border-white/14 bg-white/10 text-white hover:bg-white/16"
+                : "border-border/70 bg-background/80 text-foreground hover:bg-background"
+            )}
+          >
+            {copy.start}
+          </button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 type PassportDrawerProps = {
   language: AppLanguage;
   theme: "dark" | "light";
@@ -490,9 +830,14 @@ type PassportDrawerProps = {
   completedRouteIds: ExploreJourneyRoute["id"][];
   unlockedSealIds: string[];
   journeyProgressById: Map<ExploreJourneyRoute["id"], JourneyProgress>;
+  missionStates: PassportMissionState[];
+  activeCustomTour: CustomTourState | null;
+  overallCompletionRate: number;
   onOpenPlace: (placeSlug: ExplorePlaceSlug) => void;
   onOpenRouteMap: (routeId: ExploreJourneyRoute["id"]) => void;
   onContinueRoute: (routeId: ExploreJourneyRoute["id"]) => void;
+  onContinueFromLastPlace: () => void;
+  onAnswerQuiz: (placeSlug: ExplorePlaceSlug, isCorrect: boolean) => void;
   onClose: () => void;
   onReset: () => void;
 };
@@ -504,18 +849,37 @@ function PassportDrawer({
   completedRouteIds,
   unlockedSealIds,
   journeyProgressById,
+  missionStates,
+  activeCustomTour,
+  overallCompletionRate,
   onOpenPlace,
   onOpenRouteMap,
   onContinueRoute,
+  onContinueFromLastPlace,
+  onAnswerQuiz,
   onClose,
   onReset,
 }: PassportDrawerProps) {
   const isDarkTheme = theme === "dark";
   const passport = exploreExperience.passport;
   const actionCopy = passportActionCopy[language];
+  const missionCopy = passportMissionCopy[language];
   const visitedSet = new Set(visitedPlaceSlugs);
   const completedSet = new Set(completedRouteIds);
   const unlockedSealSet = new Set(unlockedSealIds);
+  const quizStampCount = missionStates.filter((mission) => mission.stampUnlocked).length;
+  const selectedQuizPlaceSlug =
+    exploreExperience.places.find(
+      (place) =>
+        !isPlaceStamped({
+          placeSlug: place.slug,
+          visitedSet,
+          missionStates,
+        })
+    )?.slug ?? exploreExperience.places[0]?.slug;
+  const selectedQuiz = selectedQuizPlaceSlug
+    ? buildLocalizedQuizPayload(selectedQuizPlaceSlug, language)
+    : null;
 
   return (
     <div
@@ -587,7 +951,48 @@ function PassportDrawer({
                 {completedRouteIds.length}/{exploreExperience.journeys.length}
               </p>
             </div>
+            <div
+              className={cn(
+                "rounded-[1.25rem] border px-4 py-4",
+                isDarkTheme ? "border-white/10 bg-white/6" : "border-border/70 bg-background/72"
+              )}
+            >
+              <p className={cn("text-[11px] font-semibold uppercase tracking-[0.22em]", isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft")}>
+                {missionCopy.quizStamps}
+              </p>
+              <p className={cn("mt-3 text-2xl font-semibold", isDarkTheme ? "text-white" : "text-foreground")}>
+                {quizStampCount}/{exploreExperience.places.length}
+              </p>
+            </div>
+            <div
+              className={cn(
+                "rounded-[1.25rem] border px-4 py-4",
+                isDarkTheme ? "border-white/10 bg-white/6" : "border-border/70 bg-background/72"
+              )}
+            >
+              <p className={cn("text-[11px] font-semibold uppercase tracking-[0.22em]", isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft")}>
+                {missionCopy.completion}
+              </p>
+              <p className={cn("mt-3 text-2xl font-semibold", isDarkTheme ? "text-white" : "text-foreground")}>
+                {overallCompletionRate}%
+              </p>
+            </div>
           </div>
+
+          <button
+            type="button"
+            onClick={onContinueFromLastPlace}
+            className={cn(
+              "mt-4 w-full rounded-full border px-4 py-3 text-sm font-semibold",
+              isDarkTheme
+                ? "border-[#d6b071]/28 bg-[#d6b071]/14 text-[#f5ddb4] hover:bg-[#d6b071]/22"
+                : "border-accent-soft/30 bg-accent-soft/14 text-accent-strong hover:bg-accent-soft/22"
+            )}
+          >
+            {activeCustomTour
+              ? `${missionCopy.continueLast}: ${activeCustomTour.title}`
+              : missionCopy.continueLast}
+          </button>
         </div>
 
         <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
@@ -598,6 +1003,9 @@ function PassportDrawer({
             <div className="mt-4 grid grid-cols-2 gap-3">
               {exploreExperience.places.map((place) => {
                 const isVisited = visitedSet.has(place.slug);
+                const mission = getMissionForPlace(missionStates, place.slug);
+                const isStamped =
+                  isVisited || mission?.stampUnlocked === true;
 
                 return (
                   <button
@@ -607,7 +1015,7 @@ function PassportDrawer({
                     key={place.slug}
                     className={cn(
                       "overflow-hidden rounded-[1.15rem] border text-left transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d6b071]",
-                      isVisited
+                      isStamped
                         ? isDarkTheme
                           ? "border-[#f1d8b2]/26 bg-white/6"
                           : "border-accent-soft/28 bg-accent-soft/10"
@@ -622,7 +1030,7 @@ function PassportDrawer({
                         alt={pickLocalizedText(place.title, language)}
                         fill
                         sizes="10rem"
-                        className={cn("object-cover", isVisited ? "opacity-100" : "opacity-45 grayscale")}
+                        className={cn("object-cover", isStamped ? "opacity-100" : "opacity-45 grayscale")}
                       />
                       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,9,14,0.04),rgba(7,9,14,0.72))]" />
                     </div>
@@ -630,10 +1038,12 @@ function PassportDrawer({
                       <p className={cn("text-sm font-semibold", isDarkTheme ? "text-white" : "text-foreground")}>
                         {pickLocalizedText(place.title, language)}
                       </p>
-                      <p className={cn("mt-1 text-[11px] uppercase tracking-[0.18em]", isVisited ? (isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft") : (isDarkTheme ? "text-white/42" : "text-foreground/46"))}>
+                      <p className={cn("mt-1 text-[11px] uppercase tracking-[0.18em]", isStamped ? (isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft") : (isDarkTheme ? "text-white/42" : "text-foreground/46"))}>
                         {isVisited
                           ? pickLocalizedText(passport.completedLabel, language)
-                          : `${place.gallery.length} ${language === "zh" ? "画面" : "frames"}`}
+                          : mission?.stampUnlocked
+                            ? missionCopy.earned
+                            : `${place.gallery.length} ${language === "zh" ? "画面" : "frames"}`}
                       </p>
                       <p className={cn("mt-2 text-[11px] font-semibold", isDarkTheme ? "text-white/58" : "text-foreground/58")}>
                         {actionCopy.openPlace}
@@ -643,6 +1053,58 @@ function PassportDrawer({
                 );
               })}
             </div>
+          </section>
+
+          <section>
+            <p className={cn("text-[11px] font-semibold uppercase tracking-[0.24em]", isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft")}>
+              {missionCopy.missionTitle}
+            </p>
+            <p className={cn("mt-2 text-sm leading-7", isDarkTheme ? "text-white/72" : "text-foreground/70")}>
+              {missionCopy.missionBody}
+            </p>
+            {selectedQuiz && selectedQuizPlaceSlug ? (
+              <div
+                className={cn(
+                  "mt-4 rounded-[1.2rem] border px-4 py-4",
+                  isDarkTheme ? "border-white/10 bg-white/6" : "border-border/70 bg-background/68"
+                )}
+              >
+                <p className={cn("text-sm font-semibold", isDarkTheme ? "text-white" : "text-foreground")}>
+                  {pickLocalizedText(
+                    getExplorePlaceBySlug(selectedQuizPlaceSlug)?.title,
+                    language
+                  )}
+                </p>
+                <p className={cn("mt-3 text-sm leading-7", isDarkTheme ? "text-white/76" : "text-foreground/76")}>
+                  {selectedQuiz.question}
+                </p>
+                <div className="mt-3 grid gap-2">
+                  {selectedQuiz.options.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() =>
+                        onAnswerQuiz(
+                          selectedQuiz.placeSlug,
+                          option.id === selectedQuiz.correctOptionId
+                        )
+                      }
+                      className={cn(
+                        "rounded-[1rem] border px-3 py-3 text-left text-sm font-semibold",
+                        isDarkTheme
+                          ? "border-white/10 bg-white/8 text-white/78 hover:bg-white/12"
+                          : "border-border/70 bg-background/80 text-foreground/78 hover:bg-background"
+                      )}
+                    >
+                      {option.id.toUpperCase()}. {option.text}
+                    </button>
+                  ))}
+                </div>
+                <p className={cn("mt-3 text-xs leading-6", isDarkTheme ? "text-white/58" : "text-foreground/58")}>
+                  {missionCopy.source}: {selectedQuiz.sourceNote}
+                </p>
+              </div>
+            ) : null}
           </section>
 
           <section>
@@ -794,6 +1256,17 @@ export function PanoramaExperience({
   );
   const activeExploreRouteId = useAppStore((state) => state.activeExploreRouteId);
   const setActiveExploreRoute = useAppStore((state) => state.setActiveExploreRoute);
+  const passportMissions = useAppStore((state) => state.passportMissions);
+  const answerPassportMission = useAppStore(
+    (state) => state.answerPassportMission
+  );
+  const customTours = useAppStore((state) => state.customTours);
+  const activeCustomTourId = useAppStore((state) => state.activeCustomTourId);
+  const saveCustomTour = useAppStore((state) => state.saveCustomTour);
+  const setActiveCustomTour = useAppStore((state) => state.setActiveCustomTour);
+  const setCustomTourProgress = useAppStore(
+    (state) => state.setCustomTourProgress
+  );
   const resetExploreProgress = useAppStore((state) => state.resetExploreProgress);
 
   const [mapScale, setMapScale] = useState(exploreExperience.map.initialScale);
@@ -813,6 +1286,13 @@ export function PanoramaExperience({
   const [isWelcomeVideoLoaded, setIsWelcomeVideoLoaded] = useState(false);
   const [isMapImageLoaded, setIsMapImageLoaded] = useState(false);
   const [mapImageError, setMapImageError] = useState(false);
+  const [selectedTourTimeBudget, setSelectedTourTimeBudget] =
+    useState<5 | 10 | 20>(10);
+  const [selectedTourInterests, setSelectedTourInterests] = useState<
+    TourBuilderInterest[]
+  >(["overview"]);
+  const [isBuildingCustomTour, setIsBuildingCustomTour] = useState(false);
+  const [customTourError, setCustomTourError] = useState<string | null>(null);
 
   const mapDragRef = useRef<{
     pointerId: number;
@@ -844,6 +1324,8 @@ export function PanoramaExperience({
     getExploreJourneyById(searchState.routeId) ??
     getExploreJourneyById(activeExploreRouteId) ??
     null;
+  const activeCustomTour =
+    customTours.find((tour) => tour.id === activeCustomTourId) ?? null;
   const activePlace = getExplorePlaceBySlug(searchState.placeSlug);
   const deferredPhotoId = useDeferredValue(searchState.photoId);
   const activePhoto = getExplorePhotoById(activePlace, deferredPhotoId);
@@ -855,13 +1337,23 @@ export function PanoramaExperience({
     () => new Set(activeJourney?.placeOrder ?? []),
     [activeJourney]
   );
-  const activeJourneyOrderMap = useMemo(
+  const activeMapPlaceSet = useMemo(
+    () =>
+      new Set(
+        activeCustomTour?.orderedPlaceSlugs ?? activeJourney?.placeOrder ?? []
+      ),
+    [activeCustomTour, activeJourney]
+  );
+  const activeMapOrderMap = useMemo(
     () =>
       new Map(
-        (activeJourney?.placeOrder ?? []).map((placeSlug, index) => [placeSlug, index + 1])
+        (activeCustomTour?.orderedPlaceSlugs ?? activeJourney?.placeOrder ?? []).map(
+          (placeSlug, index) => [placeSlug, index + 1]
+        )
       ),
-    [activeJourney]
+    [activeCustomTour, activeJourney]
   );
+  const hasMapRouteFocus = Boolean(activeCustomTour || activeJourney);
   const completedExploreRouteIds = useMemo(
     () => getCompletedJourneyRouteIds(visitedExplorePlaceSlugs),
     [visitedExplorePlaceSlugs]
@@ -870,6 +1362,24 @@ export function PanoramaExperience({
     () => getUnlockedPassportSealIds(completedExploreRouteIds),
     [completedExploreRouteIds]
   );
+  const stampedPlaceCount = useMemo(() => {
+    const visitedSet = new Set(visitedExplorePlaceSlugs);
+
+    return exploreExperience.places.filter((place) =>
+      isPlaceStamped({
+        placeSlug: place.slug,
+        visitedSet,
+        missionStates: passportMissions,
+      })
+    ).length;
+  }, [passportMissions, visitedExplorePlaceSlugs]);
+  const overallPassportCompletionRate = useMemo(() => {
+    const totalUnits =
+      exploreExperience.places.length + exploreExperience.journeys.length;
+    const earnedUnits = stampedPlaceCount + completedExploreRouteIds.length;
+
+    return totalUnits ? Math.round((earnedUnits / totalUnits) * 100) : 0;
+  }, [completedExploreRouteIds.length, stampedPlaceCount]);
   const journeyProgressById = useMemo(
     () =>
       new Map(
@@ -926,7 +1436,18 @@ export function PanoramaExperience({
       .map((marker) => placeMap.get(marker.placeSlug))
       .filter((place): place is ExplorePlace => Boolean(place));
   }, []);
-  const tourPlaces = activeJourney ? activeJourneyPlaces : fullTourPlaces;
+  const activeCustomTourPlaces = useMemo(
+    () =>
+      activeCustomTour?.orderedPlaceSlugs
+        .map((placeSlug) => getExplorePlaceBySlug(placeSlug))
+        .filter((place): place is ExplorePlace => Boolean(place)) ?? [],
+    [activeCustomTour]
+  );
+  const tourPlaces = activeCustomTour
+    ? activeCustomTourPlaces
+    : activeJourney
+      ? activeJourneyPlaces
+      : fullTourPlaces;
   const totalTourPlaces = tourPlaces.length;
   const activeTourPlace = tourPlaces[autoTourPlaceIndex] ?? null;
   const activeTourPhoto =
@@ -944,13 +1465,38 @@ export function PanoramaExperience({
 
   useEffect(() => {
     setActiveExploreRoute(searchState.routeId ?? null);
-  }, [searchState.routeId, setActiveExploreRoute]);
+    if (searchState.routeId) {
+      setActiveCustomTour(null);
+    }
+  }, [searchState.routeId, setActiveCustomTour, setActiveExploreRoute]);
 
   useEffect(() => {
     if (searchState.view === "place" && activePlace) {
       markExplorePlaceVisited(activePlace.slug);
     }
   }, [activePlace, markExplorePlaceVisited, searchState.view]);
+
+  useEffect(() => {
+    if (searchState.view !== "place" || !activePlace || !activeCustomTour) {
+      return;
+    }
+
+    const customStopIndex = activeCustomTour.orderedPlaceSlugs.findIndex(
+      (placeSlug) => placeSlug === activePlace.slug
+    );
+
+    if (
+      customStopIndex >= 0 &&
+      customStopIndex !== activeCustomTour.currentStopIndex
+    ) {
+      setCustomTourProgress(activeCustomTour.id, customStopIndex);
+    }
+  }, [
+    activeCustomTour,
+    activePlace,
+    searchState.view,
+    setCustomTourProgress,
+  ]);
 
   useEffect(() => {
     if (!isSelfieModalOpen && !isPassportOpen) {
@@ -970,6 +1516,54 @@ export function PanoramaExperience({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isPassportOpen, isSelfieModalOpen]);
+
+  useEffect(() => {
+    function handleSiteAction(event: Event) {
+      const detail = (event as CustomEvent<GuideSiteActionPayload>).detail;
+
+      if (!detail) {
+        return;
+      }
+
+      if (detail.command === "open_passport") {
+        openPassport();
+        return;
+      }
+
+      if (detail.command === "open_map") {
+        if (detail.routeId) {
+          selectJourney(detail.routeId);
+        } else {
+          openMap();
+        }
+        return;
+      }
+
+      if (detail.command === "start_route") {
+        startRoute();
+        return;
+      }
+
+      if (detail.command === "continue_route") {
+        if (detail.routeId) {
+          continueRouteFromPassport(detail.routeId);
+        } else {
+          continueFromLastPlace();
+        }
+        return;
+      }
+
+      if (detail.command === "open_place" && detail.placeSlug) {
+        openPlaceInJourney(detail.placeSlug, null, detail.routeId ?? activeJourney?.id ?? null);
+      }
+    }
+
+    window.addEventListener("palace:site-action", handleSiteAction);
+
+    return () => {
+      window.removeEventListener("palace:site-action", handleSiteAction);
+    };
+  });
 
   useEffect(() => {
     if (!isAutoTourActive) {
@@ -1337,6 +1931,106 @@ export function PanoramaExperience({
     }
   }
 
+  function toggleTourInterest(interest: TourBuilderInterest) {
+    setSelectedTourInterests((currentInterests) => {
+      if (currentInterests.includes(interest)) {
+        const nextInterests = currentInterests.filter(
+          (currentInterest) => currentInterest !== interest
+        );
+
+        return nextInterests.length ? nextInterests : ["overview"];
+      }
+
+      return [...currentInterests, interest];
+    });
+  }
+
+  async function buildPersonalizedTour() {
+    setIsBuildingCustomTour(true);
+    setCustomTourError(null);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "tourist",
+          intent: "tour_builder",
+          language,
+          question: "Build a personalized palace tour.",
+          timeBudget: selectedTourTimeBudget,
+          interests: selectedTourInterests,
+        }),
+      });
+      const data = (await response.json()) as GuideResponse & { error?: string };
+
+      if (!response.ok || !data.customTour) {
+        throw new Error(data.error ?? tourBuilderCopy[language].fallbackError);
+      }
+
+      saveCustomTour(data.customTour);
+    } catch (error) {
+      const fallbackTour = buildCustomTourRecommendation({
+        timeBudget: selectedTourTimeBudget,
+        interests: selectedTourInterests,
+        language,
+      });
+      saveCustomTour(fallbackTour);
+      setCustomTourError(
+        error instanceof Error
+          ? error.message
+          : tourBuilderCopy[language].fallbackError
+      );
+    } finally {
+      setIsBuildingCustomTour(false);
+    }
+  }
+
+  function startCustomTour(tour: CustomTourState | null = activeCustomTour) {
+    if (!tour || !tour.orderedPlaceSlugs.length) {
+      return;
+    }
+
+    setActiveCustomTour(tour.id);
+    setActiveExploreRoute(null);
+    const stopIndex = clamp(
+      tour.currentStopIndex,
+      0,
+      Math.max(0, tour.orderedPlaceSlugs.length - 1)
+    );
+    const placeSlug = tour.orderedPlaceSlugs[stopIndex];
+
+    if (placeSlug) {
+      openPlaceInJourney(placeSlug, null, null);
+    }
+  }
+
+  function continueFromLastPlace() {
+    if (activeCustomTour) {
+      startCustomTour(activeCustomTour);
+      setIsPassportOpen(false);
+      return;
+    }
+
+    if (activeJourney) {
+      continueRouteFromPassport(activeJourney.id);
+      return;
+    }
+
+    const lastVisitedPlaceSlug =
+      visitedExplorePlaceSlugs[visitedExplorePlaceSlugs.length - 1] ??
+      exploreExperience.places[0]?.slug;
+
+    if (lastVisitedPlaceSlug) {
+      setIsPassportOpen(false);
+      openPlace(lastVisitedPlaceSlug);
+    }
+  }
+
+  function answerPassportQuiz(placeSlug: ExplorePlaceSlug, isCorrect: boolean) {
+    answerPassportMission(placeSlug, isCorrect);
+  }
+
   function openWelcome() {
     setIsSelfieModalOpen(false);
     navigate({
@@ -1360,6 +2054,7 @@ export function PanoramaExperience({
   }
 
   function selectJourney(routeId: ExploreJourneyRoute["id"]) {
+    setActiveCustomTour(null);
     setMapScale(exploreExperience.map.initialScale);
     setMapOffset({ x: 0, y: 0 });
     navigate({
@@ -1375,6 +2070,7 @@ export function PanoramaExperience({
       stopAutoTour();
     }
 
+    setActiveCustomTour(null);
     navigate({
       view: searchState.view === "place" ? "map" : searchState.view,
       placeSlug: searchState.view === "place" ? null : searchState.placeSlug,
@@ -1515,6 +2211,18 @@ export function PanoramaExperience({
     setIsSelfieModalOpen(false);
     setIsAutoTourActive(true);
     setIsAutoTourPaused(false);
+
+    if (activeCustomTour) {
+      setAutoTourPlaceIndex(
+        clamp(
+          activeCustomTour.currentStopIndex,
+          0,
+          Math.max(0, activeCustomTour.orderedPlaceSlugs.length - 1)
+        )
+      );
+      setAutoTourPhotoIndex(0);
+      return;
+    }
 
     if (
       activeJourney &&
@@ -2025,6 +2733,26 @@ export function PanoramaExperience({
                     />
                   ))}
                 </div>
+
+                <div className="mt-5">
+                  <PersonalizedTourBuilder
+                    language={language}
+                    theme={theme}
+                    selectedTimeBudget={selectedTourTimeBudget}
+                    selectedInterests={selectedTourInterests}
+                    customTour={activeCustomTour ?? customTours[0] ?? null}
+                    isBuilding={isBuildingCustomTour}
+                    error={customTourError}
+                    onTimeBudgetChange={setSelectedTourTimeBudget}
+                    onToggleInterest={toggleTourInterest}
+                    onBuildTour={() => {
+                      void buildPersonalizedTour();
+                    }}
+                    onStartTour={() =>
+                      startCustomTour(activeCustomTour ?? customTours[0] ?? null)
+                    }
+                  />
+                </div>
               </div>
             </div>
           </motion.div>
@@ -2288,6 +3016,26 @@ export function PanoramaExperience({
                         />
                       ))}
                     </div>
+
+                    <div className="mt-4">
+                      <PersonalizedTourBuilder
+                        language={language}
+                        theme={theme}
+                        selectedTimeBudget={selectedTourTimeBudget}
+                        selectedInterests={selectedTourInterests}
+                        customTour={activeCustomTour ?? customTours[0] ?? null}
+                        isBuilding={isBuildingCustomTour}
+                        error={customTourError}
+                        onTimeBudgetChange={setSelectedTourTimeBudget}
+                        onToggleInterest={toggleTourInterest}
+                        onBuildTour={() => {
+                          void buildPersonalizedTour();
+                        }}
+                        onStartTour={() =>
+                          startCustomTour(activeCustomTour ?? customTours[0] ?? null)
+                        }
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -2328,8 +3076,8 @@ export function PanoramaExperience({
                       />
 
                       {exploreExperience.map.markers.map((marker, index) => {
-                        const isInRoute = activeJourneyPlaceSet.has(marker.placeSlug);
-                        const routeOrder = activeJourneyOrderMap.get(marker.placeSlug);
+                        const isInRoute = activeMapPlaceSet.has(marker.placeSlug);
+                        const routeOrder = activeMapOrderMap.get(marker.placeSlug);
 
                         return (
                           <button
@@ -2339,7 +3087,7 @@ export function PanoramaExperience({
                             aria-label={`${passportActionCopy[language].openPlace}: ${localize(marker.label)}`}
                             className={cn(
                               "absolute -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-[1.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#d6b071]",
-                              activeJourney && !isInRoute ? "opacity-45" : "opacity-100"
+                              hasMapRouteFocus && !isInRoute ? "opacity-45" : "opacity-100"
                             )}
                             style={{
                               left: `${marker.x}%`,
@@ -2349,7 +3097,7 @@ export function PanoramaExperience({
                             <span
                               className={cn(
                                 "relative inline-flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-semibold text-white shadow-[0_12px_24px_rgba(45,24,14,0.28)]",
-                                activeJourney && isInRoute
+                                hasMapRouteFocus && isInRoute
                                   ? "border-white bg-[#d2ae6d]"
                                   : "border-white/70 bg-[#ff7c41]"
                               )}
@@ -2359,7 +3107,7 @@ export function PanoramaExperience({
                             <span
                               className={cn(
                                 "absolute left-1/2 top-full mt-2 min-w-28 -translate-x-1/2 rounded-xl border px-3 py-2 text-center shadow-[0_12px_28px_rgba(45,24,14,0.18)]",
-                                activeJourney && isInRoute
+                                hasMapRouteFocus && isInRoute
                                   ? "border-[#d6b071]/40 bg-[rgba(255,248,240,0.96)]"
                                   : "border-[#d6b071]/24 bg-white/92"
                               )}
@@ -2837,9 +3585,14 @@ export function PanoramaExperience({
                 completedRouteIds={completedExploreRouteIds}
                 unlockedSealIds={unlockedPassportSealIds}
                 journeyProgressById={journeyProgressById}
+                missionStates={passportMissions}
+                activeCustomTour={activeCustomTour}
+                overallCompletionRate={overallPassportCompletionRate}
                 onOpenPlace={openPlace}
                 onOpenRouteMap={openRouteMapFromPassport}
                 onContinueRoute={continueRouteFromPassport}
+                onContinueFromLastPlace={continueFromLastPlace}
+                onAnswerQuiz={answerPassportQuiz}
                 onClose={() => setIsPassportOpen(false)}
                 onReset={() => {
                   resetExploreProgress();

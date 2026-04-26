@@ -7,6 +7,10 @@ import type {
   ExploreZone,
   PostcardFrame,
 } from "@/types/content";
+import type {
+  CustomTourState,
+  PassportMissionState,
+} from "@/types/ai-guide";
 
 type PersistedAppStoreState = Pick<
   AppStoreState,
@@ -17,6 +21,9 @@ type PersistedAppStoreState = Pick<
   | "hasCompletedTour"
   | "hasGeneratedPostcard"
   | "activeExploreRouteId"
+  | "passportMissions"
+  | "customTours"
+  | "activeCustomTourId"
 >;
 
 export type AppStoreState = {
@@ -28,11 +35,18 @@ export type AppStoreState = {
   hasCompletedTour: boolean;
   hasGeneratedPostcard: boolean;
   activeExploreRouteId: ExploreJourneyRouteId | null;
+  passportMissions: PassportMissionState[];
+  customTours: CustomTourState[];
+  activeCustomTourId: string | null;
   setNavOpen: (isOpen: boolean) => void;
   setSelectedExploreZoneId: (zoneId: ExploreZone["id"] | null) => void;
   markExploreZoneVisited: (zoneId: ExploreZone["id"]) => void;
   markExplorePlaceVisited: (placeSlug: ExplorePlaceSlug) => void;
   setActiveExploreRoute: (routeId: ExploreJourneyRouteId | null) => void;
+  answerPassportMission: (placeSlug: ExplorePlaceSlug, isCorrect: boolean) => void;
+  saveCustomTour: (tour: CustomTourState) => void;
+  setActiveCustomTour: (tourId: string | null) => void;
+  setCustomTourProgress: (tourId: string, currentStopIndex: number) => void;
   resetExploreProgress: () => void;
   setSelectedPostcardFrame: (frameId: PostcardFrame["id"]) => void;
   setHasCompletedTour: (value: boolean) => void;
@@ -47,6 +61,9 @@ const initialPersistedState: PersistedAppStoreState = {
   hasCompletedTour: false,
   hasGeneratedPostcard: false,
   activeExploreRouteId: null,
+  passportMissions: [],
+  customTours: [],
+  activeCustomTourId: null,
 };
 
 function migratePersistedAppState(value: unknown): PersistedAppStoreState {
@@ -81,6 +98,39 @@ function migratePersistedAppState(value: unknown): PersistedAppStoreState {
       typeof persisted.activeExploreRouteId === "string"
         ? (persisted.activeExploreRouteId as ExploreJourneyRouteId)
         : null,
+    passportMissions: Array.isArray(persisted.passportMissions)
+      ? persisted.passportMissions
+          .filter(
+            (mission): mission is PassportMissionState =>
+              Boolean(mission) &&
+              typeof mission === "object" &&
+              typeof (mission as PassportMissionState).placeSlug === "string"
+          )
+          .map((mission) => ({
+            placeSlug: mission.placeSlug,
+            quizAnswered: mission.quizAnswered === true,
+            correctCount: Number.isFinite(mission.correctCount)
+              ? mission.correctCount
+              : 0,
+            stampUnlocked: mission.stampUnlocked === true,
+            updatedAt: Number.isFinite(mission.updatedAt)
+              ? mission.updatedAt
+              : Date.now(),
+          }))
+      : [],
+    customTours: Array.isArray(persisted.customTours)
+      ? persisted.customTours.filter(
+          (tour): tour is CustomTourState =>
+            Boolean(tour) &&
+            typeof tour === "object" &&
+            typeof (tour as CustomTourState).id === "string" &&
+            Array.isArray((tour as CustomTourState).orderedPlaceSlugs)
+        )
+      : [],
+    activeCustomTourId:
+      typeof persisted.activeCustomTourId === "string"
+        ? persisted.activeCustomTourId
+        : null,
   };
 }
 
@@ -104,6 +154,54 @@ export const useAppStore = create<AppStoreState>()(
             : [...state.visitedExplorePlaceSlugs, placeSlug],
         })),
       setActiveExploreRoute: (routeId) => set({ activeExploreRouteId: routeId }),
+      answerPassportMission: (placeSlug, isCorrect) =>
+        set((state) => {
+          const existingMission = state.passportMissions.find(
+            (mission) => mission.placeSlug === placeSlug
+          );
+          const nextMission: PassportMissionState = {
+            placeSlug,
+            quizAnswered: true,
+            correctCount:
+              (existingMission?.correctCount ?? 0) + (isCorrect ? 1 : 0),
+            stampUnlocked: (existingMission?.stampUnlocked ?? false) || isCorrect,
+            updatedAt: Date.now(),
+          };
+
+          return {
+            passportMissions: [
+              ...state.passportMissions.filter(
+                (mission) => mission.placeSlug !== placeSlug
+              ),
+              nextMission,
+            ],
+          };
+        }),
+      saveCustomTour: (tour) =>
+        set((state) => ({
+          customTours: [
+            tour,
+            ...state.customTours.filter((existingTour) => existingTour.id !== tour.id),
+          ].slice(0, 5),
+          activeCustomTourId: tour.id,
+          activeExploreRouteId: null,
+        })),
+      setActiveCustomTour: (tourId) =>
+        set((state) => ({
+          activeCustomTourId: tourId,
+          activeExploreRouteId: tourId ? null : state.activeExploreRouteId,
+        })),
+      setCustomTourProgress: (tourId, currentStopIndex) =>
+        set((state) => ({
+          customTours: state.customTours.map((tour) =>
+            tour.id === tourId
+              ? {
+                  ...tour,
+                  currentStopIndex: Math.max(0, currentStopIndex),
+                }
+              : tour
+          ),
+        })),
       resetExploreProgress: () =>
         set({
           ...initialPersistedState,
@@ -115,7 +213,7 @@ export const useAppStore = create<AppStoreState>()(
     {
       name: "palace-in-motion-app",
       storage: createJSONStorage(() => localStorage),
-      version: 2,
+      version: 3,
       migrate: migratePersistedAppState,
       partialize: (state) => ({
         selectedExploreZoneId: state.selectedExploreZoneId,
@@ -125,6 +223,9 @@ export const useAppStore = create<AppStoreState>()(
         hasCompletedTour: state.hasCompletedTour,
         hasGeneratedPostcard: state.hasGeneratedPostcard,
         activeExploreRouteId: state.activeExploreRouteId,
+        passportMissions: state.passportMissions,
+        customTours: state.customTours,
+        activeCustomTourId: state.activeCustomTourId,
       }),
     }
   )

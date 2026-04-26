@@ -5,6 +5,7 @@ import {
   getSiteQuickFacts,
   siteOverview,
 } from "@/data/heritage";
+import { getPalaceKnowledgeByPlaceSlug } from "@/data/palace-knowledge";
 import { getSelfieFocusById } from "@/data/selfie";
 import { HERITAGE_SCENE_ID } from "@/lib/constants";
 import type { GuideRequest, ResolvedGuideContext } from "@/types/ai-guide";
@@ -28,9 +29,13 @@ function dedupeSourceIds(ids: string[]) {
 }
 
 export function resolveGuideContext(
-  input: Pick<GuideRequest, "sceneId" | "hotspotId" | "tourStepId" | "focusId">
+  input: Pick<
+    GuideRequest,
+    "sceneId" | "hotspotId" | "tourStepId" | "focusId" | "placeSlug"
+  >
 ): ResolvedGuideContext {
   const sceneId = input.sceneId === HERITAGE_SCENE_ID ? HERITAGE_SCENE_ID : null;
+  const placeKnowledge = getPalaceKnowledgeByPlaceSlug(input.placeSlug);
   const tourStep = getResolvedTourStepById(input.tourStepId);
   const focusOption = getSelfieFocusById(input.focusId);
   const focusHotspot =
@@ -70,10 +75,13 @@ export function resolveGuideContext(
       ...(sceneId ? [sceneId] : []),
       ...(tourStep ? [tourStep.id] : []),
       ...(focusOption ? [focusOption.id] : []),
+      ...(placeKnowledge ? [placeKnowledge.placeSlug] : []),
       ...(derivedHotspot ? [derivedHotspot.id] : []),
       ...quickFacts.map((fact) => fact.id),
     ]),
-    hasSpecificContext: Boolean(tourStep || derivedHotspot || focusOption),
+    hasSpecificContext: Boolean(
+      tourStep || derivedHotspot || focusOption || placeKnowledge
+    ),
     site: {
       headline: siteOverview.headline,
       summary: siteOverview.summary,
@@ -89,5 +97,6 @@ export function resolveGuideContext(
         }
       : null,
     quickFacts: quickFacts.length ? quickFacts : getSiteQuickFacts(),
+    placeKnowledge,
   };
 }

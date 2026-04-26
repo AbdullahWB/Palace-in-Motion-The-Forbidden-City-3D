@@ -18,6 +18,9 @@ const guideModes: Array<{ value: GuideMode; label: string }> = [
   { value: "short", label: "Short" },
   { value: "detailed", label: "Detailed" },
   { value: "fun", label: "Fun" },
+  { value: "child", label: "Child" },
+  { value: "tourist", label: "Tourist" },
+  { value: "quiz", label: "Quiz" },
 ];
 
 const starterQuestions = [
@@ -72,6 +75,7 @@ export function GuidePanel({
         tourStepId,
         question: trimmedQuestion,
         mode,
+        intent: mode === "quiz" ? "quiz" : "answer",
       };
 
       const result = await fetch("/api/chat", {

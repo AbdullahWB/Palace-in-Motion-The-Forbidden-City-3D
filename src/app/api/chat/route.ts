@@ -1,17 +1,22 @@
-import { buildFallbackGuideResult } from "@/lib/ai-guide/fallback";
+import {
+  isExploreJourneyRouteId,
+  isExplorePlaceSlug,
+} from "@/data/panorama";
 import { resolveGuideContext } from "@/lib/ai-guide/context";
-import { buildGuideMessages } from "@/lib/ai-guide/prompt";
-import { requestDeepSeekAnswer } from "@/lib/ai-guide/deepseek";
+import {
+  AI_GENERATED_LABEL,
+  defaultAIGuideAdapter,
+} from "@/lib/ai-guide/provider-adapter";
 import {
   DEFAULT_APP_LANGUAGE,
   isAppLanguage,
 } from "@/lib/site-preferences";
 import type {
-  GuideCaptionPayload,
   GuideIntent,
   GuideMode,
   GuideRequest,
   GuideResponse,
+  TourBuilderInterest,
 } from "@/types/ai-guide";
 import type { ExploreJourneyRouteId, HeritageZoneId } from "@/types/content";
 
@@ -25,12 +30,13 @@ const MAX_FIELD_LENGTH = 120;
 function getRouteCopy(language: "zh" | "en") {
   if (language === "zh") {
     return {
-      invalidJson: "JSON 请求体无效。",
-      questionRequired: "请输入问题。",
-      minQuestion: `问题至少需要 ${MIN_QUESTION_LENGTH} 个字符。`,
-      maxQuestion: `问题最多不能超过 ${MAX_QUESTION_LENGTH} 个字符。`,
-      invalidMode: "模式必须是 short、detailed 或 fun。",
-      invalidIntent: "意图必须是 answer 或 caption。",
+      invalidJson: "Invalid JSON body.",
+      questionRequired: "Question is required.",
+      minQuestion: `Question must be at least ${MIN_QUESTION_LENGTH} characters.`,
+      maxQuestion: `Question must be at most ${MAX_QUESTION_LENGTH} characters.`,
+      invalidMode: "Mode must be short, detailed, fun, child, tourist, or quiz.",
+      invalidIntent:
+        "Intent must be answer, caption, quiz, tour_builder, or site_action.",
     };
   }
 
@@ -39,17 +45,31 @@ function getRouteCopy(language: "zh" | "en") {
     questionRequired: "Question is required.",
     minQuestion: `Question must be at least ${MIN_QUESTION_LENGTH} characters.`,
     maxQuestion: `Question must be at most ${MAX_QUESTION_LENGTH} characters.`,
-    invalidMode: "Mode must be short, detailed, or fun.",
-    invalidIntent: "Intent must be answer or caption.",
+    invalidMode: "Mode must be short, detailed, fun, child, tourist, or quiz.",
+    invalidIntent:
+      "Intent must be answer, caption, quiz, tour_builder, or site_action.",
   };
 }
 
 function isGuideMode(value: unknown): value is GuideMode {
-  return value === "short" || value === "detailed" || value === "fun";
+  return (
+    value === "short" ||
+    value === "detailed" ||
+    value === "fun" ||
+    value === "child" ||
+    value === "tourist" ||
+    value === "quiz"
+  );
 }
 
 function isGuideIntent(value: unknown): value is GuideIntent {
-  return value === "answer" || value === "caption";
+  return (
+    value === "answer" ||
+    value === "caption" ||
+    value === "quiz" ||
+    value === "tour_builder" ||
+    value === "site_action"
+  );
 }
 
 function normalizeNullableString(value: unknown) {
@@ -79,10 +99,51 @@ function normalizeNullableNumber(value: unknown) {
   return null;
 }
 
-function normalizeCaptionText(input: string) {
-  const noQuotes = input.replace(/^["'`]+|["'`]+$/g, "");
-  const singleLine = noQuotes.replace(/\s*\n+\s*/g, " ").replace(/\s{2,}/g, " ");
-  return singleLine.trim();
+function normalizeTimeBudget(value: unknown): 5 | 10 | 20 | null {
+  const normalized = normalizeNullableNumber(value);
+
+  return normalized === 5 || normalized === 10 || normalized === 20
+    ? normalized
+    : null;
+}
+
+function normalizeInterests(value: unknown): TourBuilderInterest[] {
+  const allowed = new Set<TourBuilderInterest>([
+    "architecture",
+    "history",
+    "gardens",
+    "photography",
+    "overview",
+  ]);
+
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is TourBuilderInterest =>
+    typeof item === "string" && allowed.has(item as TourBuilderInterest)
+  );
+}
+
+async function handleIntent({
+  request,
+  context,
+}: {
+  request: GuideRequest;
+  context: ReturnType<typeof resolveGuideContext>;
+}) {
+  switch (request.intent) {
+    case "caption":
+      return defaultAIGuideAdapter.generateCaption({ request, context });
+    case "quiz":
+      return defaultAIGuideAdapter.generateQuiz({ request, context });
+    case "tour_builder":
+      return defaultAIGuideAdapter.buildTour({ request, context });
+    case "site_action":
+      return defaultAIGuideAdapter.handleSiteAction({ request, context });
+    default:
+      return defaultAIGuideAdapter.answerGuideQuestion({ request, context });
+  }
 }
 
 export async function POST(request: Request) {
@@ -123,16 +184,21 @@ export async function POST(request: Request) {
   }
 
   const resolvedIntent: GuideIntent = intent ?? "answer";
+  const requestedPlaceSlug = normalizeSizedNullableString(body.placeSlug);
+  const requestedJourneyRouteId = normalizeSizedNullableString(body.journeyRouteId);
 
   const guideRequest: GuideRequest = {
     sceneId: normalizeSizedNullableString(body.sceneId),
     hotspotId: normalizeSizedNullableString(body.hotspotId) as HeritageZoneId | null,
     tourStepId: normalizeSizedNullableString(body.tourStepId),
+    placeSlug: isExplorePlaceSlug(requestedPlaceSlug) ? requestedPlaceSlug : null,
     focusId: normalizeSizedNullableString(body.focusId) as
       | HeritageZoneId
       | "central-axis"
       | null,
-    journeyRouteId: normalizeSizedNullableString(body.journeyRouteId) as ExploreJourneyRouteId | null,
+    journeyRouteId: isExploreJourneyRouteId(requestedJourneyRouteId)
+      ? (requestedJourneyRouteId as ExploreJourneyRouteId)
+      : null,
     journeyTitle: normalizeSizedNullableString(body.journeyTitle, 100),
     journeyDescription: normalizeSizedNullableString(body.journeyDescription, 240),
     journeyStopIndex: normalizeNullableNumber(body.journeyStopIndex),
@@ -145,57 +211,32 @@ export async function POST(request: Request) {
     question,
     mode,
     intent: resolvedIntent,
+    timeBudget: normalizeTimeBudget(body.timeBudget),
+    interests: normalizeInterests(body.interests),
   };
 
   const context = resolveGuideContext(guideRequest);
-  const messages = buildGuideMessages({
-    context,
-    request: guideRequest,
-  });
-
-  let answer = "";
-  let fallback = false;
   const startedAt = performance.now();
-
-  try {
-    const result = await requestDeepSeekAnswer({
-      messages,
-      mode: guideRequest.mode,
-    });
-    answer = result ?? "";
-  } catch {
-    answer = "";
-  }
-
-  if (!answer.trim()) {
-    fallback = true;
-    answer = buildFallbackGuideResult({
-      context,
-      request: guideRequest,
-    });
-  }
-
-  const cleanedAnswer = answer.trim();
+  const result = await handleIntent({
+    request: guideRequest,
+    context,
+  });
   const latencyMs = Math.max(1, Math.round(performance.now() - startedAt));
-  const caption: GuideCaptionPayload | undefined =
-    guideRequest.intent === "caption"
-      ? {
-          text: normalizeCaptionText(cleanedAnswer),
-          focusLabel: context.focusLabel ?? context.contextLabel,
-          themeId: guideRequest.postcardThemeId ?? null,
-        }
-      : undefined;
 
   const response: GuideResponse = {
-    answer: cleanedAnswer,
+    answer: result.answer.trim(),
     mode: guideRequest.mode,
-    fallback,
+    fallback: result.fallback,
     sourceIds: context.sourceIds,
     contextLabel: context.contextLabel,
     intent: guideRequest.intent,
-    caption,
+    caption: result.caption,
+    quiz: result.quiz,
+    customTour: result.customTour,
+    siteAction: result.siteAction,
+    aiLabel: AI_GENERATED_LABEL,
     meta: {
-      provider: fallback ? "fallback" : "deepseek",
+      provider: result.provider,
       latencyMs,
     },
   };

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
 import {
@@ -15,7 +15,14 @@ import {
 import { pickLocalizedText } from "@/lib/i18n";
 import { HERITAGE_SCENE_ID } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import type { GuideMode, GuideRequest, GuideResponse } from "@/types/ai-guide";
+import type {
+  GuideIntent,
+  GuideMode,
+  GuideRequest,
+  GuideResponse,
+  GuideSiteActionPayload,
+} from "@/types/ai-guide";
+import type { ExplorePlaceSlug } from "@/types/content";
 import type { AppLanguage } from "@/types/preferences";
 
 type SearchParamsLike = {
@@ -41,6 +48,7 @@ type AssistantRouteContext = {
   journeyStopIndex?: number | null;
   journeyStopTotal?: number | null;
   frameCaption?: LocalizedCopy | null;
+  placeSlug?: ExplorePlaceSlug | null;
 };
 
 type AssistantLensId = "palace" | "axis" | "ritual" | "scenery";
@@ -103,6 +111,9 @@ const guideModes: Array<{ value: GuideMode; label: LocalizedCopy }> = [
   { value: "short", label: localized("简答", "Short") },
   { value: "detailed", label: localized("详细", "Detailed") },
   { value: "fun", label: localized("趣味", "Fun") },
+  { value: "child", label: localized("Child", "Child") },
+  { value: "tourist", label: localized("Tourist", "Tourist") },
+  { value: "quiz", label: localized("Quiz", "Quiz") },
 ];
 
 const assistantLenses: AssistantLens[] = [
@@ -261,6 +272,7 @@ function buildRouteContext(
         kind: "place",
         label: localized("当前场所", "Current place"),
         title: activePlace.title,
+        placeSlug: activePlace.slug,
         intro: localized(
           `你现在位于${activePlace.title.zh}。可以询问它的空间气质、礼制意义，或它如何连接整条故宫路线。`,
           `You are currently in ${activePlace.title.en}. Ask about its mood, ceremonial meaning, or how it fits into the broader Forbidden City route.`
@@ -372,6 +384,72 @@ function getDefaultLensId(routeContext: AssistantRouteContext): AssistantLensId 
   return "palace";
 }
 
+function getFixedStarterPrompts(routeContext: AssistantRouteContext) {
+  return [
+    localized("为什么这里重要？", "Why is this important?"),
+    localized("我应该注意什么？", "What should I notice?"),
+    localized("请用 30 秒解释。", "Explain in 30 seconds."),
+    localized("考考我。", "Quiz me."),
+    localized("为我规划一条短路线。", "Build a short tour."),
+  ].map((starter) =>
+    routeContext.kind === "place"
+      ? localized(
+          `${starter.zh}（${routeContext.title.zh}）`,
+          `${starter.en} (${routeContext.title.en})`
+        )
+      : starter
+  );
+}
+
+function inferGuideIntent(question: string, mode: GuideMode): GuideIntent {
+  const normalizedQuestion = question.toLowerCase();
+
+  if (mode === "quiz" || /quiz|test|question|考/.test(normalizedQuestion)) {
+    return "quiz";
+  }
+
+  if (
+    /build.*tour|tour.*build|short tour|custom tour|recommend.*route|路线|规划/.test(
+      normalizedQuestion
+    )
+  ) {
+    return "tour_builder";
+  }
+
+  if (
+    /open.*map|show.*map|go.*map|passport|start route|start tour|continue route|打开.*地图|打开.*行旅簿|行旅簿/.test(
+      normalizedQuestion
+    )
+  ) {
+    return "site_action";
+  }
+
+  return "answer";
+}
+
+function formatAssistantResponse(data: GuideResponse) {
+  if (data.quiz) {
+    return [
+      data.quiz.question,
+      ...data.quiz.options.map(
+        (option) => `${option.id.toUpperCase()}. ${option.text}`
+      ),
+      "",
+      `Stamp: ${data.quiz.stampLabel}`,
+    ].join("\n");
+  }
+
+  if (data.customTour) {
+    return data.answer;
+  }
+
+  if (data.siteAction) {
+    return `${data.answer}\n${data.siteAction.label}`;
+  }
+
+  return data.answer;
+}
+
 function SendIcon() {
   return (
     <svg
@@ -392,6 +470,7 @@ function SendIcon() {
 
 export function FloatingAIAssistant() {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const reduceMotion = useReducedMotion() ?? false;
   const { language, theme } = useSitePreferences();
@@ -456,8 +535,9 @@ export function FloatingAIAssistant() {
   const localizedLensDescription = pickLocalizedText(activeLens.description, language);
   const starterQuestions = useMemo(() => {
     const lensStarters = activeLens.buildStarters(routeContext);
-    return [...lensStarters, ...routeContext.starters]
-      .slice(0, 4)
+    const fixedStarters = getFixedStarterPrompts(routeContext);
+    return [...fixedStarters, ...lensStarters, ...routeContext.starters]
+      .slice(0, 5)
       .map((starter) => pickLocalizedText(starter, language));
   }, [activeLens, language, routeContext]);
 
@@ -505,6 +585,37 @@ export function FloatingAIAssistant() {
     };
   }, [isOpen]);
 
+  function executeSiteAction(action: GuideSiteActionPayload) {
+    if (action.command === "switch_guide_mode" && action.mode) {
+      setMode(action.mode);
+      return;
+    }
+
+    if (pathname === "/" || pathname === "/explore") {
+      window.dispatchEvent(
+        new CustomEvent("palace:site-action", {
+          detail: action,
+        })
+      );
+      return;
+    }
+
+    if (action.command === "open_map") {
+      router.push(
+        action.routeId ? `/explore?view=map&route=${action.routeId}` : "/explore?view=map"
+      );
+      return;
+    }
+
+    if (action.command === "open_place" && action.placeSlug) {
+      const routeQuery = action.routeId ? `&route=${action.routeId}` : "";
+      router.push(`/explore?view=place&place=${action.placeSlug}${routeQuery}`);
+      return;
+    }
+
+    router.push("/explore");
+  }
+
   async function submitQuestion(nextQuestion: string) {
     const trimmedQuestion = nextQuestion.trim();
 
@@ -531,9 +642,11 @@ export function FloatingAIAssistant() {
     setIsSubmitting(true);
 
     try {
+      const inferredIntent = inferGuideIntent(trimmedQuestion, mode);
       const payload: GuideRequest = {
         sceneId: HERITAGE_SCENE_ID,
         focusId: activeLens.focusId,
+        placeSlug: routeContext.placeSlug ?? null,
         contextHint: assistantJourneyContext
           ? `${pickLocalizedText(activeLens.contextHint, language)} ${
               language === "zh" ? "å½“å‰è·¯çº¿" : "Journey"
@@ -545,6 +658,10 @@ export function FloatingAIAssistant() {
         language,
         question: trimmedQuestion,
         mode,
+        intent: inferredIntent,
+        timeBudget: inferredIntent === "tour_builder" ? 10 : null,
+        interests:
+          inferredIntent === "tour_builder" ? ["overview", "architecture"] : [],
         journeyRouteId: assistantJourneyContext?.routeId ?? null,
         journeyTitle: assistantJourneyContext?.title ?? null,
         journeyDescription: assistantJourneyContext?.description ?? null,
@@ -567,13 +684,23 @@ export function FloatingAIAssistant() {
         throw new Error(data.error ?? copy.requestFailed);
       }
 
+      if (data.siteAction) {
+        executeSiteAction(data.siteAction);
+      }
+
       setMessages((current) => [
         ...current,
         {
           id: `assistant-${Date.now()}`,
           role: "assistant",
-          content: data.answer,
-          meta: `${localizedLensTitle} | ${data.meta?.provider ?? copy.guideProvider}`,
+          content: formatAssistantResponse(data),
+          meta: [
+            localizedLensTitle,
+            data.meta?.provider ?? copy.guideProvider,
+            data.aiLabel,
+          ]
+            .filter(Boolean)
+            .join(" | "),
         },
       ]);
     } catch (submissionError) {
@@ -659,7 +786,7 @@ export function FloatingAIAssistant() {
                         isDarkTheme ? "text-white" : "text-foreground"
                       )}
                     >
-                      Palace A.
+                      AI Palace Companion
                     </p>
                     <p
                       className={cn(

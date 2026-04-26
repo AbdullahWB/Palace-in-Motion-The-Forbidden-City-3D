@@ -11,6 +11,12 @@ function getAnswerModeInstruction(mode: GuideMode) {
   switch (mode) {
     case "short":
       return "Answer in 1 to 2 concise sentences.";
+    case "child":
+      return "Explain in simple child-friendly language without talking down to the visitor.";
+    case "tourist":
+      return "Answer like a practical museum audio guide for a first-time tourist.";
+    case "quiz":
+      return "Keep the answer quiz-like: ask one clear check-your-understanding question if useful.";
     case "fun":
       return "Answer with a short engaging narration or fun fact, while staying accurate and grounded.";
     default:
@@ -24,6 +30,12 @@ function getCaptionModeInstruction(mode: GuideMode) {
       return "Write one concise postcard caption sentence.";
     case "detailed":
       return "Write 2 compact postcard sentences with a little more texture, but keep them readable and elegant.";
+    case "child":
+      return "Write one warm, simple caption that a younger visitor could understand.";
+    case "tourist":
+      return "Write one practical souvenir caption for a first-time visitor.";
+    case "quiz":
+      return "Write one caption that points to one noticeable detail.";
     default:
       return "Write a short playful postcard caption or engaging narration in 1 to 2 sentences.";
   }
@@ -49,6 +61,31 @@ function formatQuickFacts(context: ResolvedGuideContext) {
   return context.quickFacts
     .map((fact) => `- ${fact.title}: ${fact.body}`)
     .join("\n");
+}
+
+function formatPlaceKnowledge(context: ResolvedGuideContext, language: AppLanguage) {
+  const knowledge = context.placeKnowledge;
+
+  if (!knowledge) {
+    return "None.";
+  }
+
+  return [
+    `Place slug: ${knowledge.placeSlug}`,
+    `Short description: ${pickLanguage(knowledge.shortDescription, language)}`,
+    `History note: ${pickLanguage(knowledge.historyNote, language)}`,
+    `Things to notice: ${knowledge.thingsToNotice
+      .map((item) => pickLanguage(item, language))
+      .join("; ")}`,
+    `Source note: ${pickLanguage(knowledge.sourceNote, language)}`,
+  ].join("\n");
+}
+
+function pickLanguage(copy: { zh: string; en: string }, language: AppLanguage) {
+  const primary = language === "zh" ? copy.zh : copy.en;
+  const fallback = language === "zh" ? copy.en : copy.zh;
+
+  return primary.trim() || fallback.trim();
 }
 
 function buildAnswerPrompts({
@@ -109,6 +146,9 @@ function buildAnswerPrompts({
     context.tourStep
       ? `${context.tourStep.title} - ${context.tourStep.explanation}`
       : "None.",
+    "",
+    "Approved place knowledge:",
+    formatPlaceKnowledge(context, request.language ?? "en"),
     "",
     "Quick facts:",
     formatQuickFacts(context),
@@ -179,6 +219,9 @@ function buildCaptionPrompts({
       ? `${context.tourStep.title} - ${context.tourStep.explanation}`
       : "None.",
     "",
+    "Approved place knowledge:",
+    formatPlaceKnowledge(context, request.language ?? "en"),
+    "",
     "Quick facts:",
     formatQuickFacts(context),
     "",
@@ -206,6 +249,11 @@ export function buildGuideMessages({
     | "focusId"
     | "contextHint"
     | "language"
+    | "journeyTitle"
+    | "journeyDescription"
+    | "journeyStopIndex"
+    | "journeyStopTotal"
+    | "frameCaption"
   >;
 }) {
   const intent: GuideIntent = request.intent ?? "answer";
