@@ -2672,7 +2672,7 @@ export function PanoramaExperience({
                 <MusicToggleButton tone={isDarkTheme ? "dark" : "light"} />
               </div>
 
-              <div className="mt-10 border-t border-white/10 pt-7 text-left">
+              <div className="hidden">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p
