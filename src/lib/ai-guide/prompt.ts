@@ -15,6 +15,8 @@ function getAnswerModeInstruction(mode: GuideMode) {
       return "Explain in simple child-friendly language without talking down to the visitor.";
     case "tourist":
       return "Answer like a practical museum audio guide for a first-time tourist.";
+    case "academic":
+      return "Answer in a concise academic museum-label style, with cautious claims and clear source limits.";
     case "quiz":
       return "Keep the answer quiz-like: ask one clear check-your-understanding question if useful.";
     case "fun":
@@ -34,6 +36,8 @@ function getCaptionModeInstruction(mode: GuideMode) {
       return "Write one warm, simple caption that a younger visitor could understand.";
     case "tourist":
       return "Write one practical souvenir caption for a first-time visitor.";
+    case "academic":
+      return "Write one formal museum-style caption grounded in the approved guide content.";
     case "quiz":
       return "Write one caption that points to one noticeable detail.";
     default:

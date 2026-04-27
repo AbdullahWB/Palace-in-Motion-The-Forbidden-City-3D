@@ -34,7 +34,8 @@ function getRouteCopy(language: "zh" | "en") {
       questionRequired: "Question is required.",
       minQuestion: `Question must be at least ${MIN_QUESTION_LENGTH} characters.`,
       maxQuestion: `Question must be at most ${MAX_QUESTION_LENGTH} characters.`,
-      invalidMode: "Mode must be short, detailed, fun, child, tourist, or quiz.",
+      invalidMode:
+        "Mode must be short, detailed, fun, child, academic, tourist, or quiz.",
       invalidIntent:
         "Intent must be answer, caption, quiz, tour_builder, or site_action.",
     };
@@ -45,7 +46,8 @@ function getRouteCopy(language: "zh" | "en") {
     questionRequired: "Question is required.",
     minQuestion: `Question must be at least ${MIN_QUESTION_LENGTH} characters.`,
     maxQuestion: `Question must be at most ${MAX_QUESTION_LENGTH} characters.`,
-    invalidMode: "Mode must be short, detailed, fun, child, tourist, or quiz.",
+    invalidMode:
+      "Mode must be short, detailed, fun, child, academic, tourist, or quiz.",
     invalidIntent:
       "Intent must be answer, caption, quiz, tour_builder, or site_action.",
   };
@@ -57,6 +59,7 @@ function isGuideMode(value: unknown): value is GuideMode {
     value === "detailed" ||
     value === "fun" ||
     value === "child" ||
+    value === "academic" ||
     value === "tourist" ||
     value === "quiz"
   );

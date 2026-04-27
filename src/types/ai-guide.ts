@@ -14,6 +14,7 @@ export type GuideMode =
   | "detailed"
   | "fun"
   | "child"
+  | "academic"
   | "tourist"
   | "quiz";
 export type GuideIntent =
@@ -79,8 +80,10 @@ export type GuideSiteActionCommand =
   | "open_passport"
   | "start_route"
   | "continue_route"
+  | "next_stop"
   | "open_place"
-  | "switch_guide_mode";
+  | "switch_guide_mode"
+  | "switch_language";
 
 export type GuideSiteActionPayload = {
   command: GuideSiteActionCommand;
@@ -88,6 +91,7 @@ export type GuideSiteActionPayload = {
   routeId?: ExploreJourneyRouteId | null;
   placeSlug?: ExplorePlaceSlug | null;
   mode?: GuideMode | null;
+  language?: AppLanguage | null;
 };
 
 export type GuideRequest = {

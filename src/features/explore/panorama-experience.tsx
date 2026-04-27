@@ -1553,6 +1553,11 @@ export function PanoramaExperience({
         return;
       }
 
+      if (detail.command === "next_stop") {
+        goToNextJourneyStop();
+        return;
+      }
+
       if (detail.command === "open_place" && detail.placeSlug) {
         openPlaceInJourney(detail.placeSlug, null, detail.routeId ?? activeJourney?.id ?? null);
       }

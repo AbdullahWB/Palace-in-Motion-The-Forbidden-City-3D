@@ -11,6 +11,7 @@ import { buildGuideMessages } from "@/lib/ai-guide/prompt";
 import type {
   CustomTourState,
   GuideCaptionPayload,
+  GuideMode,
   GuideQuizPayload,
   GuideRequest,
   GuideResponse,
@@ -158,10 +159,95 @@ function formatCustomTourAnswer(tour: CustomTourState, language: AppLanguage) {
   return `${tour.explanation}\n\n${stops}`;
 }
 
+function detectRequestedLanguage(question: string): AppLanguage | null {
+  const isLanguageCommand =
+    /\b(switch|change|set|use)\b.*\b(language|english|chinese|en|zh)\b/.test(
+      question
+    ) ||
+    /\b(switch|change|set|use)\s+to\s+(english|chinese)\b/.test(question) ||
+    /切换|换成|改成|语言/.test(question);
+
+  if (!isLanguageCommand) {
+    return null;
+  }
+
+  if (/\b(english|en)\b|英文|英语/.test(question)) {
+    return "en";
+  }
+
+  if (/\b(chinese|zh)\b|中文|汉语|普通话/.test(question)) {
+    return "zh";
+  }
+
+  return null;
+}
+
+function detectRequestedGuideMode(question: string): GuideMode | null {
+  const isModeCommand =
+    /\b(switch|change|set|use)\b.*\b(mode|style)\b/.test(question) ||
+    /切换|换成|改成|模式|风格/.test(question);
+
+  if (!isModeCommand) {
+    return null;
+  }
+
+  if (/\bacademic\b|学术/.test(question)) {
+    return "academic";
+  }
+
+  if (/\bchild|child-friendly\b|儿童|孩子/.test(question)) {
+    return "child";
+  }
+
+  if (/\btourist\b|游客|导游/.test(question)) {
+    return "tourist";
+  }
+
+  if (/\bfun\b|趣味|有趣/.test(question)) {
+    return "fun";
+  }
+
+  if (/\bdetailed|detail\b|详细/.test(question)) {
+    return "detailed";
+  }
+
+  if (/\bquiz|test\b|测验|考/.test(question)) {
+    return "quiz";
+  }
+
+  if (/\bshort|brief\b|简短|简答/.test(question)) {
+    return "short";
+  }
+
+  return null;
+}
+
 function detectSiteAction({
   request,
 }: GroundedGuideInput): GuideSiteActionPayload | null {
   const normalizedQuestion = request.question.toLowerCase();
+  const requestedLanguage = detectRequestedLanguage(normalizedQuestion);
+
+  if (requestedLanguage) {
+    return {
+      command: "switch_language",
+      label:
+        requestedLanguage === "zh"
+          ? "Switch language to Chinese"
+          : "Switch language to English",
+      language: requestedLanguage,
+    };
+  }
+
+  const requestedMode = detectRequestedGuideMode(normalizedQuestion);
+
+  if (requestedMode) {
+    return {
+      command: "switch_guide_mode",
+      label: `Switch guide mode to ${requestedMode}`,
+      mode: requestedMode,
+    };
+  }
 
   if (normalizedQuestion.includes("passport")) {
     return {
@@ -174,6 +260,19 @@ function detectSiteAction({
     return {
       command: "open_map",
       label: "Open palace map",
+      routeId: request.journeyRouteId ?? null,
+    };
+  }
+
+  if (
+    normalizedQuestion.includes("next stop") ||
+    normalizedQuestion.includes("next place") ||
+    normalizedQuestion.includes("下一站") ||
+    normalizedQuestion.includes("下一处")
+  ) {
+    return {
+      command: "next_stop",
+      label: "Move to next stop",
       routeId: request.journeyRouteId ?? null,
     };
   }
@@ -279,7 +378,8 @@ export const defaultAIGuideAdapter: AIGuideProviderAdapter = {
 
     if (!action) {
       return {
-        answer: "I can open the map, open the Passport, start a route, continue a route, or open the current place.",
+        answer:
+          "I can open the map, open the Passport, start a route, continue a route, move to the next stop, open the current place, switch language, or change guide mode.",
         fallback: true,
         provider: "fallback",
       };

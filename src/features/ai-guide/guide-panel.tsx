@@ -19,6 +19,7 @@ const guideModes: Array<{ value: GuideMode; label: string }> = [
   { value: "detailed", label: "Detailed" },
   { value: "fun", label: "Fun" },
   { value: "child", label: "Child" },
+  { value: "academic", label: "Academic" },
   { value: "tourist", label: "Tourist" },
   { value: "quiz", label: "Quiz" },
 ];

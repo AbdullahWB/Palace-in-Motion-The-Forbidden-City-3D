@@ -93,6 +93,11 @@ function buildFallbackCaption({
           `${prefix}${focusLabel}顺着故宫礼仪路线收束视线与节奏。`,
           anchor,
         ].join(" ");
+      case "academic":
+        return [
+          `${prefix}${focusLabel}依据已审核的故宫导览内容进行呈现。`,
+          anchor,
+        ].join(" ");
       default:
         return [
           `${prefix}${frame?.title ?? "Palace in Motion"}把${focusLabel}定格在一段带有宫廷秩序感的瞬间。`,
@@ -107,6 +112,11 @@ function buildFallbackCaption({
     case "detailed":
       return [
         `${prefix}${focusLabel} holds the eye along the Forbidden City's ceremonial route.`,
+        anchor,
+      ].join(" ");
+    case "academic":
+      return [
+        `${prefix}${focusLabel} is presented through the approved palace guide context.`,
         anchor,
       ].join(" ");
     default:
@@ -214,6 +224,16 @@ function buildFallbackAnswer({
             ]
               .filter(Boolean)
               .join(" ");
+      case "academic":
+        return [
+          `在${context.contextLabel}的已审核导览语境中，${focusSummary}`,
+          noticeSummary ? `可观察要点：${noticeSummary}` : "",
+          ...routeLead,
+          relevantFact ? `可作为支撑的本地说明：${relevantFact.body}` : "",
+          "本回答仅依据应用内结构化故宫导览内容。",
+        ]
+          .filter(Boolean)
+          .join(" ");
       default:
         return [
           `在当前${context.contextLabel}的语境下，${focusSummary}`,
@@ -251,6 +271,16 @@ function buildFallbackAnswer({
         `For a first visit, use ${context.contextLabel} as a clear orientation point.`,
         focusSummary,
         noticeSummary ? `What to notice: ${noticeSummary}` : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+    case "academic":
+      return [
+        `In the approved guide context for ${context.contextLabel}, ${focusSummary}`,
+        noticeSummary ? `Key observable details: ${noticeSummary}` : "",
+        ...routeLead,
+        relevantFact ? `A supporting local note is: ${relevantFact.body}` : "",
+        "This answer is limited to the app's structured palace guide content.",
       ]
         .filter(Boolean)
         .join(" ");
