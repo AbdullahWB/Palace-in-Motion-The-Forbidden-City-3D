@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "@/components/ui/hydration-safe-image";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
 import {
   buildRouteContextFromUrl,

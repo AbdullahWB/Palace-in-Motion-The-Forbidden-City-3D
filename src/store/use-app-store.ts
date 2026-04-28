@@ -64,6 +64,8 @@ export const defaultAccessibilityPreferences: AccessibilityPreferences = {
   contrast: "standard",
   reduceMotion: false,
   simplified: false,
+  readableLabels: false,
+  keyboardFocus: false,
 };
 
 const initialPersistedState: PersistedAppStoreState = {

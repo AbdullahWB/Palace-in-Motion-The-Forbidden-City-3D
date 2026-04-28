@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Image from "@/components/ui/hydration-safe-image";
 import {
   AnimatePresence,
   motion,
@@ -586,6 +586,7 @@ function JourneyRouteCard({
         <span
           className="absolute left-3 top-3 inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#24170d]"
           style={{ backgroundColor: journey.accent }}
+          suppressHydrationWarning
         >
           {pickLocalizedText(journey.title, language)}
         </span>
@@ -621,6 +622,7 @@ function JourneyRouteCard({
                 width: `${progress.completionRate}%`,
                 backgroundColor: journey.accent,
               }}
+              suppressHydrationWarning
             />
           </div>
         </div>
@@ -1304,6 +1306,7 @@ function PassportDrawer({
                           backgroundColor: `${seal.accent}${isUnlocked ? "22" : "14"}`,
                           borderColor: `${seal.accent}${isUnlocked ? "aa" : "55"}`,
                         }}
+                        suppressHydrationWarning
                       />
                       <div>
                         <p className={cn("text-sm font-semibold", isDarkTheme ? "text-white" : "text-foreground")}>
@@ -1336,6 +1339,7 @@ function PassportDrawer({
                               width: `${progress.completionRate}%`,
                               backgroundColor: seal.accent,
                             }}
+                            suppressHydrationWarning
                           />
                         </div>
                         <div className="mt-4 flex flex-wrap gap-2">
@@ -2526,7 +2530,11 @@ export function PanoramaExperience({
     <section
       className={cn(
         "relative h-[100svh] overflow-hidden",
-        accessibilityPreferences.textScale === "large" ? "text-[1.07rem]" : "",
+        accessibilityPreferences.textScale === "extra-large"
+          ? "text-[1.13rem]"
+          : accessibilityPreferences.textScale === "large"
+            ? "text-[1.07rem]"
+            : "",
         accessibilityPreferences.contrast === "high"
           ? "contrast-125 saturate-110"
           : "",
@@ -3036,6 +3044,7 @@ export function PanoramaExperience({
                         <span
                           className="inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#24170d]"
                           style={{ backgroundColor: activeJourney.accent }}
+                          suppressHydrationWarning
                         >
                           {localize(activeJourney.title)}
                         </span>
@@ -3085,6 +3094,7 @@ export function PanoramaExperience({
                                 width: `${activeJourneyProgress.completionRate}%`,
                                 backgroundColor: activeJourney.accent,
                               }}
+                              suppressHydrationWarning
                             />
                           </div>
                         </div>
@@ -3413,6 +3423,7 @@ export function PanoramaExperience({
                 <span
                   className="inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#24170d]"
                   style={{ backgroundColor: activeJourney.accent }}
+                  suppressHydrationWarning
                 >
                   {localize(activeJourney.title)}
                 </span>
@@ -3564,6 +3575,7 @@ export function PanoramaExperience({
                     <span
                       className="inline-flex rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#24170d]"
                       style={{ backgroundColor: activeJourney.accent }}
+                      suppressHydrationWarning
                     >
                       {localize(activeJourney.title)}
                     </span>

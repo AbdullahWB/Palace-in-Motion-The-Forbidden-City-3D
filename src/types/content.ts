@@ -4,7 +4,8 @@ export type AppRoute =
   | "/tour"
   | "/selfie"
   | "/3d-view"
-  | "/companion";
+  | "/companion"
+  | "/classroom";
 export type HomeAnchor = "#ai-guide";
 export type LandingHref = AppRoute | HomeAnchor;
 

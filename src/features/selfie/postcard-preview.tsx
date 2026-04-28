@@ -1,7 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
-import Image from "next/image";
+import Image from "@/components/ui/hydration-safe-image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { PostcardCompositionResult } from "@/lib/selfie/compose-postcard";
 import type { PostcardFrame } from "@/types/content";

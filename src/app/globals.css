@@ -43,6 +43,36 @@ html {
   scroll-behavior: smooth;
 }
 
+html[data-accessibility-text="large"] {
+  font-size: 17px;
+}
+
+html[data-accessibility-text="extra-large"] {
+  font-size: 18.5px;
+}
+
+html[data-accessibility-contrast="high"] body {
+  filter: contrast(1.08) saturate(1.08);
+}
+
+html[data-accessibility-simplified="true"] p,
+html[data-accessibility-simplified="true"] li {
+  line-height: 1.9;
+}
+
+html[data-accessibility-readable-labels="true"] [aria-label] {
+  scroll-margin: 1rem;
+}
+
+html[data-accessibility-keyboard-focus="true"] a:focus-visible,
+html[data-accessibility-keyboard-focus="true"] button:focus-visible,
+html[data-accessibility-keyboard-focus="true"] textarea:focus-visible,
+html[data-accessibility-keyboard-focus="true"] input:focus-visible,
+html[data-accessibility-keyboard-focus="true"] summary:focus-visible {
+  outline-width: 3px;
+  outline-offset: 4px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -55,6 +85,18 @@ html {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+html[data-accessibility-reduced-motion="true"] {
+  scroll-behavior: auto;
+}
+
+html[data-accessibility-reduced-motion="true"] *,
+html[data-accessibility-reduced-motion="true"] *::before,
+html[data-accessibility-reduced-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }
 
 body {

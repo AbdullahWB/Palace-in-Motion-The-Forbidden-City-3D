@@ -16,4 +16,9 @@ export const navigationItems: NavItem[] = [
     href: "/3d-view",
     description: "Fullscreen orbitable Forbidden City showcase with a model-ready viewer shell.",
   },
+  {
+    label: "Classroom",
+    href: "/classroom",
+    description: "Teacher toolkit with route assignments, quiz prompts, and printable diary tasks.",
+  },
 ];

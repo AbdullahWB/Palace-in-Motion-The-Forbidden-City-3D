@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "@/components/ui/hydration-safe-image";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
 import {
   buildRouteContextFromUrl,
@@ -159,10 +159,12 @@ export function CompanionPageClient() {
   const messageViewportRef = useRef<HTMLDivElement | null>(null);
   const activeLens = getLensById(activeLensId);
   const isComfortMode =
-    accessibilityPreferences.textScale === "large" ||
+    accessibilityPreferences.textScale !== "standard" ||
     accessibilityPreferences.contrast === "high" ||
     accessibilityPreferences.reduceMotion ||
-    accessibilityPreferences.simplified;
+    accessibilityPreferences.simplified ||
+    accessibilityPreferences.readableLabels ||
+    accessibilityPreferences.keyboardFocus;
   const routeContext = buildRouteContextFromUrl("/companion", new URLSearchParams(), language);
   const starterPrompts = getStarterPrompts(routeContext).map((starter) =>
     pickLocalizedText(starter, language)
@@ -506,12 +508,16 @@ export function CompanionPageClient() {
             contrast: "standard",
             reduceMotion: false,
             simplified: false,
+            readableLabels: false,
+            keyboardFocus: false,
           }
         : {
             textScale: "large",
             contrast: "high",
             reduceMotion: true,
             simplified: true,
+            readableLabels: true,
+            keyboardFocus: true,
           }
     );
   }
@@ -893,13 +899,24 @@ export function CompanionPageClient() {
             {[
               {
                 label: "Large text",
-                active: accessibilityPreferences.textScale === "large",
+                active: accessibilityPreferences.textScale !== "standard",
                 onClick: () =>
                   updateAccessibilityPreferences({
                     textScale:
-                      accessibilityPreferences.textScale === "large"
+                      accessibilityPreferences.textScale !== "standard"
                         ? "standard"
                         : "large",
+                  }),
+              },
+              {
+                label: "XL text",
+                active: accessibilityPreferences.textScale === "extra-large",
+                onClick: () =>
+                  updateAccessibilityPreferences({
+                    textScale:
+                      accessibilityPreferences.textScale === "extra-large"
+                        ? "large"
+                        : "extra-large",
                   }),
               },
               {
@@ -927,6 +944,15 @@ export function CompanionPageClient() {
                 onClick: () =>
                   updateAccessibilityPreferences({
                     simplified: !accessibilityPreferences.simplified,
+                  }),
+              },
+              {
+                label: "Focus mode",
+                active: accessibilityPreferences.keyboardFocus,
+                onClick: () =>
+                  updateAccessibilityPreferences({
+                    keyboardFocus: !accessibilityPreferences.keyboardFocus,
+                    readableLabels: !accessibilityPreferences.keyboardFocus,
                   }),
               },
             ].map((control) => (
@@ -1076,7 +1102,11 @@ export function CompanionPageClient() {
     <div
       className={cn(
         "min-h-[100svh] overflow-x-hidden px-3 py-4 sm:px-5 lg:px-6",
-        accessibilityPreferences.textScale === "large" ? "text-[1.08rem]" : "",
+        accessibilityPreferences.textScale === "extra-large"
+          ? "text-[1.14rem]"
+          : accessibilityPreferences.textScale === "large"
+            ? "text-[1.08rem]"
+            : "",
         accessibilityPreferences.contrast === "high" ? "contrast-125 saturate-110" : "",
         accessibilityPreferences.simplified ? "[&_p]:leading-8" : "",
         isDarkTheme
@@ -1122,6 +1152,12 @@ export function CompanionPageClient() {
               className="rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-black"
             >
               3D view
+            </Link>
+            <Link
+              href="/classroom"
+              className="rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-black"
+            >
+              Classroom
             </Link>
           </div>
         </header>

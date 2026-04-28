@@ -1100,6 +1100,7 @@ export function ThreeDViewShell({
                   <div
                     className="absolute left-1/2 top-16 h-3 w-3 -translate-x-1/2 rounded-full"
                     style={{ backgroundColor: activeRoute.color }}
+                    suppressHydrationWarning
                   />
                 ) : null}
               </div>

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { FloatingAIAssistant } from "@/components/layout/floating-ai-assistant";
 import { Cormorant_Garamond, Inter } from "next/font/google";
+import { AccessibilityPreferencesBridge } from "@/components/preferences/accessibility-preferences-bridge";
 import { SitePreferencesProvider } from "@/components/preferences/site-preferences-provider";
 import { GlobalMusicToggle } from "@/components/media/global-music-toggle";
 import { SiteMusicProvider } from "@/components/media/site-music-provider";
@@ -80,6 +81,7 @@ export default async function RootLayout({
           initialLanguage={initialLanguage}
           initialTheme={initialTheme}
         >
+          <AccessibilityPreferencesBridge />
           <SiteMusicProvider>
             <div className="flex min-h-screen flex-col">
               <a

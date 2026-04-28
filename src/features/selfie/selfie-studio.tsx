@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, RefObject } from "react";
+import Image from "@/components/ui/hydration-safe-image";
 import {
   defaultSelfieBackdropId,
   defaultSelfieFocusId,
