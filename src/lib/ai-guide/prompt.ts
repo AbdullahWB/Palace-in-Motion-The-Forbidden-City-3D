@@ -79,13 +79,21 @@ function formatPlaceKnowledge(context: ResolvedGuideContext, language: AppLangua
   const knowledge = context.placeKnowledge;
 
   if (!knowledge) {
-    return "None.";
+    return "No approved place knowledge is attached. If the user asks for place-specific historical facts, say that this is not available in the local Palace Guide Source yet.";
   }
 
   return [
     `Place slug: ${knowledge.placeSlug}`,
+    `Source title: ${pickLanguage(knowledge.sourceTitle, language)}`,
+    `Source status: ${knowledge.sourceStatus}`,
+    `Source confidence: ${knowledge.sourceConfidence}`,
     `Short description: ${pickLanguage(knowledge.shortDescription, language)}`,
     `History note: ${pickLanguage(knowledge.historyNote, language)}`,
+    `Preservation note: ${pickLanguage(knowledge.preservationNote, language)}`,
+    `Accessibility summary: ${pickLanguage(knowledge.accessibilitySummary, language)}`,
+    `Learning tags: ${knowledge.learningTags
+      .map((item) => pickLanguage(item, language))
+      .join("; ")}`,
     `Things to notice: ${knowledge.thingsToNotice
       .map((item) => pickLanguage(item, language))
       .join("; ")}`,

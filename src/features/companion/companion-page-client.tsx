@@ -35,6 +35,7 @@ import {
 import { pickLocalizedText } from "@/lib/i18n";
 import { HERITAGE_SCENE_ID } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { buildTravelDiaryText } from "@/lib/travel-diary";
 import { useAppStore } from "@/store/use-app-store";
 import type {
   GuideIntent,
@@ -110,6 +111,12 @@ export function CompanionPageClient() {
   const setActiveCustomTour = useAppStore((state) => state.setActiveCustomTour);
   const resetExploreProgress = useAppStore((state) => state.resetExploreProgress);
   const setActiveExploreRoute = useAppStore((state) => state.setActiveExploreRoute);
+  const accessibilityPreferences = useAppStore(
+    (state) => state.accessibilityPreferences
+  );
+  const updateAccessibilityPreferences = useAppStore(
+    (state) => state.updateAccessibilityPreferences
+  );
   const defaultRouteId =
     activeExploreRouteId ?? exploreExperience.journeys[0]?.id ?? null;
   const [selectedRouteId, setSelectedRouteId] =
@@ -140,14 +147,22 @@ export function CompanionPageClient() {
   const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isComfortMode, setIsComfortMode] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [diaryGeneratedAt, setDiaryGeneratedAt] = useState(Date.now());
+  const [diaryCopyStatus, setDiaryCopyStatus] = useState<"idle" | "copied" | "error">(
+    "idle"
+  );
   const [builderTimeBudget, setBuilderTimeBudget] = useState<5 | 10 | 20>(10);
   const [builderInterests, setBuilderInterests] = useState<TourBuilderInterest[]>([
     "overview",
   ]);
   const messageViewportRef = useRef<HTMLDivElement | null>(null);
   const activeLens = getLensById(activeLensId);
+  const isComfortMode =
+    accessibilityPreferences.textScale === "large" ||
+    accessibilityPreferences.contrast === "high" ||
+    accessibilityPreferences.reduceMotion ||
+    accessibilityPreferences.simplified;
   const routeContext = buildRouteContextFromUrl("/companion", new URLSearchParams(), language);
   const starterPrompts = getStarterPrompts(routeContext).map((starter) =>
     pickLocalizedText(starter, language)
@@ -200,6 +215,28 @@ export function CompanionPageClient() {
             ? pickLocalizedText(getExplorePlaceBySlug(continuePlaceSlug)?.title, language)
             : "the palace map"
         }.`;
+  const travelDiaryText = useMemo(
+    () =>
+      buildTravelDiaryText({
+        language,
+        visitedPlaceSlugs,
+        passportMissions,
+        customTours,
+        activeCustomTourId,
+        activeExploreRouteId: selectedRoute?.id ?? activeExploreRouteId,
+        generatedAt: diaryGeneratedAt,
+      }),
+    [
+      activeCustomTourId,
+      activeExploreRouteId,
+      customTours,
+      diaryGeneratedAt,
+      language,
+      passportMissions,
+      selectedRoute?.id,
+      visitedPlaceSlugs,
+    ]
+  );
 
   useEffect(() => {
     if (!activeExploreRouteId || selectedRouteId) {
@@ -459,6 +496,61 @@ export function CompanionPageClient() {
     } catch {
       // Ignore storage failures.
     }
+  }
+
+  function toggleComfortMode() {
+    updateAccessibilityPreferences(
+      isComfortMode
+        ? {
+            textScale: "standard",
+            contrast: "standard",
+            reduceMotion: false,
+            simplified: false,
+          }
+        : {
+            textScale: "large",
+            contrast: "high",
+            reduceMotion: true,
+            simplified: true,
+          }
+    );
+  }
+
+  async function copyTravelDiary() {
+    try {
+      await window.navigator.clipboard.writeText(travelDiaryText);
+      setDiaryCopyStatus("copied");
+    } catch {
+      setDiaryCopyStatus("error");
+    }
+  }
+
+  function printTravelDiary() {
+    const printWindow = window.open("", "palace-travel-diary", "width=820,height=920");
+
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Palace in Motion Travel Diary</title>
+          <style>
+            body { font-family: Georgia, serif; padding: 32px; line-height: 1.7; color: #211712; }
+            pre { white-space: pre-wrap; font: inherit; }
+          </style>
+        </head>
+        <body><pre>${travelDiaryText
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")}</pre></body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
   }
 
   function speakLatestAnswer() {
@@ -779,7 +871,7 @@ export function CompanionPageClient() {
         <div className="mt-5 grid gap-2 rounded-[1.25rem] border border-white/10 bg-white/6 p-3">
           <button
             type="button"
-            onClick={() => setIsComfortMode((current) => !current)}
+            onClick={toggleComfortMode}
             className={cn(
               "rounded-full border px-4 py-2 text-sm font-black",
               isComfortMode
@@ -797,6 +889,103 @@ export function CompanionPageClient() {
           >
             {isSpeaking ? copy.stopAudio : copy.readAloud}
           </button>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              {
+                label: "Large text",
+                active: accessibilityPreferences.textScale === "large",
+                onClick: () =>
+                  updateAccessibilityPreferences({
+                    textScale:
+                      accessibilityPreferences.textScale === "large"
+                        ? "standard"
+                        : "large",
+                  }),
+              },
+              {
+                label: "High contrast",
+                active: accessibilityPreferences.contrast === "high",
+                onClick: () =>
+                  updateAccessibilityPreferences({
+                    contrast:
+                      accessibilityPreferences.contrast === "high"
+                        ? "standard"
+                        : "high",
+                  }),
+              },
+              {
+                label: "Reduce motion",
+                active: accessibilityPreferences.reduceMotion,
+                onClick: () =>
+                  updateAccessibilityPreferences({
+                    reduceMotion: !accessibilityPreferences.reduceMotion,
+                  }),
+              },
+              {
+                label: "Simplify",
+                active: accessibilityPreferences.simplified,
+                onClick: () =>
+                  updateAccessibilityPreferences({
+                    simplified: !accessibilityPreferences.simplified,
+                  }),
+              },
+            ].map((control) => (
+              <button
+                key={control.label}
+                type="button"
+                onClick={control.onClick}
+                className={cn(
+                  "rounded-full border px-3 py-2 text-[11px] font-black",
+                  control.active
+                    ? "border-[#e8bd73] bg-[#e8bd73]/20 text-[#e8bd73]"
+                    : "border-white/12 bg-white/8 opacity-72"
+                )}
+                aria-pressed={control.active}
+              >
+                {control.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-5 rounded-[1.25rem] border border-[#e8bd73]/20 bg-[#e8bd73]/8 p-3">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-[#bb8a55]">
+            Travel diary
+          </p>
+          <p className="mt-2 line-clamp-5 whitespace-pre-wrap text-xs font-semibold leading-6 opacity-76">
+            {travelDiaryText}
+          </p>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={copyTravelDiary}
+              className="rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
+            >
+              {diaryCopyStatus === "copied" ? "Copied" : "Copy"}
+            </button>
+            <button
+              type="button"
+              onClick={printTravelDiary}
+              className="rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
+            >
+              Print
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDiaryGeneratedAt(Date.now());
+                setDiaryCopyStatus("idle");
+              }}
+              className="rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
+            >
+              Refresh
+            </button>
+          </div>
+          {diaryCopyStatus === "error" ? (
+            <p className="mt-2 text-xs font-semibold text-[#ff858a]">
+              Copy failed. Use Print to save the diary as PDF.
+            </p>
+          ) : null}
         </div>
 
         <div className="mt-6 border-t border-white/10 pt-5">
@@ -887,7 +1076,9 @@ export function CompanionPageClient() {
     <div
       className={cn(
         "min-h-[100svh] overflow-x-hidden px-3 py-4 sm:px-5 lg:px-6",
-        isComfortMode ? "text-[1.06rem]" : "",
+        accessibilityPreferences.textScale === "large" ? "text-[1.08rem]" : "",
+        accessibilityPreferences.contrast === "high" ? "contrast-125 saturate-110" : "",
+        accessibilityPreferences.simplified ? "[&_p]:leading-8" : "",
         isDarkTheme
           ? isComfortMode
             ? "bg-black text-white"
@@ -1090,6 +1281,34 @@ export function CompanionPageClient() {
                             <p className="text-sm font-semibold leading-6 opacity-72">
                               {message.response.quiz.explanation}
                             </p>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      {message.response?.verification ? (
+                        <div className="mt-4 rounded-[1rem] border border-[#e8bd73]/25 bg-[#e8bd73]/10 p-3">
+                          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#e8bd73]">
+                            {message.response.verification.label}
+                          </p>
+                          <p className="mt-2 text-xs font-semibold leading-5 opacity-72">
+                            {message.response.verification.message}
+                          </p>
+                          {message.response.sourceCards?.length ? (
+                            <div className="mt-3 grid gap-2">
+                              {message.response.sourceCards.slice(0, 2).map((source) => (
+                                <div
+                                  key={source.id}
+                                  className="rounded-[0.9rem] border border-white/10 bg-black/10 p-3"
+                                >
+                                  <p className="text-xs font-black">{source.title}</p>
+                                  <p className="mt-1 text-xs font-semibold leading-5 opacity-70">
+                                    {source.body}
+                                  </p>
+                                  <p className="mt-2 text-[10px] font-black uppercase tracking-[0.16em] opacity-50">
+                                    {source.sourceStatus} | {source.sourceConfidence}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
                           ) : null}
                         </div>
                       ) : null}

@@ -47,6 +47,7 @@ import {
 import { getPostcardFrameIdForJourneyRoute } from "@/data/selfie";
 import { SelfieStudio } from "@/features/selfie/selfie-studio";
 import { pickLocalizedText } from "@/lib/i18n";
+import { buildTravelDiaryText } from "@/lib/travel-diary";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/use-app-store";
 import type {
@@ -832,6 +833,9 @@ type PassportDrawerProps = {
   journeyProgressById: Map<ExploreJourneyRoute["id"], JourneyProgress>;
   missionStates: PassportMissionState[];
   activeCustomTour: CustomTourState | null;
+  customTours: CustomTourState[];
+  activeCustomTourId: string | null;
+  activeExploreRouteId: ExploreJourneyRoute["id"] | null;
   overallCompletionRate: number;
   onOpenPlace: (placeSlug: ExplorePlaceSlug) => void;
   onOpenRouteMap: (routeId: ExploreJourneyRoute["id"]) => void;
@@ -851,6 +855,9 @@ function PassportDrawer({
   journeyProgressById,
   missionStates,
   activeCustomTour,
+  customTours,
+  activeCustomTourId,
+  activeExploreRouteId,
   overallCompletionRate,
   onOpenPlace,
   onOpenRouteMap,
@@ -880,6 +887,68 @@ function PassportDrawer({
   const selectedQuiz = selectedQuizPlaceSlug
     ? buildLocalizedQuizPayload(selectedQuizPlaceSlug, language)
     : null;
+  const [diaryGeneratedAt, setDiaryGeneratedAt] = useState(Date.now());
+  const [diaryCopyStatus, setDiaryCopyStatus] = useState<
+    "idle" | "copied" | "error"
+  >("idle");
+  const travelDiaryText = useMemo(
+    () =>
+      buildTravelDiaryText({
+        language,
+        visitedPlaceSlugs,
+        passportMissions: missionStates,
+        customTours,
+        activeCustomTourId,
+        activeExploreRouteId,
+        generatedAt: diaryGeneratedAt,
+      }),
+    [
+      activeCustomTourId,
+      activeExploreRouteId,
+      customTours,
+      diaryGeneratedAt,
+      language,
+      missionStates,
+      visitedPlaceSlugs,
+    ]
+  );
+
+  async function copyTravelDiary() {
+    try {
+      await window.navigator.clipboard.writeText(travelDiaryText);
+      setDiaryCopyStatus("copied");
+    } catch {
+      setDiaryCopyStatus("error");
+    }
+  }
+
+  function printTravelDiary() {
+    const printWindow = window.open("", "palace-travel-diary", "width=820,height=920");
+
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Palace in Motion Travel Diary</title>
+          <style>
+            body { font-family: Georgia, serif; padding: 32px; line-height: 1.7; color: #211712; }
+            pre { white-space: pre-wrap; font: inherit; }
+          </style>
+        </head>
+        <body><pre>${travelDiaryText
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")}</pre></body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  }
 
   return (
     <div
@@ -1109,6 +1178,70 @@ function PassportDrawer({
 
           <section>
             <p className={cn("text-[11px] font-semibold uppercase tracking-[0.24em]", isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft")}>
+              Travel diary
+            </p>
+            <div
+              className={cn(
+                "mt-4 rounded-[1.2rem] border px-4 py-4",
+                isDarkTheme
+                  ? "border-[#d6b071]/22 bg-[#d6b071]/8"
+                  : "border-accent-soft/24 bg-accent-soft/8"
+              )}
+            >
+              <p className={cn("max-h-52 overflow-y-auto whitespace-pre-wrap text-sm leading-7", isDarkTheme ? "text-white/76" : "text-foreground/76")}>
+                {travelDiaryText}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={copyTravelDiary}
+                  className={cn(
+                    "rounded-full border px-4 py-2 text-xs font-semibold",
+                    isDarkTheme
+                      ? "border-white/14 bg-white/10 text-white hover:bg-white/16"
+                      : "border-border/70 bg-background/80 text-foreground hover:bg-background"
+                  )}
+                >
+                  {diaryCopyStatus === "copied" ? "Copied" : "Copy diary"}
+                </button>
+                <button
+                  type="button"
+                  onClick={printTravelDiary}
+                  className={cn(
+                    "rounded-full border px-4 py-2 text-xs font-semibold",
+                    isDarkTheme
+                      ? "border-white/14 bg-white/10 text-white hover:bg-white/16"
+                      : "border-border/70 bg-background/80 text-foreground hover:bg-background"
+                  )}
+                >
+                  Print / PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDiaryGeneratedAt(Date.now());
+                    setDiaryCopyStatus("idle");
+                  }}
+                  className={cn(
+                    "rounded-full border px-4 py-2 text-xs font-semibold",
+                    isDarkTheme
+                      ? "border-[#d6b071]/30 bg-[#d6b071]/14 text-[#f5ddb4] hover:bg-[#d6b071]/22"
+                      : "border-accent-soft/30 bg-accent-soft/14 text-accent-strong hover:bg-accent-soft/22"
+                  )}
+                >
+                  Regenerate
+                </button>
+              </div>
+              {diaryCopyStatus === "error" ? (
+                <p className="mt-3 text-xs text-red-400">
+                  Copy failed. Use Print / PDF instead.
+                </p>
+              ) : null}
+            </div>
+          </section>
+
+          <section>
+            <p className={cn("text-[11px] font-semibold uppercase tracking-[0.24em]", isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft")}>
               {pickLocalizedText(passport.routeSealsLabel, language)}
             </p>
             <div className="mt-4 space-y-3">
@@ -1242,7 +1375,7 @@ export function PanoramaExperience({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const reduceMotion = useReducedMotion() ?? false;
+  const prefersReducedMotion = useReducedMotion() ?? false;
   const { language, theme } = useSitePreferences();
   const ui = exploreUiCopy[language];
   const journeyUi = journeyUiCopy[language];
@@ -1268,6 +1401,11 @@ export function PanoramaExperience({
     (state) => state.setCustomTourProgress
   );
   const resetExploreProgress = useAppStore((state) => state.resetExploreProgress);
+  const accessibilityPreferences = useAppStore(
+    (state) => state.accessibilityPreferences
+  );
+  const reduceMotion =
+    prefersReducedMotion || accessibilityPreferences.reduceMotion;
 
   const [mapScale, setMapScale] = useState(exploreExperience.map.initialScale);
   const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
@@ -2365,6 +2503,11 @@ export function PanoramaExperience({
     <section
       className={cn(
         "relative h-[100svh] overflow-hidden",
+        accessibilityPreferences.textScale === "large" ? "text-[1.07rem]" : "",
+        accessibilityPreferences.contrast === "high"
+          ? "contrast-125 saturate-110"
+          : "",
+        accessibilityPreferences.simplified ? "[&_p]:leading-8" : "",
         isDarkTheme ? "bg-[#05070d] text-white" : "bg-background text-foreground"
       )}
       onPointerMove={handleScenePointerMove}
@@ -3594,6 +3737,9 @@ export function PanoramaExperience({
                 journeyProgressById={journeyProgressById}
                 missionStates={passportMissions}
                 activeCustomTour={activeCustomTour}
+                customTours={customTours}
+                activeCustomTourId={activeCustomTourId}
+                activeExploreRouteId={activeJourney?.id ?? activeExploreRouteId}
                 overallCompletionRate={overallPassportCompletionRate}
                 onOpenPlace={openPlace}
                 onOpenRouteMap={openRouteMapFromPassport}

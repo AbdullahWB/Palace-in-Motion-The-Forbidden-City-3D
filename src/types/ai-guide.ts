@@ -55,6 +55,12 @@ export type PalaceKnowledgeEntry = {
   thingsToNotice: BilingualText[];
   quiz: PalaceKnowledgeQuizQuestion[];
   sourceNote: BilingualText;
+  sourceTitle: BilingualText;
+  sourceStatus: "local-guide" | "museum-review-needed";
+  sourceConfidence: "guide-ready" | "draft";
+  preservationNote: BilingualText;
+  learningTags: BilingualText[];
+  accessibilitySummary: BilingualText;
   recommendedModes: GuideMode[];
 };
 
@@ -139,6 +145,21 @@ export type GuideQuizPayload = {
   sourceNote: string;
 };
 
+export type GuideSourceCard = {
+  id: string;
+  title: string;
+  body: string;
+  sourceNote: string;
+  sourceStatus: PalaceKnowledgeEntry["sourceStatus"] | "scene-context";
+  sourceConfidence: PalaceKnowledgeEntry["sourceConfidence"] | "limited";
+};
+
+export type GuideVerification = {
+  label: string;
+  status: "grounded" | "limited" | "missing";
+  message: string;
+};
+
 export type GuideResponse = {
   answer: string;
   mode: GuideMode;
@@ -150,6 +171,8 @@ export type GuideResponse = {
   quiz?: GuideQuizPayload;
   customTour?: CustomTourState;
   siteAction?: GuideSiteActionPayload;
+  sourceCards?: GuideSourceCard[];
+  verification?: GuideVerification;
   aiLabel?: string;
   meta?: {
     provider: "deepseek" | "fallback";

@@ -11,11 +11,14 @@ import {
   DEFAULT_APP_LANGUAGE,
   isAppLanguage,
 } from "@/lib/site-preferences";
+import { pickLocalizedText } from "@/lib/i18n";
 import type {
   GuideIntent,
   GuideMode,
   GuideRequest,
   GuideResponse,
+  GuideSourceCard,
+  GuideVerification,
   TourBuilderInterest,
 } from "@/types/ai-guide";
 import type { ExploreJourneyRouteId, HeritageZoneId } from "@/types/content";
@@ -151,6 +154,106 @@ async function handleIntent({
   }
 }
 
+function buildVerificationPayload({
+  context,
+  language,
+}: {
+  context: ReturnType<typeof resolveGuideContext>;
+  language: "zh" | "en";
+}): {
+  sourceCards: GuideSourceCard[];
+  verification: GuideVerification;
+} {
+  if (context.placeKnowledge) {
+    const knowledge = context.placeKnowledge;
+
+    return {
+      sourceCards: [
+        {
+          id: knowledge.placeSlug,
+          title: pickLocalizedText(knowledge.sourceTitle, language),
+          body: pickLocalizedText(knowledge.historyNote, language),
+          sourceNote: pickLocalizedText(knowledge.sourceNote, language),
+          sourceStatus: knowledge.sourceStatus,
+          sourceConfidence: knowledge.sourceConfidence,
+        },
+        {
+          id: `${knowledge.placeSlug}-preservation`,
+          title:
+            language === "zh"
+              ? "保护与包容说明"
+              : "Preservation and accessibility note",
+          body: [
+            pickLocalizedText(knowledge.preservationNote, language),
+            pickLocalizedText(knowledge.accessibilitySummary, language),
+          ].join(" "),
+          sourceNote: pickLocalizedText(knowledge.sourceNote, language),
+          sourceStatus: knowledge.sourceStatus,
+          sourceConfidence: knowledge.sourceConfidence,
+        },
+      ],
+      verification: {
+        label:
+          language === "zh"
+            ? "基于 Palace Guide Source"
+            : "Based on Palace Guide Source",
+        status: "grounded",
+        message: pickLocalizedText(knowledge.sourceNote, language),
+      },
+    };
+  }
+
+  if (context.hasSpecificContext) {
+    return {
+      sourceCards: [
+        {
+          id: context.sourceIds[0] ?? "scene-context",
+          title:
+            language === "zh"
+              ? "本地场景上下文"
+              : "Local scene context",
+          body:
+            context.tourStep?.explanation ??
+            context.hotspot?.hotspotDescription ??
+            context.site.summary,
+          sourceNote:
+            language === "zh"
+              ? "此回答使用应用内本地场景资料；更具体的宫殿来源卡尚未绑定。"
+              : "This answer uses local scene material; a more specific palace source card is not attached yet.",
+          sourceStatus: "scene-context",
+          sourceConfidence: "limited",
+        },
+      ],
+      verification: {
+        label:
+          language === "zh"
+            ? "基于本地场景资料"
+            : "Based on local scene context",
+        status: "limited",
+        message:
+          language === "zh"
+            ? "此回答保持保守，因为当前问题没有绑定具体 Palace Guide Source 条目。"
+            : "This answer is conservative because the current question is not bound to a specific Palace Guide Source entry.",
+      },
+    };
+  }
+
+  return {
+    sourceCards: [],
+    verification: {
+      label:
+        language === "zh"
+          ? "本地来源不足"
+          : "Local source limited",
+      status: "missing",
+      message:
+        language === "zh"
+          ? "本地导览资料中暂未提供足够的具体来源；回答应视为保守方向性说明。"
+          : "The local guide content does not yet provide enough specific source material; treat the answer as conservative orientation only.",
+    },
+  };
+}
+
 export async function POST(request: Request) {
   let body: Record<string, unknown>;
 
@@ -227,6 +330,10 @@ export async function POST(request: Request) {
     context,
   });
   const latencyMs = Math.max(1, Math.round(performance.now() - startedAt));
+  const verificationPayload = buildVerificationPayload({
+    context,
+    language,
+  });
 
   const response: GuideResponse = {
     answer: result.answer.trim(),
@@ -239,6 +346,8 @@ export async function POST(request: Request) {
     quiz: result.quiz,
     customTour: result.customTour,
     siteAction: result.siteAction,
+    sourceCards: verificationPayload.sourceCards,
+    verification: verificationPayload.verification,
     aiLabel: AI_GENERATED_LABEL,
     meta: {
       provider: result.provider,

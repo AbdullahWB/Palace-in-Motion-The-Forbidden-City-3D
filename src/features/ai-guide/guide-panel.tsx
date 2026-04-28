@@ -228,6 +228,34 @@ export function GuidePanel({
 
               <p className="mt-3 text-sm leading-7 text-muted">{response.answer}</p>
 
+              {response.verification ? (
+                <div className="mt-4 rounded-[1.1rem] border border-accent/15 bg-white/60 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-accent-soft">
+                    {response.verification.label}
+                  </p>
+                  <p className="mt-2 text-xs leading-6 text-muted">
+                    {response.verification.message}
+                  </p>
+                  {response.sourceCards?.length ? (
+                    <div className="mt-3 grid gap-2">
+                      {response.sourceCards.slice(0, 2).map((source) => (
+                        <article
+                          key={source.id}
+                          className="rounded-[0.95rem] border border-accent/12 bg-white/72 p-3"
+                        >
+                          <p className="text-sm font-semibold text-foreground">
+                            {source.title}
+                          </p>
+                          <p className="mt-1 text-xs leading-6 text-muted">
+                            {source.body}
+                          </p>
+                        </article>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
               <div className="mt-4 flex flex-wrap gap-2">
                 <span className="rounded-full border border-accent/15 bg-white/72 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-soft">
                   {response.contextLabel}

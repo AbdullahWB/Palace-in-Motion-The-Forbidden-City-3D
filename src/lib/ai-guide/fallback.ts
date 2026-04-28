@@ -197,7 +197,7 @@ function buildFallbackAnswer({
 
   if (!context.hasSpecificContext && language === "zh") {
     return [
-      "我会依据当前页面内可用的本地场景资料谨慎回答。",
+      "当前问题没有绑定具体 Palace Guide Source；更具体的历史信息在本地导览资料中暂不可用，因此我只提供保守的方向性说明。",
       contextHint ? `当前视角：${contextHint}。` : "",
       ...routeLead,
       context.site.summary,
@@ -209,7 +209,7 @@ function buildFallbackAnswer({
 
   if (!context.hasSpecificContext) {
     return [
-      "I can answer cautiously from the current local scene material.",
+      "A specific Palace Guide Source is not attached to this question yet, so detailed historical claims are not available in the local guide content. I can only give conservative orientation.",
       contextHint ? `Current lens: ${contextHint}.` : "",
       ...routeLead,
       context.site.summary,

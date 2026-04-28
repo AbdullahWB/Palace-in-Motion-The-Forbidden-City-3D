@@ -169,7 +169,11 @@ export function FloatingAIAssistant() {
 
       setAnswer(formatGuideResponse(data));
       setAnswerMeta(
-        [data.meta?.provider ?? "guide", data.aiLabel ?? copy.aiLabel]
+        [
+          data.verification?.label,
+          data.meta?.provider ?? "guide",
+          data.aiLabel ?? copy.aiLabel,
+        ]
           .filter(Boolean)
           .join(" | ")
       );

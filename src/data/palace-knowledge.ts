@@ -15,13 +15,63 @@ import type { AppLanguage } from "@/types/preferences";
 
 type KnowledgeDetail = Omit<
   PalaceKnowledgeEntry,
-  "routeIds" | "shortDescription"
+  | "routeIds"
+  | "shortDescription"
+  | "sourceTitle"
+  | "sourceStatus"
+  | "sourceConfidence"
+  | "preservationNote"
+  | "learningTags"
+  | "accessibilitySummary"
 >;
+
+const sourceTitle = {
+  zh: "Palace in Motion 本地导览资料",
+  en: "Palace in Motion Local Guide Source",
+};
 
 const sourceNote = {
   zh: "基于本项目内置的宫殿导览资料；需要更精确史实前应补充馆方或学术来源。",
   en: "Based on the local Palace in Motion guide content; add museum or academic sources before making more specific historical claims.",
 };
+
+function buildPreservationNote(place: ExplorePlace) {
+  const title = pickLocalizedText(place.title, "en");
+
+  return {
+    zh: `${title} 的保护阅读重点包括屋顶、墙面、院落铺装、游客动线和低影响参观方式。本项目用它提醒用户：文化遗产不仅要被观看，也需要被持续照护。`,
+    en: `${title} should be read through preservation as well as beauty: roof care, painted surfaces, courtyard paving, visitor flow, and low-impact tourism all affect how this heritage space is protected.`,
+  };
+}
+
+function buildAccessibilitySummary(place: ExplorePlace) {
+  return {
+    zh: `简明说明：${pickLocalizedText(place.shortDescription, "en")}`,
+    en: `Simplified guide: ${pickLocalizedText(place.shortDescription, "en")}`,
+  };
+}
+
+function buildLearningTags(
+  place: ExplorePlace,
+  routeIds: ExploreJourneyRouteId[]
+) {
+  const routeTags = routeIds.map((routeId) => {
+    const route = exploreExperience.journeys.find(
+      (journey) => journey.id === routeId
+    );
+
+    return {
+      zh: pickLocalizedText(route?.title, "zh"),
+      en: pickLocalizedText(route?.title, "en"),
+    };
+  });
+
+  return [
+    ...routeTags,
+    { zh: "建筑观察", en: "Architecture reading" },
+    { zh: "遗产保护", en: "Heritage preservation" },
+  ];
+}
 
 function quiz(
   id: string,
@@ -388,11 +438,21 @@ const routeIdsByPlaceSlug = exploreExperience.places.reduce(
 );
 
 export const palaceKnowledgeEntries: PalaceKnowledgeEntry[] =
-  exploreExperience.places.map((place) => ({
-    ...knowledgeDetails[place.slug],
-    shortDescription: place.shortDescription,
-    routeIds: routeIdsByPlaceSlug[place.slug] ?? [],
-  }));
+  exploreExperience.places.map((place) => {
+    const routeIds = routeIdsByPlaceSlug[place.slug] ?? [];
+
+    return {
+      ...knowledgeDetails[place.slug],
+      shortDescription: place.shortDescription,
+      routeIds,
+      sourceTitle,
+      sourceStatus: "local-guide",
+      sourceConfidence: "guide-ready",
+      preservationNote: buildPreservationNote(place),
+      learningTags: buildLearningTags(place, routeIds),
+      accessibilitySummary: buildAccessibilitySummary(place),
+    };
+  });
 
 const palaceKnowledgeByPlaceSlug = new Map(
   palaceKnowledgeEntries.map((entry) => [entry.placeSlug, entry])

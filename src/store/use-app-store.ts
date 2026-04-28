@@ -11,6 +11,7 @@ import type {
   CustomTourState,
   PassportMissionState,
 } from "@/types/ai-guide";
+import type { AccessibilityPreferences } from "@/types/preferences";
 
 type PersistedAppStoreState = Pick<
   AppStoreState,
@@ -24,6 +25,7 @@ type PersistedAppStoreState = Pick<
   | "passportMissions"
   | "customTours"
   | "activeCustomTourId"
+  | "accessibilityPreferences"
 >;
 
 export type AppStoreState = {
@@ -38,6 +40,7 @@ export type AppStoreState = {
   passportMissions: PassportMissionState[];
   customTours: CustomTourState[];
   activeCustomTourId: string | null;
+  accessibilityPreferences: AccessibilityPreferences;
   setNavOpen: (isOpen: boolean) => void;
   setSelectedExploreZoneId: (zoneId: ExploreZone["id"] | null) => void;
   markExploreZoneVisited: (zoneId: ExploreZone["id"]) => void;
@@ -47,10 +50,20 @@ export type AppStoreState = {
   saveCustomTour: (tour: CustomTourState) => void;
   setActiveCustomTour: (tourId: string | null) => void;
   setCustomTourProgress: (tourId: string, currentStopIndex: number) => void;
+  updateAccessibilityPreferences: (
+    preferences: Partial<AccessibilityPreferences>
+  ) => void;
   resetExploreProgress: () => void;
   setSelectedPostcardFrame: (frameId: PostcardFrame["id"]) => void;
   setHasCompletedTour: (value: boolean) => void;
   setHasGeneratedPostcard: (value: boolean) => void;
+};
+
+export const defaultAccessibilityPreferences: AccessibilityPreferences = {
+  textScale: "standard",
+  contrast: "standard",
+  reduceMotion: false,
+  simplified: false,
 };
 
 const initialPersistedState: PersistedAppStoreState = {
@@ -64,6 +77,7 @@ const initialPersistedState: PersistedAppStoreState = {
   passportMissions: [],
   customTours: [],
   activeCustomTourId: null,
+  accessibilityPreferences: defaultAccessibilityPreferences,
 };
 
 function migratePersistedAppState(value: unknown): PersistedAppStoreState {
@@ -131,6 +145,14 @@ function migratePersistedAppState(value: unknown): PersistedAppStoreState {
       typeof persisted.activeCustomTourId === "string"
         ? persisted.activeCustomTourId
         : null,
+    accessibilityPreferences:
+      persisted.accessibilityPreferences &&
+      typeof persisted.accessibilityPreferences === "object"
+        ? {
+            ...defaultAccessibilityPreferences,
+            ...(persisted.accessibilityPreferences as Partial<AccessibilityPreferences>),
+          }
+        : defaultAccessibilityPreferences,
   };
 }
 
@@ -202,10 +224,18 @@ export const useAppStore = create<AppStoreState>()(
               : tour
           ),
         })),
+      updateAccessibilityPreferences: (preferences) =>
+        set((state) => ({
+          accessibilityPreferences: {
+            ...state.accessibilityPreferences,
+            ...preferences,
+          },
+        })),
       resetExploreProgress: () =>
-        set({
+        set((state) => ({
           ...initialPersistedState,
-        }),
+          accessibilityPreferences: state.accessibilityPreferences,
+        })),
       setSelectedPostcardFrame: (frameId) => set({ selectedPostcardFrame: frameId }),
       setHasCompletedTour: (value) => set({ hasCompletedTour: value }),
       setHasGeneratedPostcard: (value) => set({ hasGeneratedPostcard: value }),
@@ -213,7 +243,7 @@ export const useAppStore = create<AppStoreState>()(
     {
       name: "palace-in-motion-app",
       storage: createJSONStorage(() => localStorage),
-      version: 3,
+      version: 4,
       migrate: migratePersistedAppState,
       partialize: (state) => ({
         selectedExploreZoneId: state.selectedExploreZoneId,
@@ -226,6 +256,7 @@ export const useAppStore = create<AppStoreState>()(
         passportMissions: state.passportMissions,
         customTours: state.customTours,
         activeCustomTourId: state.activeCustomTourId,
+        accessibilityPreferences: state.accessibilityPreferences,
       }),
     }
   )
