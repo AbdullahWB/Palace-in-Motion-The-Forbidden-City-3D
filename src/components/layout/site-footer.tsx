@@ -15,6 +15,7 @@ export function SiteFooter() {
     pathname === "/" ||
     pathname === "/selfie" ||
     pathname === "/explore" ||
+    pathname === "/companion" ||
     pathname === "/3d-view"
   ) {
     return null;

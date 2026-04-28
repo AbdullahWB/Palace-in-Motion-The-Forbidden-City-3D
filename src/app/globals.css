@@ -124,9 +124,45 @@ button:focus-visible {
   outline-offset: 3px;
 }
 
+textarea:focus-visible,
+input:focus-visible,
+summary:focus-visible {
+  outline: 2px solid rgba(138, 34, 48, 0.32);
+  outline-offset: 3px;
+}
+
 html[data-theme="dark"] a:focus-visible,
-html[data-theme="dark"] button:focus-visible {
+html[data-theme="dark"] button:focus-visible,
+html[data-theme="dark"] textarea:focus-visible,
+html[data-theme="dark"] input:focus-visible,
+html[data-theme="dark"] summary:focus-visible {
   outline-color: rgba(214, 176, 113, 0.34);
+}
+
+.journey-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(214, 176, 113, 0.44) transparent;
+}
+
+.journey-scrollbar::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+.journey-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.journey-scrollbar::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: rgba(214, 176, 113, 0.44);
+  background-clip: padding-box;
+}
+
+.journey-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(214, 176, 113, 0.68);
+  background-clip: padding-box;
 }
 
 .paper-panel {

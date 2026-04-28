@@ -685,7 +685,7 @@ function PersonalizedTourBuilder({
         ) : null}
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
+      <div className="mt-4 grid gap-4">
         <div>
           <p className={cn("text-[11px] font-semibold uppercase tracking-[0.2em]", isDarkTheme ? "text-white/58" : "text-foreground/58")}>
             {copy.timeLabel}
@@ -2786,7 +2786,7 @@ export function PanoramaExperience({
                   : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }
               }
               className={cn(
-                "relative z-10 max-h-[calc(100svh-1.5rem)] w-full max-w-[82rem] overflow-y-auto rounded-[2rem] border p-3 shadow-[0_32px_90px_rgba(0,0,0,0.26)] backdrop-blur-2xl sm:p-4",
+                "journey-scrollbar relative z-10 max-h-[calc(100svh-1.5rem)] w-full max-w-[92rem] overflow-y-auto rounded-[2rem] border p-3 shadow-[0_32px_90px_rgba(0,0,0,0.26)] backdrop-blur-2xl sm:p-4 lg:overflow-hidden",
                 isDarkTheme
                   ? "border-[#d6b071]/22 bg-[rgba(8,12,20,0.78)] text-white"
                   : "border-border/70 bg-[rgba(255,248,240,0.86)] text-foreground"
@@ -2854,16 +2854,17 @@ export function PanoramaExperience({
                 </button>
               </div>
 
-              <div
-                className={cn(
-                  "mb-4 rounded-[1.55rem] border p-4",
-                  isDarkTheme
-                    ? "border-white/10 bg-white/6"
-                    : "border-border/70 bg-background/66"
-                )}
-              >
-                {activeJourney ? (
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="grid min-h-0 gap-4 lg:grid-cols-[21rem_minmax(0,1fr)]">
+                <div
+                  className={cn(
+                    "journey-scrollbar min-h-0 overflow-y-auto rounded-[1.55rem] border p-4 lg:max-h-[min(68svh,44rem)]",
+                    isDarkTheme
+                      ? "border-white/10 bg-white/6"
+                      : "border-border/70 bg-background/66"
+                  )}
+                >
+                  {activeJourney ? (
+                  <div className="flex flex-col gap-4">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-3">
                         <span
@@ -2963,7 +2964,7 @@ export function PanoramaExperience({
                       </button>
                     </div>
                   </div>
-                ) : (
+                  ) : (
                   <div>
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
@@ -2999,7 +3000,7 @@ export function PanoramaExperience({
                       </span>
                     </div>
 
-                    <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    <div className="mt-4 grid gap-2">
                       {exploreExperience.journeys.map((journey) => (
                         <JourneyRouteCard
                           key={journey.id}
@@ -3042,10 +3043,10 @@ export function PanoramaExperience({
                       />
                     </div>
                   </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              <div className="relative h-[min(54svh,38rem)] overflow-hidden rounded-[1.65rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,246,227,0.9),rgba(246,233,208,0.78))] md:h-[min(68svh,44rem)]">
+                <div className="relative min-h-[26rem] overflow-hidden rounded-[1.65rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,246,227,0.9),rgba(246,233,208,0.78))] lg:h-[min(68svh,44rem)]">
                 <div
                   className="absolute inset-0 touch-none cursor-grab active:cursor-grabbing"
                   onWheel={handleMapWheel}
@@ -3191,6 +3192,7 @@ export function PanoramaExperience({
                     +
                   </button>
                 </div>
+                </div>
               </div>
 
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-2">
@@ -3283,10 +3285,10 @@ export function PanoramaExperience({
             />
           </div>
 
-          <div className="absolute inset-x-4 bottom-4 z-30 flex max-h-[42svh] max-w-[calc(100vw-2rem)] flex-col gap-3 overflow-y-auto lg:left-4 lg:right-auto lg:inline-flex lg:max-h-none lg:overflow-visible">
+          <div className="absolute inset-x-3 bottom-3 z-30 flex max-h-[46svh] flex-col gap-2 overflow-y-auto lg:left-1/2 lg:right-auto lg:w-[min(78rem,calc(100vw-2rem))] lg:max-h-none lg:-translate-x-1/2 lg:overflow-visible">
             <div
               className={cn(
-                "flex flex-wrap items-center gap-2 rounded-[1.5rem] border px-3 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur-2xl sm:gap-3 sm:px-4",
+                "journey-scrollbar flex items-center gap-2 overflow-x-auto rounded-[1.5rem] border px-3 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur-2xl sm:justify-center sm:gap-3 sm:px-4",
                 isDarkTheme
                   ? "border-white/12 bg-[rgba(8,12,20,0.54)]"
                   : "border-border/70 bg-[rgba(255,248,240,0.84)]"
@@ -3296,7 +3298,7 @@ export function PanoramaExperience({
                 type="button"
                 onClick={openMap}
                 className={cn(
-                  "rounded-full border px-4 py-3 text-sm font-semibold",
+                    "shrink-0 rounded-full border px-4 py-3 text-sm font-semibold",
                   isDarkTheme
                     ? "border-white/16 bg-[rgba(8,12,20,0.56)] text-white hover:bg-[rgba(8,12,20,0.68)]"
                     : "border-border/80 bg-background/82 text-foreground hover:bg-background"
@@ -3313,7 +3315,7 @@ export function PanoramaExperience({
                     activeJourneyStopIndex + 1 >= activeJourney.placeOrder.length
                   }
                   className={cn(
-                    "rounded-full border px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45",
+                    "shrink-0 rounded-full border px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45",
                     isDarkTheme
                       ? "border-[#d6b071]/30 bg-[#d6b071]/14 text-[#f5ddb4] hover:bg-[#d6b071]/22"
                       : "border-accent-soft/30 bg-accent-soft/14 text-accent-strong hover:bg-accent-soft/22"
@@ -3326,7 +3328,7 @@ export function PanoramaExperience({
                 type="button"
                 onClick={openWelcome}
                 className={cn(
-                  "rounded-full border px-4 py-3 text-sm font-semibold",
+                  "shrink-0 rounded-full border px-4 py-3 text-sm font-semibold",
                   isDarkTheme
                     ? "border-white/16 bg-[rgba(8,12,20,0.56)] text-white hover:bg-[rgba(8,12,20,0.68)]"
                     : "border-border/80 bg-background/82 text-foreground hover:bg-background"
@@ -3338,7 +3340,7 @@ export function PanoramaExperience({
                 type="button"
                 onClick={startAutoTour}
                 className={cn(
-                  "rounded-full border px-4 py-3 text-sm font-semibold",
+                  "shrink-0 rounded-full border px-4 py-3 text-sm font-semibold",
                   isDarkTheme
                     ? "border-[#f5ddb4]/30 bg-[#f5ddb4]/14 text-[#f5ddb4] hover:bg-[#f5ddb4]/22"
                     : "border-accent-soft/30 bg-accent-soft/14 text-accent-strong hover:bg-accent-soft/22"
@@ -3353,7 +3355,7 @@ export function PanoramaExperience({
                   setIsSelfieModalOpen(true);
                 }}
                 className={cn(
-                  "rounded-full border px-4 py-3 text-sm font-semibold",
+                  "shrink-0 rounded-full border px-4 py-3 text-sm font-semibold",
                   isDarkTheme
                     ? "border-[#d6b071]/30 bg-[#d6b071]/14 text-[#f5ddb4] hover:bg-[#d6b071]/22"
                     : "border-accent-soft/30 bg-accent-soft/14 text-accent-strong hover:bg-accent-soft/22"
@@ -3366,7 +3368,7 @@ export function PanoramaExperience({
                 onClick={openPassport}
                 aria-label={journeyUi.passport}
                 className={cn(
-                  "rounded-full border px-4 py-3 text-sm font-semibold",
+                  "shrink-0 rounded-full border px-4 py-3 text-sm font-semibold",
                   isDarkTheme
                     ? "border-white/16 bg-[rgba(8,12,20,0.56)] text-white hover:bg-[rgba(8,12,20,0.68)]"
                     : "border-border/80 bg-background/82 text-foreground hover:bg-background"
@@ -3381,7 +3383,7 @@ export function PanoramaExperience({
 
             <div
               className={cn(
-                "w-fit max-w-[calc(100vw-2rem)] rounded-[1.65rem] border p-3 shadow-[0_22px_70px_rgba(0,0,0,0.22)] backdrop-blur-2xl",
+                "w-full rounded-[1.45rem] border p-3 shadow-[0_22px_70px_rgba(0,0,0,0.22)] backdrop-blur-2xl",
                 isDarkTheme
                   ? "border-white/12 bg-[rgba(8,12,20,0.54)]"
                   : "border-border/70 bg-[rgba(255,248,240,0.84)]"
@@ -3406,7 +3408,7 @@ export function PanoramaExperience({
                 </div>
               </div>
 
-              <div className="flex w-fit gap-3 overflow-x-auto pb-1">
+              <div className="journey-scrollbar flex w-full gap-2 overflow-x-auto pb-1">
                 {activePlace.gallery.map((photo) => {
                   const isActive = photo.id === activePhoto.id;
 
@@ -3416,7 +3418,7 @@ export function PanoramaExperience({
                       type="button"
                       onClick={() => selectPhoto(photo.id)}
                       className={cn(
-                        "group relative h-20 w-32 shrink-0 overflow-hidden rounded-[1rem] border transition-transform hover:-translate-y-0.5",
+                        "group relative h-16 w-28 shrink-0 overflow-hidden rounded-[0.9rem] border transition-transform hover:-translate-y-0.5 sm:h-20 sm:w-32",
                         isActive
                           ? "border-[#f5ddb4]/70 ring-2 ring-[#f5ddb4]/30"
                           : "border-white/10"
@@ -3445,7 +3447,7 @@ export function PanoramaExperience({
       ) : null}
 
       {isAutoTourActive && activeTourPlace && activeTourPhoto ? (
-        <div className="absolute bottom-[300px] left-4 z-40 w-[min(22rem,calc(100vw-2rem))] sm:bottom-[280px] lg:bottom-[240px]">
+        <div className="absolute left-4 top-[7.25rem] z-40 w-[min(23rem,calc(100vw-2rem))]">
           <div
             className={cn(
               "rounded-[1.5rem] border px-4 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.28)] backdrop-blur-2xl",

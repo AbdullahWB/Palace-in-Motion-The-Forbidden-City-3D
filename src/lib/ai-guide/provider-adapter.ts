@@ -203,6 +203,14 @@ function detectRequestedGuideMode(question: string): GuideMode | null {
     return "tourist";
   }
 
+  if (/\bstory|narrative\b|故事|叙事/.test(question)) {
+    return "story";
+  }
+
+  if (/\bexam|study|notes?\b|考试|笔记|学习/.test(question)) {
+    return "exam";
+  }
+
   if (/\bfun\b|趣味|有趣/.test(question)) {
     return "fun";
   }

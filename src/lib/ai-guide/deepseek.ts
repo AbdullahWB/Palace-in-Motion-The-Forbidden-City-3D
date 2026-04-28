@@ -33,10 +33,13 @@ function getTemperature(mode: GuideMode) {
   switch (mode) {
     case "fun":
       return 0.55;
+    case "story":
+      return 0.45;
     case "child":
     case "tourist":
       return 0.35;
     case "academic":
+    case "exam":
     case "quiz":
       return 0.2;
     case "short":

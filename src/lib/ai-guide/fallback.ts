@@ -98,6 +98,16 @@ function buildFallbackCaption({
           `${prefix}${focusLabel}依据已审核的故宫导览内容进行呈现。`,
           anchor,
         ].join(" ");
+      case "exam":
+        return [
+          `${prefix}${focusLabel}可作为学习要点来记忆。`,
+          anchor,
+        ].join(" ");
+      case "story":
+        return [
+          `${prefix}${focusLabel}在这段故宫旅程中形成一个可以继续向前阅读的场景。`,
+          anchor,
+        ].join(" ");
       default:
         return [
           `${prefix}${frame?.title ?? "Palace in Motion"}把${focusLabel}定格在一段带有宫廷秩序感的瞬间。`,
@@ -117,6 +127,16 @@ function buildFallbackCaption({
     case "academic":
       return [
         `${prefix}${focusLabel} is presented through the approved palace guide context.`,
+        anchor,
+      ].join(" ");
+    case "exam":
+      return [
+        `${prefix}${focusLabel} can be remembered as a study-note point.`,
+        anchor,
+      ].join(" ");
+    case "story":
+      return [
+        `${prefix}${focusLabel} becomes one scene in the continuing palace journey.`,
         anchor,
       ].join(" ");
     default:
@@ -234,6 +254,25 @@ function buildFallbackAnswer({
         ]
           .filter(Boolean)
           .join(" ");
+      case "exam":
+        return [
+          `考点：${context.contextLabel}。`,
+          `核心理解：${focusSummary}`,
+          noticeSummary ? `记忆要点：${noticeSummary}` : "",
+          ...routeLead,
+          relevantFact ? `可引用细节：${relevantFact.body}` : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+      case "story":
+        return [
+          `沿着当前路线来到${context.contextLabel}时，故事的重点转向：${focusSummary}`,
+          noticeSummary ? `画面中可以继续观察：${noticeSummary}` : "",
+          ...routeLead,
+          relevantFact ? `这个叙事由一条本地资料支撑：${relevantFact.body}` : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
       default:
         return [
           `在当前${context.contextLabel}的语境下，${focusSummary}`,
@@ -281,6 +320,25 @@ function buildFallbackAnswer({
         ...routeLead,
         relevantFact ? `A supporting local note is: ${relevantFact.body}` : "",
         "This answer is limited to the app's structured palace guide content.",
+      ]
+        .filter(Boolean)
+        .join(" ");
+    case "exam":
+      return [
+        `Exam note: ${context.contextLabel}.`,
+        `Core idea: ${focusSummary}`,
+        noticeSummary ? `Memory points: ${noticeSummary}` : "",
+        ...routeLead,
+        relevantFact ? `Useful supporting detail: ${relevantFact.body}` : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+    case "story":
+      return [
+        `As the journey reaches ${context.contextLabel}, the story turns toward this idea: ${focusSummary}`,
+        noticeSummary ? `In the scene, keep following: ${noticeSummary}` : "",
+        ...routeLead,
+        relevantFact ? `A grounded detail supporting this reading is: ${relevantFact.body}` : "",
       ]
         .filter(Boolean)
         .join(" ");

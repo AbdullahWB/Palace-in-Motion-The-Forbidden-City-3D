@@ -75,9 +75,11 @@ export const companionGuideModes: Array<{
   { value: "short", label: localized("简短", "Short") },
   { value: "detailed", label: localized("详细", "Detailed") },
   { value: "fun", label: localized("趣味", "Fun") },
+  { value: "story", label: localized("故事", "Story") },
   { value: "child", label: localized("儿童", "Child") },
   { value: "academic", label: localized("学术", "Academic") },
   { value: "tourist", label: localized("游客", "Tourist") },
+  { value: "exam", label: localized("考点", "Exam notes") },
   { value: "quiz", label: localized("测验", "Quiz") },
 ];
 
@@ -162,6 +164,9 @@ export function getCompanionCopy(language: AppLanguage) {
       routes: "路线",
       tools: "工具",
       tourBuilder: "智能路线",
+      comfortMode: "舒适模式",
+      readAloud: "朗读",
+      stopAudio: "停止朗读",
       clearHistory: "清空记录",
       aiLabel: "AI-generated explanation based on palace guide content.",
     };
@@ -183,6 +188,9 @@ export function getCompanionCopy(language: AppLanguage) {
     routes: "Routes",
     tools: "Tools",
     tourBuilder: "Smart tour",
+    comfortMode: "Comfort mode",
+    readAloud: "Read aloud",
+    stopAudio: "Stop audio",
     clearHistory: "Clear history",
     aiLabel: "AI-generated explanation based on palace guide content.",
   };
@@ -327,6 +335,8 @@ export function getStarterPrompts(context: CompanionRouteContext) {
     localized("带我去下一站", "Move to the next stop"),
     localized("考考我", "Quiz me"),
     localized("为我规划一条 10 分钟路线", "Build a 10-minute tour"),
+    localized("用故事方式讲这条路线", "Tell this route as a historical story"),
+    localized("整理成考试笔记", "Make exam notes"),
     localized("打开护照", "Open Passport"),
     localized("切换到英文", "Switch language to English"),
     localized(

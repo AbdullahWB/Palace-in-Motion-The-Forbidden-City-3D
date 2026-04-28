@@ -17,10 +17,14 @@ function getAnswerModeInstruction(mode: GuideMode) {
       return "Answer like a practical museum audio guide for a first-time tourist.";
     case "academic":
       return "Answer in a concise academic museum-label style, with cautious claims and clear source limits.";
+    case "exam":
+      return "Answer as concise study notes: define the key idea, list 2 to 3 exam-relevant points, and keep claims grounded.";
     case "quiz":
       return "Keep the answer quiz-like: ask one clear check-your-understanding question if useful.";
     case "fun":
       return "Answer with a short engaging narration or fun fact, while staying accurate and grounded.";
+    case "story":
+      return "Answer as a grounded historical route story: connect the place to movement, sequence, and atmosphere without inventing facts.";
     default:
       return "Answer with one compact explanatory paragraph.";
   }
@@ -38,8 +42,12 @@ function getCaptionModeInstruction(mode: GuideMode) {
       return "Write one practical souvenir caption for a first-time visitor.";
     case "academic":
       return "Write one formal museum-style caption grounded in the approved guide content.";
+    case "exam":
+      return "Write one study-note style caption that names the key visual detail and its meaning.";
     case "quiz":
       return "Write one caption that points to one noticeable detail.";
+    case "story":
+      return "Write one story-like caption that connects the scene to the palace journey.";
     default:
       return "Write a short playful postcard caption or engaging narration in 1 to 2 sentences.";
   }

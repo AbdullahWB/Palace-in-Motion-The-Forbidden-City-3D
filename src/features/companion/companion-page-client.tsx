@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
@@ -27,6 +28,7 @@ import {
   getExploreJourneyById,
   getExploreJourneyPlaces,
   getExploreJourneyStopIndex,
+  getExplorePhotoById,
   getExplorePlaceBySlug,
   getUnlockedPassportSealIds,
 } from "@/data/panorama";
@@ -122,6 +124,11 @@ export function CompanionPageClient() {
       selectedRoute?.placeOrder[0] ?? exploreExperience.places[0]?.slug ?? null
     );
   const selectedPlace = getExplorePlaceBySlug(selectedPlaceSlug);
+  const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
+  const selectedPhoto = getExplorePhotoById(
+    selectedPlace,
+    selectedPhotoId ?? selectedPlace?.defaultPhotoId ?? null
+  );
   const selectedStopIndex = getExploreJourneyStopIndex(
     selectedRoute,
     selectedPlaceSlug
@@ -133,6 +140,8 @@ export function CompanionPageClient() {
   const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isComfortMode, setIsComfortMode] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [builderTimeBudget, setBuilderTimeBudget] = useState<5 | 10 | 20>(10);
   const [builderInterests, setBuilderInterests] = useState<TourBuilderInterest[]>([
     "overview",
@@ -179,6 +188,18 @@ export function CompanionPageClient() {
     routeId: selectedRoute?.id ?? null,
     placeSlug: selectedRoute?.placeOrder[0] ?? null,
   });
+  const welcomeBackMessage =
+    language === "zh"
+      ? `欢迎回来。你已经完成 ${visitedPlaceSlugs.length}/${exploreExperience.places.length} 个故宫地点，下一站建议前往 ${
+          continuePlaceSlug
+            ? pickLocalizedText(getExplorePlaceBySlug(continuePlaceSlug)?.title, language)
+            : "宫城地图"
+        }。`
+      : `Welcome back. You have completed ${visitedPlaceSlugs.length}/${exploreExperience.places.length} palace places. Your next suggested stop is ${
+          continuePlaceSlug
+            ? pickLocalizedText(getExplorePlaceBySlug(continuePlaceSlug)?.title, language)
+            : "the palace map"
+        }.`;
 
   useEffect(() => {
     if (!activeExploreRouteId || selectedRouteId) {
@@ -197,6 +218,10 @@ export function CompanionPageClient() {
       setSelectedPlaceSlug(selectedRoute.placeOrder[0] ?? null);
     }
   }, [selectedPlaceSlug, selectedRoute]);
+
+  useEffect(() => {
+    setSelectedPhotoId(selectedPlace?.defaultPhotoId ?? null);
+  }, [selectedPlace?.defaultPhotoId, selectedPlaceSlug]);
 
   useEffect(() => {
     try {
@@ -331,7 +356,9 @@ export function CompanionPageClient() {
         : null,
       journeyStopIndex: selectedStopIndex >= 0 ? selectedStopIndex + 1 : null,
       journeyStopTotal: selectedRoute?.placeOrder.length ?? null,
-      frameCaption: null,
+      frameCaption: selectedPhoto
+        ? pickLocalizedText(selectedPhoto.caption, language)
+        : null,
     };
   }
 
@@ -434,6 +461,36 @@ export function CompanionPageClient() {
     }
   }
 
+  function speakLatestAnswer() {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      return;
+    }
+
+    const latestAnswer = [...messages]
+      .reverse()
+      .find((message) => message.role === "assistant");
+
+    if (!latestAnswer) {
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(latestAnswer.content);
+    utterance.lang = language === "zh" ? "zh-CN" : "en-US";
+    utterance.rate = isComfortMode ? 0.82 : 0.92;
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  }
+
+  function stopSpeaking() {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+  }
+
   function buildTour() {
     const interests: TourBuilderInterest[] = builderInterests.length
       ? builderInterests
@@ -459,26 +516,26 @@ export function CompanionPageClient() {
     return (
       <section
         className={cn(
-          "rounded-[2rem] border p-5 shadow-[0_24px_80px_rgba(28,18,12,0.12)]",
+          "journey-scrollbar rounded-[1.75rem] border p-4 shadow-[0_24px_80px_rgba(28,18,12,0.12)]",
           isDarkTheme
             ? "border-white/10 bg-[#171313] text-white"
             : "border-[#7c5b35]/20 bg-[#fff8ee]/88 text-[#261a13]",
-          isCompact ? "" : "lg:sticky lg:top-24"
+          isCompact ? "" : "xl:sticky xl:top-4 xl:max-h-[calc(100svh-2rem)] xl:overflow-y-auto"
         )}
       >
         <p className="text-xs font-black uppercase tracking-[0.28em] text-[#bb8a55]">
           {copy.routes}
         </p>
-        <h2 className="mt-3 text-2xl font-black">
+        <h2 className="mt-2 text-xl font-black">
           {selectedRoute ? pickLocalizedText(selectedRoute.title, language) : "Route"}
         </h2>
-        <p className="mt-3 text-sm font-semibold leading-7 opacity-72">
+        <p className="mt-2 text-sm font-semibold leading-6 opacity-72">
           {selectedRoute
             ? pickLocalizedText(selectedRoute.description, language)
             : copy.empty}
         </p>
 
-        <div className="mt-5 grid gap-2">
+        <div className="mt-4 grid gap-2">
           {exploreExperience.journeys.map((journey) => {
             const visitedCount = journey.placeOrder.filter((placeSlug) =>
               visitedPlaceSlugs.includes(placeSlug)
@@ -510,22 +567,22 @@ export function CompanionPageClient() {
           })}
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-2">
+        <div className="mt-4 grid grid-cols-2 gap-2">
           <Link
             href={routeMapHref(selectedRoute?.id ?? null)}
-            className="rounded-full border border-[#e8bd73]/35 bg-[#e8bd73]/14 px-4 py-2 text-sm font-black text-[#d69b54]"
+            className="rounded-full border border-[#e8bd73]/35 bg-[#e8bd73]/14 px-4 py-2 text-center text-sm font-black text-[#d69b54]"
           >
             Open map
           </Link>
           <Link
             href={startRouteHref}
-            className="rounded-full border border-[#ff777d]/35 bg-[#ff777d]/16 px-4 py-2 text-sm font-black text-[#ff7a80]"
+            className="rounded-full border border-[#ff777d]/35 bg-[#ff777d]/16 px-4 py-2 text-center text-sm font-black text-[#ff7a80]"
           >
             Start route
           </Link>
         </div>
 
-        <div className="mt-5 grid gap-2">
+        <div className="journey-scrollbar mt-4 grid max-h-[18rem] gap-2 overflow-y-auto pr-1">
           {selectedRoutePlaces.map((place) => {
             const isSelected = selectedPlaceSlug === place.slug;
             const isVisited = visitedPlaceSlugs.includes(place.slug);
@@ -556,6 +613,72 @@ export function CompanionPageClient() {
             );
           })}
         </div>
+
+        {selectedPlace && selectedPhoto ? (
+          <div className="mt-5 rounded-[1.35rem] border border-white/10 bg-black/12 p-3">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#bb8a55]">
+              Scene frame explainer
+            </p>
+            <div className="relative mt-3 aspect-[16/10] overflow-hidden rounded-[1rem] border border-white/10">
+              <Image
+                src={selectedPhoto.src}
+                alt={pickLocalizedText(selectedPhoto.alt, language)}
+                fill
+                sizes="(max-width: 1024px) 90vw, 20rem"
+                className="object-cover"
+              />
+            </div>
+            <p className="mt-3 text-sm font-semibold leading-6 opacity-76">
+              {pickLocalizedText(selectedPhoto.caption, language)}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {selectedPlace.gallery.map((photo, index) => {
+                const isActive = selectedPhoto.id === photo.id;
+
+                return (
+                  <button
+                    key={photo.id}
+                    type="button"
+                    onClick={() => setSelectedPhotoId(photo.id)}
+                    className={cn(
+                      "rounded-full border px-3 py-2 text-xs font-black",
+                      isActive
+                        ? "border-[#e8bd73] bg-[#e8bd73] text-black"
+                        : "border-white/12 bg-white/8 opacity-72"
+                    )}
+                  >
+                    Frame {index + 1}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-3 grid gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  void submitQuestion(
+                    `What should I notice in this scene frame: ${pickLocalizedText(selectedPhoto.caption, language)}?`
+                  )
+                }
+                className="rounded-full border border-[#ff777d]/35 bg-[#ff777d]/16 px-4 py-2 text-sm font-black text-[#ff7a80]"
+              >
+                Explain this frame
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  void submitQuestion(
+                    `Suggest a polished postcard caption for this scene frame: ${pickLocalizedText(selectedPhoto.caption, language)}.`,
+                    { intent: "caption" }
+                  )
+                }
+                className="rounded-full border border-[#e8bd73]/35 bg-[#e8bd73]/14 px-4 py-2 text-sm font-black text-[#d69b54]"
+              >
+                Create postcard caption
+              </button>
+            </div>
+          </div>
+        ) : null}
       </section>
     );
   }
@@ -564,11 +687,11 @@ export function CompanionPageClient() {
     return (
       <section
         className={cn(
-          "rounded-[2rem] border p-5 shadow-[0_24px_80px_rgba(28,18,12,0.12)]",
+          "journey-scrollbar rounded-[1.75rem] border p-4 shadow-[0_24px_80px_rgba(28,18,12,0.12)]",
           isDarkTheme
             ? "border-white/10 bg-[#171313] text-white"
             : "border-[#7c5b35]/20 bg-[#fff8ee]/88 text-[#261a13]",
-          isCompact ? "" : "lg:sticky lg:top-24"
+          isCompact ? "" : "xl:sticky xl:top-4 xl:max-h-[calc(100svh-2rem)] xl:overflow-y-auto"
         )}
       >
         <p className="text-xs font-black uppercase tracking-[0.28em] text-[#bb8a55]">
@@ -604,7 +727,7 @@ export function CompanionPageClient() {
           />
         </div>
 
-        <div className="mt-5 grid gap-2">
+        <div className="mt-4 grid gap-2">
           {exploreExperience.passport.routeSeals.map((seal) => {
             const unlocked = unlockedSealIds.includes(seal.id);
 
@@ -653,7 +776,30 @@ export function CompanionPageClient() {
           </button>
         </div>
 
-        <div className="mt-8 border-t border-white/10 pt-5">
+        <div className="mt-5 grid gap-2 rounded-[1.25rem] border border-white/10 bg-white/6 p-3">
+          <button
+            type="button"
+            onClick={() => setIsComfortMode((current) => !current)}
+            className={cn(
+              "rounded-full border px-4 py-2 text-sm font-black",
+              isComfortMode
+                ? "border-[#e8bd73] bg-[#e8bd73] text-black"
+                : "border-white/12 bg-white/8"
+            )}
+            aria-pressed={isComfortMode}
+          >
+            {copy.comfortMode}
+          </button>
+          <button
+            type="button"
+            onClick={isSpeaking ? stopSpeaking : speakLatestAnswer}
+            className="rounded-full border border-white/12 bg-white/8 px-4 py-2 text-sm font-black"
+          >
+            {isSpeaking ? copy.stopAudio : copy.readAloud}
+          </button>
+        </div>
+
+        <div className="mt-6 border-t border-white/10 pt-5">
           <p className="text-xs font-black uppercase tracking-[0.28em] text-[#bb8a55]">
             {copy.tourBuilder}
           </p>
@@ -740,9 +886,12 @@ export function CompanionPageClient() {
   return (
     <div
       className={cn(
-        "min-h-screen overflow-hidden px-4 py-8 sm:px-6 lg:px-8",
+        "min-h-[100svh] overflow-x-hidden px-3 py-4 sm:px-5 lg:px-6",
+        isComfortMode ? "text-[1.06rem]" : "",
         isDarkTheme
-          ? "bg-[#0d0b0b] text-white"
+          ? isComfortMode
+            ? "bg-black text-white"
+            : "bg-[#0d0b0b] text-white"
           : "bg-[linear-gradient(135deg,#f6ead8_0%,#efe0c9_48%,#d7c3a4_100%)] text-[#241811]"
       )}
     >
@@ -752,18 +901,21 @@ export function CompanionPageClient() {
         <div className="absolute bottom-0 left-1/3 h-96 w-96 rounded-full bg-[#274838]/18 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto max-w-[94rem]">
-        <header className="mb-6 flex flex-col gap-4 rounded-[2rem] border border-white/10 bg-black/20 p-5 shadow-[0_30px_100px_rgba(32,20,12,0.18)] backdrop-blur md:flex-row md:items-center md:justify-between">
+      <div className="relative mx-auto max-w-[112rem]">
+        <header className="mb-4 flex flex-col gap-4 rounded-[1.75rem] border border-white/10 bg-black/24 p-4 shadow-[0_26px_80px_rgba(32,20,12,0.18)] backdrop-blur-xl md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.34em] text-[#e8bd73]">
               {copy.subtitle}
             </p>
-            <h1 className="mt-3 text-4xl font-black uppercase tracking-[-0.04em] md:text-6xl">
+            <h1 className="mt-2 text-3xl font-black uppercase tracking-[-0.04em] md:text-5xl">
               {copy.title}
             </h1>
-            <p className="mt-3 max-w-3xl text-sm font-semibold leading-7 opacity-72 md:text-base">
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-7 opacity-72">
               Chat, build tours, continue the route, answer Passport quizzes, and
               move into the map when you are ready.
+            </p>
+            <p className="mt-3 inline-flex max-w-3xl rounded-full border border-[#e8bd73]/24 bg-[#e8bd73]/12 px-4 py-2 text-xs font-black leading-6 text-[#e8bd73]">
+              {welcomeBackMessage}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -783,7 +935,7 @@ export function CompanionPageClient() {
           </div>
         </header>
 
-        <div className="mb-4 grid gap-4 lg:hidden">
+        <div className="mb-4 grid gap-4 xl:hidden">
           <details className="rounded-[1.5rem] border border-white/10 bg-black/18 p-3" open>
             <summary className="cursor-pointer px-2 py-2 text-sm font-black uppercase tracking-[0.2em]">
               Routes
@@ -798,12 +950,12 @@ export function CompanionPageClient() {
           </details>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-[22rem_minmax(0,1fr)_23rem]">
-          <div className="hidden lg:block">{renderRoutePanel()}</div>
+        <div className="grid gap-4 xl:grid-cols-[18.5rem_minmax(0,1fr)_20.5rem] 2xl:grid-cols-[19.5rem_minmax(0,1fr)_21.5rem]">
+          <div className="hidden xl:block">{renderRoutePanel()}</div>
 
           <section
             className={cn(
-              "flex min-h-[72svh] flex-col overflow-hidden rounded-[2.2rem] border shadow-[0_30px_100px_rgba(23,14,9,0.22)]",
+              "flex min-h-[76svh] flex-col overflow-hidden rounded-[1.9rem] border shadow-[0_30px_100px_rgba(23,14,9,0.22)]",
               isDarkTheme
                 ? "border-white/10 bg-[#111010]"
                 : "border-[#7c5b35]/20 bg-[#fffaf2]/90"
@@ -857,7 +1009,7 @@ export function CompanionPageClient() {
 
             <div
               ref={messageViewportRef}
-              className="flex-1 space-y-4 overflow-y-auto px-4 py-5 md:px-6"
+              className="journey-scrollbar flex-1 space-y-4 overflow-y-auto px-4 py-5 md:px-6"
             >
               {!messages.length ? (
                 <div className="rounded-[1.5rem] border border-white/10 bg-white/7 p-5">
@@ -895,7 +1047,7 @@ export function CompanionPageClient() {
                   >
                     <div
                       className={cn(
-                        "max-w-[88%] rounded-[1.5rem] border px-4 py-3 shadow-[0_14px_34px_rgba(0,0,0,0.16)]",
+                        "max-w-[92%] rounded-[1.45rem] border px-4 py-3 shadow-[0_14px_34px_rgba(0,0,0,0.16)] md:max-w-[78%]",
                         isAssistant
                           ? isDarkTheme
                             ? "border-white/10 bg-white/7"
@@ -968,7 +1120,7 @@ export function CompanionPageClient() {
                 event.preventDefault();
                 void submitQuestion(question);
               }}
-              className="sticky bottom-0 border-t border-white/10 bg-black/18 p-4 backdrop-blur"
+              className="sticky bottom-0 border-t border-white/10 bg-black/26 p-4 backdrop-blur-xl"
             >
               <div className="mb-3 flex flex-wrap justify-between gap-2">
                 <div className="flex flex-wrap gap-2">
@@ -1015,7 +1167,7 @@ export function CompanionPageClient() {
             </form>
           </section>
 
-          <div className="hidden lg:block">{renderToolsPanel()}</div>
+          <div className="hidden xl:block">{renderToolsPanel()}</div>
         </div>
       </div>
     </div>

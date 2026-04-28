@@ -19,7 +19,12 @@ export function SiteHeader() {
     setNavOpen(false);
   }, [pathname, setNavOpen]);
 
-  if (pathname === "/" || pathname === "/explore" || pathname === "/3d-view") {
+  if (
+    pathname === "/" ||
+    pathname === "/explore" ||
+    pathname === "/companion" ||
+    pathname === "/3d-view"
+  ) {
     return null;
   }
 

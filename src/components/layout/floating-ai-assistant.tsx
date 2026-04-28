@@ -270,7 +270,7 @@ export function FloatingAIAssistant() {
               <div className="flex flex-wrap gap-2">
                 {companionGuideModes
                   .filter((guideMode) =>
-                    ["short", "detailed", "academic", "quiz"].includes(
+                    ["short", "detailed", "story", "academic", "exam", "quiz"].includes(
                       guideMode.value
                     )
                   )

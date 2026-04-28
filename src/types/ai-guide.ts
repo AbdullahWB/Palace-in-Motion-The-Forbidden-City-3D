@@ -13,9 +13,11 @@ export type GuideMode =
   | "short"
   | "detailed"
   | "fun"
+  | "story"
   | "child"
   | "academic"
   | "tourist"
+  | "exam"
   | "quiz";
 export type GuideIntent =
   | "answer"
