@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
-import { ImmersiveStatusScreen } from "@/components/ui/app-status-screens";
+import { ForbiddenCityErrorScreen } from "@/components/ui/forbidden-city-status-screens";
 
 export default function ErrorPage({
   error,
@@ -16,33 +16,29 @@ export default function ErrorPage({
   }, [error]);
 
   return (
-    <ImmersiveStatusScreen
-      kind="error"
+    <ForbiddenCityErrorScreen
       code={error.digest ?? "3D"}
-      eyebrow={{ zh: "三维场景错误", en: "3D scene error" }}
-      statusLabel={{ zh: "场景加载失败", en: "Scene load failed" }}
-      title={{
-        zh: "故宫三维展示暂时不可用。",
-        en: "The Forbidden City 3D showcase is temporarily unavailable.",
-      }}
-      description={{
-        zh: "嵌入式三维场景没有正常完成加载。可以重新尝试，或者返回首页继续从探索视图进入其他内容。",
-        en: "The embedded 3D scene did not finish loading correctly. Retry the scene, or return home and continue from the main exploration flow.",
-      }}
       actions={
         <>
           <button
             type="button"
             onClick={unstable_retry}
-            className="inline-flex rounded-full border border-accent/18 bg-accent px-5 py-3 text-sm font-semibold text-white hover:bg-accent-strong"
+            className="rounded-full border-none bg-[#8B1F26] px-5 py-2 text-xs font-medium tracking-wide text-[#f8ead8] outline-none transition hover:bg-[#6f171e] focus-visible:ring-2 focus-visible:ring-[#c49010]"
           >
-            Retry 3D scene
+            Retry
           </button>
           <Link
             href="/"
-            className="inline-flex rounded-full border border-border bg-surface-strong px-5 py-3 text-sm font-semibold text-foreground hover:bg-white/80"
+            className="rounded-full border border-[rgba(100,50,30,0.3)] bg-transparent px-5 py-2 text-xs font-medium tracking-wide text-[#5a2818] outline-none transition hover:bg-[#eadfce] focus-visible:ring-2 focus-visible:ring-[#c49010]"
           >
-            Return home
+            Home
+          </Link>
+          <Link
+            href="/3d-view"
+            prefetch={false}
+            className="rounded-full border border-[rgba(100,50,30,0.3)] bg-transparent px-5 py-2 text-xs font-medium tracking-wide text-[#5a2818] outline-none transition hover:bg-[#eadfce] focus-visible:ring-2 focus-visible:ring-[#c49010]"
+          >
+            3D view
           </Link>
         </>
       }
