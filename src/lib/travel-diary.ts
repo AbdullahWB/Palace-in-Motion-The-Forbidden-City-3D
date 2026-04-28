@@ -75,7 +75,7 @@ export function buildTravelDiaryText({
   customTours,
   activeCustomTourId,
   activeExploreRouteId,
-  generatedAt = Date.now(),
+  generatedAt = 0,
 }: BuildTravelDiaryInput) {
   const completedRouteIds = getCompletedJourneyRouteIds(visitedPlaceSlugs);
   const unlockedSealIds = getUnlockedPassportSealIds(completedRouteIds);
@@ -103,10 +103,14 @@ export function buildTravelDiaryText({
     )
     .map((title) => pickLocalizedText(title, language))
     .filter(Boolean);
-  const date = new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(generatedAt));
+  const date = generatedAt
+    ? new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(generatedAt))
+    : language === "zh"
+      ? "当前浏览会话"
+      : "Current browsing session";
 
   if (language === "zh") {
     return [

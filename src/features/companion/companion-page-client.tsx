@@ -148,7 +148,7 @@ export function CompanionPageClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [diaryGeneratedAt, setDiaryGeneratedAt] = useState(Date.now());
+  const [diaryGeneratedAt, setDiaryGeneratedAt] = useState(0);
   const [diaryCopyStatus, setDiaryCopyStatus] = useState<"idle" | "copied" | "error">(
     "idle"
   );

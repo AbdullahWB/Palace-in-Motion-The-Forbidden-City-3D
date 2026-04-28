@@ -438,6 +438,7 @@ function PlaceInfoPanel({
   compact = false,
 }: PlaceInfoPanelProps) {
   const isDarkTheme = theme === "dark";
+  const knowledge = getPalaceKnowledgeByPlaceSlug(place.slug);
   const accentTextClass = isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft";
   const paragraphTextClass = isDarkTheme ? "text-white" : "text-foreground";
   const secondaryParagraphTextClass = isDarkTheme
@@ -507,6 +508,28 @@ function PlaceInfoPanel({
         <p className={cn("mt-5 text-sm leading-8", secondaryParagraphTextClass)}>
           {pickLocalizedText(place.longDescription, language)}
         </p>
+
+        {knowledge ? (
+          <div
+            className={cn(
+              "mt-5 rounded-[1.35rem] border p-4",
+              isDarkTheme
+                ? "border-[#d6b071]/20 bg-[#d6b071]/8"
+                : "border-accent-soft/20 bg-accent-soft/8"
+            )}
+          >
+            <p className={cn("text-[11px] font-semibold uppercase tracking-[0.24em]", accentTextClass)}>
+              {language === "zh" ? "遗产保护说明" : "Preservation note"}
+            </p>
+            <p className={cn("mt-3 text-sm leading-7", secondaryParagraphTextClass)}>
+              {pickLocalizedText(knowledge.preservationNote, language)}
+            </p>
+            <p className={cn("mt-3 text-[11px] font-semibold uppercase tracking-[0.18em]", accentTextClass)}>
+              {language === "zh" ? "来源" : "Source"}:{" "}
+              {pickLocalizedText(knowledge.sourceTitle, language)}
+            </p>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -887,7 +910,7 @@ function PassportDrawer({
   const selectedQuiz = selectedQuizPlaceSlug
     ? buildLocalizedQuizPayload(selectedQuizPlaceSlug, language)
     : null;
-  const [diaryGeneratedAt, setDiaryGeneratedAt] = useState(Date.now());
+  const [diaryGeneratedAt, setDiaryGeneratedAt] = useState(0);
   const [diaryCopyStatus, setDiaryCopyStatus] = useState<
     "idle" | "copied" | "error"
   >("idle");
