@@ -289,9 +289,9 @@ export function CompanionPageClient() {
   useEffect(() => {
     messageViewportRef.current?.scrollTo({
       top: messageViewportRef.current.scrollHeight,
-      behavior: "smooth",
+      behavior: accessibilityPreferences.reduceMotion ? "auto" : "smooth",
     });
-  }, [messages, isSubmitting]);
+  }, [accessibilityPreferences.reduceMotion, messages, isSubmitting]);
 
   function setRoute(routeId: ExploreJourneyRouteId) {
     const route = getExploreJourneyById(routeId);
@@ -1146,13 +1146,13 @@ export function CompanionPageClient() {
 
           <section
             className={cn(
-              "flex min-h-[76svh] flex-col overflow-hidden rounded-[1.9rem] border shadow-[0_30px_100px_rgba(23,14,9,0.22)]",
+              "flex h-[78svh] min-h-[38rem] flex-col overflow-hidden rounded-[1.9rem] border shadow-[0_30px_100px_rgba(23,14,9,0.22)] xl:h-[calc(100svh-11.5rem)] xl:min-h-[42rem]",
               isDarkTheme
                 ? "border-white/10 bg-[#111010]"
                 : "border-[#7c5b35]/20 bg-[#fffaf2]/90"
             )}
           >
-            <div className="border-b border-white/10 p-4">
+            <div className="shrink-0 border-b border-white/10 p-4">
               <div className="flex flex-wrap items-center gap-2">
                 {companionLenses.map((lens) => {
                   const isActive = activeLensId === lens.id;
@@ -1200,138 +1200,159 @@ export function CompanionPageClient() {
 
             <div
               ref={messageViewportRef}
-              className="journey-scrollbar flex-1 space-y-4 overflow-y-auto px-4 py-5 md:px-6"
+              className="journey-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-4 md:px-5"
             >
-              {!messages.length ? (
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/7 p-5">
-                  <p className="text-xs font-black uppercase tracking-[0.28em] text-[#e8bd73]">
-                    {copy.history}
-                  </p>
-                  <p className="mt-3 text-base font-semibold leading-8 opacity-76">
-                    {copy.empty}
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {starterPrompts.slice(0, 6).map((starter) => (
-                      <button
-                        key={starter}
-                        type="button"
-                        onClick={() => void submitQuestion(starter)}
-                        className="rounded-full border border-white/12 bg-white/8 px-4 py-2 text-sm font-black"
-                      >
-                        {starter}
-                      </button>
-                    ))}
+              <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
+                {!messages.length ? (
+                  <div className="rounded-[1.5rem] border border-white/10 bg-white/7 p-5">
+                    <p className="text-xs font-black uppercase tracking-[0.28em] text-[#e8bd73]">
+                      {copy.history}
+                    </p>
+                    <p className="mt-3 text-base font-semibold leading-8 opacity-76">
+                      {copy.empty}
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {starterPrompts.slice(0, 6).map((starter) => (
+                        <button
+                          key={starter}
+                          type="button"
+                          onClick={() => void submitQuestion(starter)}
+                          className="rounded-full border border-white/12 bg-white/8 px-4 py-2 text-sm font-black"
+                        >
+                          {starter}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ) : null}
+                ) : null}
 
-              {messages.map((message) => {
-                const isAssistant = message.role === "assistant";
+                {messages.map((message) => {
+                  const isAssistant = message.role === "assistant";
+                  const quiz = message.response?.quiz ?? null;
 
-                return (
-                  <article
-                    key={message.id}
-                    className={cn(
-                      "flex",
-                      isAssistant ? "justify-start" : "justify-end"
-                    )}
-                  >
-                    <div
+                  return (
+                    <article
+                      key={message.id}
                       className={cn(
-                        "max-w-[92%] rounded-[1.45rem] border px-4 py-3 shadow-[0_14px_34px_rgba(0,0,0,0.16)] md:max-w-[78%]",
-                        isAssistant
-                          ? isDarkTheme
-                            ? "border-white/10 bg-white/7"
-                            : "border-[#7c5b35]/16 bg-white/86"
-                          : "border-[#ff777d] bg-[#ff777d] text-black"
+                        "flex",
+                        isAssistant ? "justify-start" : "justify-end"
                       )}
                     >
-                      <p className="whitespace-pre-wrap text-sm font-semibold leading-7">
-                        {message.content}
-                      </p>
-                      {message.response?.quiz ? (
-                        <div className="mt-4 grid gap-2">
-                          {message.response.quiz.options.map((option) => {
-                            const mission = missionByPlace.get(
-                              message.response?.quiz?.placeSlug ?? "tianyi-men"
-                            );
-                            const wasAnswered = mission?.quizAnswered === true;
-                            const isCorrect =
-                              option.id === message.response?.quiz?.correctOptionId;
-
-                            return (
-                              <button
-                                key={option.id}
-                                type="button"
-                                onClick={() => answerQuiz(message.response!, option.id)}
-                                disabled={wasAnswered}
-                                className={cn(
-                                  "rounded-[1rem] border px-3 py-2 text-left text-sm font-black disabled:cursor-not-allowed",
-                                  wasAnswered && isCorrect
-                                    ? "border-[#8bc28f] bg-[#8bc28f]/20"
-                                    : "border-white/12 bg-white/8"
-                                )}
-                              >
-                                {option.id.toUpperCase()}. {option.text}
-                              </button>
-                            );
-                          })}
-                          {missionByPlace.get(message.response.quiz.placeSlug)
-                            ?.quizAnswered ? (
-                            <p className="text-sm font-semibold leading-6 opacity-72">
-                              {message.response.quiz.explanation}
+                      <div
+                        className={cn(
+                          "rounded-[1.25rem] border px-4 py-3 shadow-[0_14px_34px_rgba(0,0,0,0.16)]",
+                          isAssistant
+                            ? "w-full max-w-[46rem]"
+                            : "max-w-[min(25rem,86%)]",
+                          isAssistant
+                            ? isDarkTheme
+                              ? "border-white/10 bg-[#202020]"
+                              : "border-[#7c5b35]/16 bg-white/90"
+                            : "border-[#ff777d] bg-[#ff777d] text-black"
+                        )}
+                      >
+                        {quiz ? (
+                          <div>
+                            <p className="text-sm font-black leading-6">
+                              {quiz.question}
                             </p>
-                          ) : null}
-                        </div>
-                      ) : null}
-                      {message.response?.verification ? (
-                        <div className="mt-4 rounded-[1rem] border border-[#e8bd73]/25 bg-[#e8bd73]/10 p-3">
-                          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#e8bd73]">
-                            {message.response.verification.label}
+                            <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] opacity-62">
+                              Stamp: {quiz.stampLabel}
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="whitespace-pre-wrap text-sm font-semibold leading-7">
+                            {message.content}
                           </p>
-                          <p className="mt-2 text-xs font-semibold leading-5 opacity-72">
-                            {message.response.verification.message}
-                          </p>
-                          {message.response.sourceCards?.length ? (
-                            <div className="mt-3 grid gap-2">
-                              {message.response.sourceCards.slice(0, 2).map((source) => (
-                                <div
-                                  key={source.id}
-                                  className="rounded-[0.9rem] border border-white/10 bg-black/10 p-3"
-                                >
-                                  <p className="text-xs font-black">{source.title}</p>
-                                  <p className="mt-1 text-xs font-semibold leading-5 opacity-70">
-                                    {source.body}
-                                  </p>
-                                  <p className="mt-2 text-[10px] font-black uppercase tracking-[0.16em] opacity-50">
-                                    {source.sourceStatus} | {source.sourceConfidence}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-                      {message.meta ? (
-                        <p className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] opacity-52">
-                          {message.meta}
-                        </p>
-                      ) : null}
-                    </div>
-                  </article>
-                );
-              })}
+                        )}
 
-              {isSubmitting ? (
-                <div className="rounded-[1.3rem] border border-white/10 bg-white/7 px-4 py-3 text-sm font-black opacity-72">
-                  {copy.loading}
-                </div>
-              ) : null}
-              {error ? (
-                <div className="rounded-[1.3rem] border border-[#ff777d]/40 bg-[#ff777d]/14 px-4 py-3 text-sm font-black text-[#ff9ca1]">
-                  {error}
-                </div>
-              ) : null}
+                        {quiz ? (
+                          <div className="mt-4 grid gap-2">
+                            {quiz.options.map((option) => {
+                              const mission = missionByPlace.get(quiz.placeSlug);
+                              const wasAnswered = mission?.quizAnswered === true;
+                              const isCorrect = option.id === quiz.correctOptionId;
+
+                              return (
+                                <button
+                                  key={option.id}
+                                  type="button"
+                                  onClick={() => answerQuiz(message.response!, option.id)}
+                                  disabled={wasAnswered}
+                                  className={cn(
+                                    "rounded-[0.85rem] border px-3 py-2 text-left text-sm font-black disabled:cursor-not-allowed",
+                                    wasAnswered && isCorrect
+                                      ? "border-[#8bc28f] bg-[#8bc28f]/20"
+                                      : "border-white/12 bg-white/8"
+                                  )}
+                                >
+                                  {option.id.toUpperCase()}. {option.text}
+                                </button>
+                              );
+                            })}
+                            {missionByPlace.get(quiz.placeSlug)?.quizAnswered ? (
+                              <p className="text-sm font-semibold leading-6 opacity-72">
+                                {quiz.explanation}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : null}
+
+                        {message.response?.verification ? (
+                          <details className="mt-4 rounded-[1rem] border border-[#e8bd73]/25 bg-[#e8bd73]/10 p-3">
+                            <summary className="cursor-pointer text-[10px] font-black uppercase tracking-[0.18em] text-[#e8bd73]">
+                              {message.response.verification.label}
+                            </summary>
+                            <p className="mt-2 text-xs font-semibold leading-5 opacity-72">
+                              {message.response.verification.message}
+                            </p>
+                            {message.response.sourceCards?.length ? (
+                              <div className="mt-3 grid gap-2">
+                                {message.response.sourceCards
+                                  .slice(0, 2)
+                                  .map((source) => (
+                                    <div
+                                      key={source.id}
+                                      className="rounded-[0.9rem] border border-white/10 bg-black/10 p-3"
+                                    >
+                                      <p className="text-xs font-black">
+                                        {source.title}
+                                      </p>
+                                      <p className="mt-1 text-xs font-semibold leading-5 opacity-70">
+                                        {source.body}
+                                      </p>
+                                      <p className="mt-2 text-[10px] font-black uppercase tracking-[0.16em] opacity-50">
+                                        {source.sourceStatus} |{" "}
+                                        {source.sourceConfidence}
+                                      </p>
+                                    </div>
+                                  ))}
+                              </div>
+                            ) : null}
+                          </details>
+                        ) : null}
+
+                        {message.meta ? (
+                          <p className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] opacity-52">
+                            {message.meta}
+                          </p>
+                        ) : null}
+                      </div>
+                    </article>
+                  );
+                })}
+
+                {isSubmitting ? (
+                  <div className="w-fit rounded-[1.3rem] border border-white/10 bg-white/7 px-4 py-3 text-sm font-black opacity-72">
+                    {copy.loading}
+                  </div>
+                ) : null}
+                {error ? (
+                  <div className="rounded-[1.3rem] border border-[#ff777d]/40 bg-[#ff777d]/14 px-4 py-3 text-sm font-black text-[#ff9ca1]">
+                    {error}
+                  </div>
+                ) : null}
+              </div>
             </div>
 
             <form
@@ -1339,7 +1360,7 @@ export function CompanionPageClient() {
                 event.preventDefault();
                 void submitQuestion(question);
               }}
-              className="sticky bottom-0 border-t border-white/10 bg-black/26 p-4 backdrop-blur-xl"
+              className="shrink-0 border-t border-white/10 bg-black/42 p-3 backdrop-blur-xl md:p-4"
             >
               <div className="mb-3 flex flex-wrap justify-between gap-2">
                 <div className="flex flex-wrap gap-2">
