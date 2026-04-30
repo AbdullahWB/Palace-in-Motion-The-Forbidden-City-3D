@@ -23,6 +23,11 @@ import {
   type CompanionLensId,
 } from "@/features/companion/companion-shared";
 import {
+  buildAchievementMissionCards,
+  countCompletedAchievementMissions,
+  createAchievementMissionInput,
+} from "@/lib/achievement-missions";
+import {
   exploreExperience,
   getCompletedJourneyRouteIds,
   getExploreJourneyById,
@@ -103,10 +108,16 @@ export function CompanionPageClient() {
   const isDarkTheme = theme === "dark";
   const visitedPlaceSlugs = useAppStore((state) => state.visitedExplorePlaceSlugs);
   const passportMissions = useAppStore((state) => state.passportMissions);
+  const achievementMissions = useAppStore((state) => state.achievementMissions);
+  const classroomAssignments = useAppStore((state) => state.classroomAssignments);
+  const classroomReports = useAppStore((state) => state.classroomReports);
   const activeExploreRouteId = useAppStore((state) => state.activeExploreRouteId);
   const customTours = useAppStore((state) => state.customTours);
   const activeCustomTourId = useAppStore((state) => state.activeCustomTourId);
   const answerPassportMission = useAppStore((state) => state.answerPassportMission);
+  const completeAchievementMission = useAppStore(
+    (state) => state.completeAchievementMission
+  );
   const saveCustomTour = useAppStore((state) => state.saveCustomTour);
   const setActiveCustomTour = useAppStore((state) => state.setActiveCustomTour);
   const resetExploreProgress = useAppStore((state) => state.resetExploreProgress);
@@ -177,6 +188,27 @@ export function CompanionPageClient() {
     (visitedPlaceSlugs.length / Math.max(1, exploreExperience.places.length)) * 100
   );
   const stampCount = passportMissions.filter((mission) => mission.stampUnlocked).length;
+  const achievementCards = useMemo(
+    () =>
+      buildAchievementMissionCards({
+        language,
+        visitedPlaceSlugs,
+        passportMissions,
+        achievementMissions,
+        classroomAssignments,
+        classroomReports,
+      }),
+    [
+      achievementMissions,
+      classroomAssignments,
+      classroomReports,
+      language,
+      passportMissions,
+      visitedPlaceSlugs,
+    ]
+  );
+  const completedAchievementCount =
+    countCompletedAchievementMissions(achievementCards);
   const missionByPlace = useMemo(
     () => new Map(passportMissions.map((mission) => [mission.placeSlug, mission])),
     [passportMissions]
@@ -226,11 +258,13 @@ export function CompanionPageClient() {
         customTours,
         activeCustomTourId,
         activeExploreRouteId: selectedRoute?.id ?? activeExploreRouteId,
+        achievementMissions,
         generatedAt: diaryGeneratedAt,
       }),
     [
       activeCustomTourId,
       activeExploreRouteId,
+      achievementMissions,
       customTours,
       diaryGeneratedAt,
       language,
@@ -526,12 +560,23 @@ export function CompanionPageClient() {
     try {
       await window.navigator.clipboard.writeText(travelDiaryText);
       setDiaryCopyStatus("copied");
+      const mission = createAchievementMissionInput("diary-generated", language);
+
+      if (mission) {
+        completeAchievementMission(mission);
+      }
     } catch {
       setDiaryCopyStatus("error");
     }
   }
 
   function printTravelDiary() {
+    const mission = createAchievementMissionInput("diary-generated", language);
+
+    if (mission) {
+      completeAchievementMission(mission);
+    }
+
     const printWindow = window.open("", "palace-travel-diary", "width=820,height=920");
 
     if (!printWindow) {
@@ -852,6 +897,41 @@ export function CompanionPageClient() {
           })}
         </div>
 
+        <div className="mt-5 rounded-[1.25rem] border border-white/10 bg-white/6 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-[#bb8a55]">
+              {language === "zh" ? "挑战徽章" : "Challenge badges"}
+            </p>
+            <span className="rounded-full bg-[#e8bd73]/18 px-3 py-1 text-[10px] font-black text-[#e8bd73]">
+              {completedAchievementCount}/{achievementCards.length}
+            </span>
+          </div>
+          <div className="mt-3 grid gap-2">
+            {achievementCards.slice(0, 5).map((mission) => (
+              <div
+                key={mission.id}
+                className={cn(
+                  "rounded-[1rem] border px-3 py-2",
+                  mission.completed
+                    ? "border-[#e8bd73]/35 bg-[#e8bd73]/12"
+                    : "border-white/10 bg-black/12 opacity-64"
+                )}
+              >
+                <p className="text-xs font-black">{mission.title}</p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] opacity-58">
+                  {mission.completed
+                    ? language === "zh"
+                      ? "已完成"
+                      : "Completed"
+                    : language === "zh"
+                      ? "待完成"
+                      : "Pending"}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="mt-5 flex flex-wrap gap-2">
           <Link
             href={continueHref}
@@ -1001,6 +1081,14 @@ export function CompanionPageClient() {
               onClick={() => {
                 setDiaryGeneratedAt(Date.now());
                 setDiaryCopyStatus("idle");
+                const mission = createAchievementMissionInput(
+                  "diary-generated",
+                  language
+                );
+
+                if (mission) {
+                  completeAchievementMission(mission);
+                }
               }}
               className="rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
             >

@@ -46,6 +46,10 @@ import {
 } from "@/data/palace-knowledge";
 import { getPostcardFrameIdForJourneyRoute } from "@/data/selfie";
 import { SelfieStudio } from "@/features/selfie/selfie-studio";
+import {
+  buildAchievementMissionCards,
+  createAchievementMissionInput,
+} from "@/lib/achievement-missions";
 import { pickLocalizedText } from "@/lib/i18n";
 import { buildTravelDiaryText } from "@/lib/travel-diary";
 import { cn } from "@/lib/utils";
@@ -65,6 +69,11 @@ import type {
   PassportMissionState,
   TourBuilderInterest,
 } from "@/types/ai-guide";
+import type {
+  AchievementMissionState,
+  ClassroomAssignmentState,
+  ClassroomReportState,
+} from "@/types/competition";
 import type { AppLanguage } from "@/types/preferences";
 
 type PanoramaExperienceProps = {
@@ -364,18 +373,18 @@ function formatJourneyProgressLabel(
 ) {
   if (progress.isCompleted) {
     return `${
-      language === "zh" ? "å·²å®Œæˆ" : "Completed"
+      language === "zh" ? "已完成" : "Completed"
     } · ${progress.visitedStops}/${progress.totalStops} ${journeyStopsLabel}`;
   }
 
   if (progress.visitedStops > 0) {
     return `${progress.visitedStops}/${progress.totalStops} ${
-      language === "zh" ? "å·²è®¿ç«™ç‚¹" : "stops visited"
+      language === "zh" ? "已访站点" : "stops visited"
     }`;
   }
 
   return `${progress.totalStops} ${
-    language === "zh" ? "ç«™å¾…æŽ¢ç´¢" : "stops to explore"
+    language === "zh" ? "站待探索" : "stops to explore"
   }`;
 }
 
@@ -857,6 +866,9 @@ type PassportDrawerProps = {
   unlockedSealIds: string[];
   journeyProgressById: Map<ExploreJourneyRoute["id"], JourneyProgress>;
   missionStates: PassportMissionState[];
+  achievementMissions: AchievementMissionState[];
+  classroomAssignments: ClassroomAssignmentState[];
+  classroomReports: ClassroomReportState[];
   activeCustomTour: CustomTourState | null;
   customTours: CustomTourState[];
   activeCustomTourId: string | null;
@@ -867,6 +879,9 @@ type PassportDrawerProps = {
   onContinueRoute: (routeId: ExploreJourneyRoute["id"]) => void;
   onContinueFromLastPlace: () => void;
   onAnswerQuiz: (placeSlug: ExplorePlaceSlug, isCorrect: boolean) => void;
+  onCompleteAchievement: (
+    mission: Omit<AchievementMissionState, "completed" | "completedAt">
+  ) => void;
   onClose: () => void;
   onReset: () => void;
 };
@@ -879,6 +894,9 @@ function PassportDrawer({
   unlockedSealIds,
   journeyProgressById,
   missionStates,
+  achievementMissions,
+  classroomAssignments,
+  classroomReports,
   activeCustomTour,
   customTours,
   activeCustomTourId,
@@ -889,6 +907,7 @@ function PassportDrawer({
   onContinueRoute,
   onContinueFromLastPlace,
   onAnswerQuiz,
+  onCompleteAchievement,
   onClose,
   onReset,
 }: PassportDrawerProps) {
@@ -900,6 +919,17 @@ function PassportDrawer({
   const completedSet = new Set(completedRouteIds);
   const unlockedSealSet = new Set(unlockedSealIds);
   const quizStampCount = missionStates.filter((mission) => mission.stampUnlocked).length;
+  const achievementCards = buildAchievementMissionCards({
+    language,
+    visitedPlaceSlugs,
+    passportMissions: missionStates,
+    achievementMissions,
+    classroomAssignments,
+    classroomReports,
+  });
+  const completedAchievementCount = achievementCards.filter(
+    (mission) => mission.completed
+  ).length;
   const selectedQuizPlaceSlug =
     exploreExperience.places.find(
       (place) =>
@@ -925,11 +955,13 @@ function PassportDrawer({
         customTours,
         activeCustomTourId,
         activeExploreRouteId,
+        achievementMissions,
         generatedAt: diaryGeneratedAt,
       }),
     [
       activeCustomTourId,
       activeExploreRouteId,
+      achievementMissions,
       customTours,
       diaryGeneratedAt,
       language,
@@ -942,12 +974,23 @@ function PassportDrawer({
     try {
       await window.navigator.clipboard.writeText(travelDiaryText);
       setDiaryCopyStatus("copied");
+      const mission = createAchievementMissionInput("diary-generated", language);
+
+      if (mission) {
+        onCompleteAchievement(mission);
+      }
     } catch {
       setDiaryCopyStatus("error");
     }
   }
 
   function printTravelDiary() {
+    const mission = createAchievementMissionInput("diary-generated", language);
+
+    if (mission) {
+      onCompleteAchievement(mission);
+    }
+
     const printWindow = window.open("", "palace-travel-diary", "width=820,height=920");
 
     if (!printWindow) {
@@ -1246,6 +1289,14 @@ function PassportDrawer({
                   onClick={() => {
                     setDiaryGeneratedAt(Date.now());
                     setDiaryCopyStatus("idle");
+                    const mission = createAchievementMissionInput(
+                      "diary-generated",
+                      language
+                    );
+
+                    if (mission) {
+                      onCompleteAchievement(mission);
+                    }
                   }}
                   className={cn(
                     "rounded-full border px-4 py-2 text-xs font-semibold",
@@ -1262,6 +1313,54 @@ function PassportDrawer({
                   Copy failed. Use Print / PDF instead.
                 </p>
               ) : null}
+            </div>
+          </section>
+
+          <section>
+            <p className={cn("text-[11px] font-semibold uppercase tracking-[0.24em]", isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft")}>
+              {language === "zh" ? "挑战徽章" : "Challenge badges"}
+            </p>
+            <p className={cn("mt-2 text-sm leading-7", isDarkTheme ? "text-white/72" : "text-foreground/70")}>
+              {language === "zh"
+                ? `已完成 ${completedAchievementCount}/${achievementCards.length} 个路线、问答、保护、日记、三维与课堂任务。`
+                : `Completed ${completedAchievementCount}/${achievementCards.length} route, quiz, preservation, diary, 3D, and classroom missions.`}
+            </p>
+            <div className="mt-4 grid gap-3">
+              {achievementCards.slice(0, 9).map((mission) => (
+                <article
+                  key={mission.id}
+                  className={cn(
+                    "rounded-[1.2rem] border px-4 py-4",
+                    mission.completed
+                      ? isDarkTheme
+                        ? "border-[#d6b071]/28 bg-[#d6b071]/12"
+                        : "border-accent-soft/28 bg-accent-soft/10"
+                      : isDarkTheme
+                        ? "border-white/8 bg-white/4"
+                        : "border-border/70 bg-background/58"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className={cn("text-sm font-semibold", isDarkTheme ? "text-white" : "text-foreground")}>
+                        {mission.title}
+                      </p>
+                      <p className={cn("mt-2 text-xs leading-6", isDarkTheme ? "text-white/70" : "text-foreground/68")}>
+                        {mission.description}
+                      </p>
+                    </div>
+                    <span className={cn("rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]", mission.completed ? "bg-[#d6b071] text-black" : "bg-white/8 opacity-60")}>
+                      {mission.completed
+                        ? language === "zh"
+                          ? "已完成"
+                          : "Done"
+                        : language === "zh"
+                          ? "待完成"
+                          : "Pending"}
+                    </span>
+                  </div>
+                </article>
+              ))}
             </div>
           </section>
 
@@ -1318,7 +1417,7 @@ function PassportDrawer({
                         <p className={cn("mt-2 text-[11px] uppercase tracking-[0.18em]", isUnlocked ? (isDarkTheme ? "text-[#f1d8b2]" : "text-accent-soft") : (isDarkTheme ? "text-white/42" : "text-foreground/46"))}>
                           {formatJourneyProgressLabel(
                             progress,
-                            language === "zh" ? "ç«™ç‚¹" : "stops",
+                            language === "zh" ? "站点" : "stops",
                             language
                           )}
                         </p>
@@ -1420,6 +1519,12 @@ export function PanoramaExperience({
   const answerPassportMission = useAppStore(
     (state) => state.answerPassportMission
   );
+  const achievementMissions = useAppStore((state) => state.achievementMissions);
+  const completeAchievementMission = useAppStore(
+    (state) => state.completeAchievementMission
+  );
+  const classroomAssignments = useAppStore((state) => state.classroomAssignments);
+  const classroomReports = useAppStore((state) => state.classroomReports);
   const customTours = useAppStore((state) => state.customTours);
   const activeCustomTourId = useAppStore((state) => state.activeCustomTourId);
   const saveCustomTour = useAppStore((state) => state.saveCustomTour);
@@ -1587,6 +1692,45 @@ export function PanoramaExperience({
     Boolean(exploreExperience.welcome.heroVideoSrc);
   const normalizeImageSrc = (src: string | null | undefined) =>
     src ? encodeURI(src) : src;
+
+  useEffect(() => {
+    completedExploreRouteIds.forEach((routeId) => {
+      const mission = createAchievementMissionInput(`route-${routeId}`, language);
+
+      if (mission) {
+        completeAchievementMission(mission);
+      }
+    });
+  }, [completeAchievementMission, completedExploreRouteIds, language]);
+
+  useEffect(() => {
+    if (!activePlace || searchState.view !== "place") {
+      return;
+    }
+
+    const knowledge = getPalaceKnowledgeByPlaceSlug(activePlace.slug);
+
+    if (!pickLocalizedText(knowledge?.preservationNote, language)) {
+      return;
+    }
+
+    const mission = createAchievementMissionInput(
+      "preservation-reader",
+      language
+    );
+
+    if (mission) {
+      completeAchievementMission({
+        ...mission,
+        relatedPlaceSlug: activePlace.slug,
+      });
+    }
+  }, [
+    activePlace,
+    completeAchievementMission,
+    language,
+    searchState.view,
+  ]);
   const activePhotoSrc = normalizeImageSrc(activePhoto?.src);
   const activeCoverSrc = normalizeImageSrc(activePlace?.coverSrc);
   const welcomeHeroSrc = normalizeImageSrc(exploreExperience.welcome.heroSrc);
@@ -1894,10 +2038,10 @@ export function PanoramaExperience({
               ? `${
                   routeTitle && routeDescription
                     ? isFirstStop
-                      ? `è·¯çº¿ã€Œ${routeTitle}ã€ä»Žè¿™ä¸€ç«™å±•å¼€ï¼Œé‡ç‚¹æ˜¯${routeDescription}ã€‚`
-                      : `çŽ°åœ¨ç»§ç»­ã€Œ${routeTitle}ã€è·¯çº¿çš„ä¸‹ä¸€ç«™ã€‚`
+                      ? `路线「${routeTitle}」从这一站展开，重点是${routeDescription}。`
+                      : `现在继续「${routeTitle}」路线的下一站。`
                     : ""
-                }${placeTitle}ã€‚${shortDesc}ã€‚å½“å‰å­åœºæ™¯ä¸ºï¼š${photoCaption}ã€‚${longDesc}`
+                }${placeTitle}。${shortDesc}。当前子场景为：${photoCaption}。${longDesc}`
               : `${
                   routeTitle && routeDescription
                     ? isFirstStop
@@ -2871,7 +3015,7 @@ export function PanoramaExperience({
                       {activeJourney
                         ? `${journeyUi.journeyReady}: ${localize(activeJourney.title)}`
                         : localize({
-                            zh: "é€‰æ‹©ä¸€æ¡è·¯çº¿ï¼Œè®©åœ°å›¾å…ˆä¸ºä½ é«˜äº®ä¸»è¦åœç‚¹ã€‚",
+                            zh: "选择一条路线，让地图先为你高亮主要停点。",
                             en: "Choose a route first and let the map highlight the main stops for you.",
                           })}
                     </p>
@@ -3159,7 +3303,7 @@ export function PanoramaExperience({
                           )}
                         >
                           {localize({
-                            zh: "å…ˆé€‰ä¸€æ¡è·¯çº¿ï¼Œå†å†³å®šæ˜¯è‡ªä¸»è¿›å…¥è¿˜æ˜¯ç›´æŽ¥å¼€å§‹è‡ªåŠ¨å¯¼è§ˆã€‚",
+                            zh: "先选一条路线，再决定是自主进入还是直接开始自动导览。",
                             en: "Choose a journey first, then decide whether to enter it manually or begin the auto tour.",
                           })}
                         </p>
@@ -3771,6 +3915,9 @@ export function PanoramaExperience({
                 unlockedSealIds={unlockedPassportSealIds}
                 journeyProgressById={journeyProgressById}
                 missionStates={passportMissions}
+                achievementMissions={achievementMissions}
+                classroomAssignments={classroomAssignments}
+                classroomReports={classroomReports}
                 activeCustomTour={activeCustomTour}
                 customTours={customTours}
                 activeCustomTourId={activeCustomTourId}
@@ -3781,6 +3928,7 @@ export function PanoramaExperience({
                 onContinueRoute={continueRouteFromPassport}
                 onContinueFromLastPlace={continueFromLastPlace}
                 onAnswerQuiz={answerPassportQuiz}
+                onCompleteAchievement={completeAchievementMission}
                 onClose={() => setIsPassportOpen(false)}
                 onReset={() => {
                   resetExploreProgress();

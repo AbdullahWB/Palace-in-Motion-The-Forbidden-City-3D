@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Component, Suspense, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
   ContactShadows,
@@ -11,6 +11,7 @@ import {
   PerspectiveCamera,
   Sky,
   useGLTF,
+  useProgress,
 } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { LanguageToggleButton } from "@/components/preferences/language-toggle-button";
@@ -18,6 +19,7 @@ import { MusicToggleButton } from "@/components/media/music-toggle-button";
 import { ThemeToggleButton } from "@/components/preferences/theme-toggle-button";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
 import { ForbiddenCityPlaceholderScene } from "@/features/three-d-view/forbidden-city-placeholder-scene";
+import { createAchievementMissionInput } from "@/lib/achievement-missions";
 import { pickLocalizedText } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/use-app-store";
@@ -175,6 +177,25 @@ const lightingSettings: Record<
     skyTurbidity: 2.4,
   },
 };
+
+class ModelErrorBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+
+    return this.props.children;
+  }
+}
 
 function RealModelLayer({ src }: { src: string }) {
   const { scene } = useGLTF(src);
@@ -514,11 +535,13 @@ function ViewerScene({
       />
 
       {hasModelAsset && config.modelSrc ? (
-        <Suspense fallback={null}>
-          <group position={[0, 0, 0]}>
-            <RealModelLayer src={config.modelSrc} />
-          </group>
-        </Suspense>
+        <ModelErrorBoundary fallback={<ForbiddenCityPlaceholderScene />}>
+          <Suspense fallback={null}>
+            <group position={[0, 0, 0]}>
+              <RealModelLayer src={config.modelSrc} />
+            </group>
+          </Suspense>
+        </ModelErrorBoundary>
       ) : (
         <ForbiddenCityPlaceholderScene />
       )}
@@ -619,6 +642,50 @@ function ControlGroup({
   );
 }
 
+function ModelLoadingHud({
+  hasModelAsset,
+  isDarkTheme,
+}: {
+  hasModelAsset: boolean;
+  isDarkTheme: boolean;
+}) {
+  const { progress, active, errors } = useProgress();
+
+  if (!hasModelAsset || (!active && errors.length === 0)) {
+    return null;
+  }
+
+  const progressValue = Math.round(progress);
+
+  return (
+    <div
+      className={cn(
+        "pointer-events-auto absolute left-1/2 top-1/2 z-30 w-[min(24rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-[1.35rem] border p-5 text-center shadow-[0_24px_90px_rgba(0,0,0,0.28)] backdrop-blur-xl",
+        isDarkTheme
+          ? "border-white/12 bg-[#0b0f17]/86 text-white"
+          : "border-[#7c5b35]/20 bg-[#fff8ee]/90 text-[#241811]"
+      )}
+      aria-live="polite"
+    >
+      <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#f1c76f]">
+        {errors.length ? "Model fallback" : "Loading GLB model"}
+      </p>
+      <p className="mt-3 text-sm font-semibold leading-6 opacity-76">
+        {errors.length
+          ? "The optimized GLB could not be decoded. The procedural palace remains available with hotspots and route overlays."
+          : `Preparing optimized model asset... ${progressValue}%`}
+      </p>
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/12">
+        <div
+          className="h-full rounded-full bg-[#f1c76f]"
+          style={{ width: `${errors.length ? 100 : progressValue}%` }}
+          suppressHydrationWarning
+        />
+      </div>
+    </div>
+  );
+}
+
 export function ThreeDViewShell({
   config,
   hasModelAsset,
@@ -626,6 +693,10 @@ export function ThreeDViewShell({
   const { language, theme } = useSitePreferences();
   const markExplorePlaceVisited = useAppStore((state) => state.markExplorePlaceVisited);
   const answerPassportMission = useAppStore((state) => state.answerPassportMission);
+  const completeAchievementMission = useAppStore(
+    (state) => state.completeAchievementMission
+  );
+  const achievementMissions = useAppStore((state) => state.achievementMissions);
   const [viewerVersion, setViewerVersion] = useState(0);
   const [activeCameraId, setActiveCameraId] = useState(config.initialCamera.id);
   const [activeRouteId, setActiveRouteId] =
@@ -644,6 +715,11 @@ export function ThreeDViewShell({
   const [seasonMode, setSeasonMode] = useState<ThreeDSeasonMode>("summer");
   const [qualityMode, setQualityMode] = useState<ThreeDQualityMode>("medium");
   const [challengeComplete, setChallengeComplete] = useState(false);
+  const isThreeDChallengeComplete =
+    challengeComplete ||
+    achievementMissions.some(
+      (mission) => mission.id === "three-d-navigator" && mission.completed
+    );
   const [hasWebXr] = useState(
     () =>
       typeof navigator !== "undefined" &&
@@ -735,6 +811,16 @@ export function ThreeDViewShell({
 
     markExplorePlaceVisited(rewardHotspot.placeSlug);
     answerPassportMission(rewardHotspot.placeSlug, true);
+    const mission = createAchievementMissionInput("three-d-navigator", language);
+
+    if (mission) {
+      completeAchievementMission({
+        ...mission,
+        relatedPlaceSlug: rewardHotspot.placeSlug,
+        routeId: rewardHotspot.routeId,
+      });
+    }
+
     setChallengeComplete(true);
   }
 
@@ -767,6 +853,10 @@ export function ThreeDViewShell({
             onSelectHotspot={selectHotspot}
           />
         </Canvas>
+        <ModelLoadingHud
+          hasModelAsset={hasModelAsset}
+          isDarkTheme={isDarkTheme}
+        />
       </div>
 
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(249,214,155,0.22),transparent_24%),radial-gradient(circle_at_82%_18%,rgba(95,138,189,0.2),transparent_28%),linear-gradient(180deg,rgba(3,7,12,0.08),rgba(3,7,12,0.18)_40%,rgba(3,7,12,0.52)_100%)]" />
@@ -823,6 +913,12 @@ export function ThreeDViewShell({
                 {config.modelImport.targetPath}
               </span>{" "}
               - {pickLocalizedText(config.modelImport.optimizationNote, language)}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-white/60">
+              {pickLocalizedText(config.modelImport.coordinateSpace, language)}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-white/60">
+              {pickLocalizedText(config.modelImport.hotspotAlignmentNote, language)}
             </p>
             {!hasModelAsset ? (
               <p className="mt-2 text-xs leading-5 text-white/54">
@@ -993,15 +1089,15 @@ export function ThreeDViewShell({
                     <button
                       type="button"
                       onClick={completeChallenge}
-                      disabled={challengeComplete}
+                      disabled={isThreeDChallengeComplete}
                       className={cn(
                         "rounded-full px-4 py-2 text-xs font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-[#f7cf7c]",
-                        challengeComplete
+                        isThreeDChallengeComplete
                           ? "bg-emerald-400/18 text-emerald-100"
                           : "bg-[#ff747c] text-black hover:bg-[#ff8b91]"
                       )}
                     >
-                      {challengeComplete ? copy.challengeDone : copy.completeChallenge}
+                      {isThreeDChallengeComplete ? copy.challengeDone : copy.completeChallenge}
                     </button>
                   </div>
                 </>
@@ -1074,15 +1170,15 @@ export function ThreeDViewShell({
               <button
                 type="button"
                 onClick={completeChallenge}
-                disabled={challengeComplete}
+                disabled={isThreeDChallengeComplete}
                 className={cn(
                   "mt-3 rounded-full px-4 py-2 text-xs font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-[#f7cf7c]",
-                  challengeComplete
+                  isThreeDChallengeComplete
                     ? "bg-emerald-400/18 text-emerald-100"
                     : "bg-[#ff747c] text-black hover:bg-[#ff8b91]"
                 )}
               >
-                {challengeComplete ? copy.challengeDone : copy.completeChallenge}
+                {isThreeDChallengeComplete ? copy.challengeDone : copy.completeChallenge}
               </button>
             </div>
 

@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
+import { SUPPORTED_APP_LOCALES } from "@/lib/site-preferences";
 
 type LanguageToggleButtonProps = {
   className?: string;
@@ -26,17 +27,14 @@ export function LanguageToggleButton({
       )}
       aria-label={language === "zh" ? "语言切换" : "Language toggle"}
     >
-      {[
-        { value: "zh" as const, label: "中文" },
-        { value: "en" as const, label: "EN" },
-      ].map((option) => {
-        const isActive = language === option.value;
+      {SUPPORTED_APP_LOCALES.map((option) => {
+        const isActive = language === option.language;
 
         return (
           <button
-            key={option.value}
+            key={option.language}
             type="button"
-            onClick={() => setLanguage(option.value)}
+            onClick={() => setLanguage(option.language)}
             className={cn(
               "rounded-full px-3 py-2 text-xs font-semibold transition-colors",
               isActive
@@ -49,7 +47,7 @@ export function LanguageToggleButton({
             )}
             aria-pressed={isActive}
           >
-            {option.label}
+            {option.language === "zh" ? option.nativeLabel : "EN"}
           </button>
         );
       })}

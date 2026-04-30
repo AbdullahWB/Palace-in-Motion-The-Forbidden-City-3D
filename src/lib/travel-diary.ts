@@ -12,6 +12,7 @@ import type {
   CustomTourState,
   PassportMissionState,
 } from "@/types/ai-guide";
+import type { AchievementMissionState } from "@/types/competition";
 import type {
   ExploreJourneyRouteId,
   ExplorePlaceSlug,
@@ -25,6 +26,7 @@ type BuildTravelDiaryInput = {
   customTours: CustomTourState[];
   activeCustomTourId: string | null;
   activeExploreRouteId: ExploreJourneyRouteId | null;
+  achievementMissions?: AchievementMissionState[];
   generatedAt?: number;
 };
 
@@ -117,6 +119,7 @@ export function buildTravelDiaryText({
   customTours,
   activeCustomTourId,
   activeExploreRouteId,
+  achievementMissions = [],
   generatedAt = 0,
 }: BuildTravelDiaryInput) {
   const completedRouteIds = getCompletedJourneyRouteIds(visitedPlaceSlugs);
@@ -153,6 +156,11 @@ export function buildTravelDiaryText({
     .map((title) => pickLocalizedText(title, language))
     .filter(Boolean);
   const missionStampTitles = getMissionStampTitles(passportMissions, language);
+  const achievementTitles = achievementMissions
+    .filter((mission) => mission.completed)
+    .map((mission) => mission.title)
+    .filter(Boolean)
+    .slice(0, 8);
   const learningTags = getLearningTags(visitedPlaceSlugs, language);
   const favoriteStopSlug = getFavoriteStop(visitedPlaceSlugs) ?? nextStopSlug;
   const favoriteStop = getExplorePlaceBySlug(favoriteStopSlug);
@@ -199,6 +207,9 @@ export function buildTravelDiaryText({
       missionStampTitles.length
         ? `护照印章：${missionStampTitles.join("、")}。`
         : "护照印章：完成地点问答后会记录在这里。",
+      achievementTitles.length
+        ? `挑战徽章：${achievementTitles.join("、")}。`
+        : "挑战徽章：完成路线、问答、保护学习、三维挑战或课堂任务后会显示在这里。",
       activeCustomTour
         ? `当前智能路线：${activeCustomTour.title}。${activeCustomTour.explanation}`
         : "当前智能路线：尚未启用自定义路线。",
@@ -241,6 +252,9 @@ export function buildTravelDiaryText({
     missionStampTitles.length
       ? `Passport stamps: ${missionStampTitles.join(", ")}.`
       : "Passport stamps: answer place quizzes to record stamp names here.",
+    achievementTitles.length
+      ? `Challenge badges: ${achievementTitles.join(", ")}.`
+      : "Challenge badges: complete routes, quizzes, preservation reading, 3D challenges, or classroom tasks to show them here.",
     activeCustomTour
       ? `Active smart tour: ${activeCustomTour.title}. ${activeCustomTour.explanation}`
       : "Active smart tour: no custom route is active yet.",

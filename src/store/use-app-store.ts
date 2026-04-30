@@ -11,6 +11,11 @@ import type {
   CustomTourState,
   PassportMissionState,
 } from "@/types/ai-guide";
+import type {
+  AchievementMissionState,
+  ClassroomAssignmentState,
+  ClassroomReportState,
+} from "@/types/competition";
 import type { AccessibilityPreferences } from "@/types/preferences";
 
 type PersistedAppStoreState = Pick<
@@ -26,6 +31,9 @@ type PersistedAppStoreState = Pick<
   | "customTours"
   | "activeCustomTourId"
   | "accessibilityPreferences"
+  | "achievementMissions"
+  | "classroomAssignments"
+  | "classroomReports"
 >;
 
 export type AppStoreState = {
@@ -41,6 +49,9 @@ export type AppStoreState = {
   customTours: CustomTourState[];
   activeCustomTourId: string | null;
   accessibilityPreferences: AccessibilityPreferences;
+  achievementMissions: AchievementMissionState[];
+  classroomAssignments: ClassroomAssignmentState[];
+  classroomReports: ClassroomReportState[];
   setNavOpen: (isOpen: boolean) => void;
   setSelectedExploreZoneId: (zoneId: ExploreZone["id"] | null) => void;
   markExploreZoneVisited: (zoneId: ExploreZone["id"]) => void;
@@ -53,6 +64,13 @@ export type AppStoreState = {
   updateAccessibilityPreferences: (
     preferences: Partial<AccessibilityPreferences>
   ) => void;
+  completeAchievementMission: (
+    mission: Omit<AchievementMissionState, "completed" | "completedAt"> &
+      Partial<Pick<AchievementMissionState, "completedAt">>
+  ) => void;
+  saveClassroomAssignment: (assignment: ClassroomAssignmentState) => void;
+  saveClassroomReport: (report: ClassroomReportState) => void;
+  resetClassroomData: () => void;
   resetExploreProgress: () => void;
   setSelectedPostcardFrame: (frameId: PostcardFrame["id"]) => void;
   setHasCompletedTour: (value: boolean) => void;
@@ -80,7 +98,132 @@ const initialPersistedState: PersistedAppStoreState = {
   customTours: [],
   activeCustomTourId: null,
   accessibilityPreferences: defaultAccessibilityPreferences,
+  achievementMissions: [],
+  classroomAssignments: [],
+  classroomReports: [],
 };
+
+function upsertCompletedAchievement(
+  missions: AchievementMissionState[],
+  mission: Omit<AchievementMissionState, "completed" | "completedAt"> &
+    Partial<Pick<AchievementMissionState, "completedAt">>
+) {
+  const existingMission = missions.find((candidate) => candidate.id === mission.id);
+  const completedAt =
+    existingMission?.completedAt ?? mission.completedAt ?? Date.now();
+  const nextMission: AchievementMissionState = {
+    ...mission,
+    completed: true,
+    completedAt,
+    relatedPlaceSlug: mission.relatedPlaceSlug ?? null,
+    routeId: mission.routeId ?? null,
+  };
+
+  return [
+    ...missions.filter((candidate) => candidate.id !== mission.id),
+    nextMission,
+  ];
+}
+
+function normalizeAchievementMissions(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter(
+      (mission): mission is AchievementMissionState =>
+        Boolean(mission) &&
+        typeof mission === "object" &&
+        typeof (mission as AchievementMissionState).id === "string" &&
+        typeof (mission as AchievementMissionState).type === "string" &&
+        typeof (mission as AchievementMissionState).title === "string" &&
+        typeof (mission as AchievementMissionState).description === "string"
+    )
+    .map((mission) => ({
+      id: mission.id,
+      type: mission.type,
+      title: mission.title,
+      description: mission.description,
+      completed: mission.completed === true,
+      completedAt: Number.isFinite(mission.completedAt)
+        ? mission.completedAt
+        : null,
+      relatedPlaceSlug:
+        typeof mission.relatedPlaceSlug === "string"
+          ? mission.relatedPlaceSlug
+          : null,
+      routeId: typeof mission.routeId === "string" ? mission.routeId : null,
+    }));
+}
+
+function normalizeClassroomAssignments(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter(
+      (assignment): assignment is ClassroomAssignmentState =>
+        Boolean(assignment) &&
+        typeof assignment === "object" &&
+        typeof (assignment as ClassroomAssignmentState).id === "string" &&
+        typeof (assignment as ClassroomAssignmentState).title === "string" &&
+        typeof (assignment as ClassroomAssignmentState).routeId === "string" &&
+        Array.isArray((assignment as ClassroomAssignmentState).requiredPlaceSlugs)
+    )
+    .map((assignment) => ({
+      id: assignment.id,
+      title: assignment.title,
+      routeId: assignment.routeId,
+      difficulty: assignment.difficulty,
+      requiredPlaceSlugs: assignment.requiredPlaceSlugs.filter(
+        (placeSlug): placeSlug is ExplorePlaceSlug => typeof placeSlug === "string"
+      ),
+      worksheetText:
+        typeof assignment.worksheetText === "string"
+          ? assignment.worksheetText
+          : "",
+      createdAt: Number.isFinite(assignment.createdAt)
+        ? assignment.createdAt
+        : Date.now(),
+    }));
+}
+
+function normalizeClassroomReports(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter(
+      (report): report is ClassroomReportState =>
+        Boolean(report) &&
+        typeof report === "object" &&
+        typeof (report as ClassroomReportState).id === "string" &&
+        typeof (report as ClassroomReportState).assignmentId === "string" &&
+        typeof (report as ClassroomReportState).title === "string"
+    )
+    .map((report) => ({
+      id: report.id,
+      assignmentId: report.assignmentId,
+      title: report.title,
+      visitedCount: Number.isFinite(report.visitedCount)
+        ? report.visitedCount
+        : 0,
+      correctQuizCount: Number.isFinite(report.correctQuizCount)
+        ? report.correctQuizCount
+        : 0,
+      routeSealCount: Number.isFinite(report.routeSealCount)
+        ? report.routeSealCount
+        : 0,
+      completedMissionCount: Number.isFinite(report.completedMissionCount)
+        ? report.completedMissionCount
+        : 0,
+      reportText: typeof report.reportText === "string" ? report.reportText : "",
+      createdAt: Number.isFinite(report.createdAt) ? report.createdAt : Date.now(),
+    }));
+}
 
 function migratePersistedAppState(value: unknown): PersistedAppStoreState {
   if (!value || typeof value !== "object") {
@@ -155,6 +298,13 @@ function migratePersistedAppState(value: unknown): PersistedAppStoreState {
             ...(persisted.accessibilityPreferences as Partial<AccessibilityPreferences>),
           }
         : defaultAccessibilityPreferences,
+    achievementMissions: normalizeAchievementMissions(
+      persisted.achievementMissions
+    ),
+    classroomAssignments: normalizeClassroomAssignments(
+      persisted.classroomAssignments
+    ),
+    classroomReports: normalizeClassroomReports(persisted.classroomReports),
   };
 }
 
@@ -191,14 +341,48 @@ export const useAppStore = create<AppStoreState>()(
             stampUnlocked: (existingMission?.stampUnlocked ?? false) || isCorrect,
             updatedAt: Date.now(),
           };
+          const nextPassportMissions = [
+            ...state.passportMissions.filter(
+              (mission) => mission.placeSlug !== placeSlug
+            ),
+            nextMission,
+          ];
+          const correctAnswerCount = nextPassportMissions.reduce(
+            (total, mission) => total + mission.correctCount,
+            0
+          );
+          let nextAchievementMissions = state.achievementMissions;
+
+          if (isCorrect) {
+            nextAchievementMissions = upsertCompletedAchievement(
+              nextAchievementMissions,
+              {
+                id: "quiz-first-stamp",
+                type: "quiz",
+                title: "Quiz Stamp Starter",
+                description:
+                  "Unlocked by answering a grounded Palace Passport quiz correctly.",
+                relatedPlaceSlug: placeSlug,
+              }
+            );
+          }
+
+          if (correctAnswerCount >= 5) {
+            nextAchievementMissions = upsertCompletedAchievement(
+              nextAchievementMissions,
+              {
+                id: "quiz-palace-scholar",
+                type: "quiz",
+                title: "Palace Scholar",
+                description:
+                  "Unlocked by recording five correct grounded quiz answers.",
+              }
+            );
+          }
 
           return {
-            passportMissions: [
-              ...state.passportMissions.filter(
-                (mission) => mission.placeSlug !== placeSlug
-              ),
-              nextMission,
-            ],
+            passportMissions: nextPassportMissions,
+            achievementMissions: nextAchievementMissions,
           };
         }),
       saveCustomTour: (tour) =>
@@ -233,10 +417,62 @@ export const useAppStore = create<AppStoreState>()(
             ...preferences,
           },
         })),
+      completeAchievementMission: (mission) =>
+        set((state) => ({
+          achievementMissions: upsertCompletedAchievement(
+            state.achievementMissions,
+            mission
+          ),
+        })),
+      saveClassroomAssignment: (assignment) =>
+        set((state) => ({
+          classroomAssignments: [
+            assignment,
+            ...state.classroomAssignments.filter(
+              (existingAssignment) => existingAssignment.id !== assignment.id
+            ),
+          ].slice(0, 8),
+          achievementMissions: upsertCompletedAchievement(
+            state.achievementMissions,
+            {
+              id: "classroom-educator",
+              type: "classroom",
+              title: "Classroom Guide Builder",
+              description:
+                "Unlocked by creating a local route assignment for learners.",
+            }
+          ),
+        })),
+      saveClassroomReport: (report) =>
+        set((state) => ({
+          classroomReports: [
+            report,
+            ...state.classroomReports.filter(
+              (existingReport) => existingReport.id !== report.id
+            ),
+          ].slice(0, 8),
+          achievementMissions: upsertCompletedAchievement(
+            state.achievementMissions,
+            {
+              id: "classroom-report",
+              type: "classroom",
+              title: "Learning Report Ready",
+              description:
+                "Unlocked by generating a printable classroom progress report.",
+            }
+          ),
+        })),
+      resetClassroomData: () =>
+        set({
+          classroomAssignments: [],
+          classroomReports: [],
+        }),
       resetExploreProgress: () =>
         set((state) => ({
           ...initialPersistedState,
           accessibilityPreferences: state.accessibilityPreferences,
+          classroomAssignments: state.classroomAssignments,
+          classroomReports: state.classroomReports,
         })),
       setSelectedPostcardFrame: (frameId) => set({ selectedPostcardFrame: frameId }),
       setHasCompletedTour: (value) => set({ hasCompletedTour: value }),
@@ -245,7 +481,7 @@ export const useAppStore = create<AppStoreState>()(
     {
       name: "palace-in-motion-app",
       storage: createJSONStorage(() => localStorage),
-      version: 4,
+      version: 5,
       migrate: migratePersistedAppState,
       partialize: (state) => ({
         selectedExploreZoneId: state.selectedExploreZoneId,
@@ -259,6 +495,9 @@ export const useAppStore = create<AppStoreState>()(
         customTours: state.customTours,
         activeCustomTourId: state.activeCustomTourId,
         accessibilityPreferences: state.accessibilityPreferences,
+        achievementMissions: state.achievementMissions,
+        classroomAssignments: state.classroomAssignments,
+        classroomReports: state.classroomReports,
       }),
     }
   )

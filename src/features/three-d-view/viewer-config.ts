@@ -66,6 +66,8 @@ export type ThreeDViewerConfig = {
   fallbackMode: "placeholder";
   modelImport: {
     targetPath: string;
+    coordinateSpace: BilingualText;
+    hotspotAlignmentNote: BilingualText;
     optimizationNote: BilingualText;
     fallbackNote: BilingualText;
   };
@@ -102,6 +104,14 @@ export const forbiddenCityViewerConfig: ThreeDViewerConfig = {
   fallbackMode: "placeholder",
   modelImport: {
     targetPath: "public/models/forbidden-city.glb",
+    coordinateSpace: {
+      zh: "模型以三维场景原点为中轴参考，热点坐标使用同一世界坐标系，便于替换真实授权 GLB 后继续校准。",
+      en: "The model uses the scene origin as the central-axis reference. Hotspots share the same world coordinate map so a licensed GLB can be aligned without changing UI flows.",
+    },
+    hotspotAlignmentNote: {
+      zh: "导入真实模型后，只需微调 viewer-config 中的热点 position 与路线 points，即可把注释、路线和相机预设对齐到真实建筑。",
+      en: "After importing the real model, tune hotspot `position` values and route `points` in viewer-config to align annotations, route lines, and camera presets.",
+    },
     optimizationNote: {
       zh: "建议使用 glTF/GLB、Draco 或 Meshopt 压缩、KTX2/WebP 贴图，并为移动端控制面数与纹理尺寸。",
       en: "Use glTF/GLB with Draco or Meshopt compression, KTX2/WebP textures, and mobile-friendly mesh and texture budgets.",

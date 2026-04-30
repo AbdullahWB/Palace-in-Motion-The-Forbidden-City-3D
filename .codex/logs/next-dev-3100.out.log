@@ -6,26 +6,70 @@
 - Local:         http://127.0.0.1:3100
 - Network:       http://127.0.0.1:3100
 - Environments: .env.local
-✓ Ready in 556ms
+✓ Ready in 799ms
 Creating turbopack project {
   dir: 'C:\\Users\\abdul\\Desktop\\project_file\\Palace in Motion',
   testMode: true
 }
 
- GET / 200 in 625ms (next.js: 221ms, application-code: 404ms)
- GET / 200 in 183ms (next.js: 9ms, application-code: 173ms)
- GET /3d-view 200 in 135ms (next.js: 75ms, application-code: 60ms)
- GET / 200 in 35ms (next.js: 6ms, application-code: 29ms)
-✓ Compiled in 641ms
- GET / 200 in 611ms (next.js: 312ms, application-code: 299ms)
- GET / 200 in 176ms (next.js: 82ms, application-code: 94ms)
- GET / 200 in 182ms (next.js: 11ms, application-code: 172ms)
- GET / 200 in 380ms (next.js: 55ms, application-code: 325ms)
- GET / 200 in 187ms (next.js: 47ms, application-code: 140ms)
- GET / 200 in 1136ms (next.js: 214ms, application-code: 922ms)
- GET / 200 in 408ms (next.js: 14ms, application-code: 394ms)
-✓ Compiled in 226ms
-✓ Compiled in 215ms
-✓ Compiled in 136ms
-✓ Compiled in 146ms
-✓ Compiled in 120ms
+ GET /?view=map 200 in 1373ms (next.js: 498ms, application-code: 876ms)
+ GET /?view=map 200 in 248ms (next.js: 14ms, application-code: 234ms)
+ GET /?view=welcome 200 in 64ms (next.js: 8ms, application-code: 56ms)
+ GET /?view=map 200 in 53ms (next.js: 8ms, application-code: 44ms)
+ GET /?view=welcome 200 in 54ms (next.js: 9ms, application-code: 46ms)
+ GET /?view=map 200 in 56ms (next.js: 6ms, application-code: 50ms)
+ GET /?view=welcome 200 in 43ms (next.js: 6ms, application-code: 37ms)
+ GET /3d-view 200 in 194ms (next.js: 104ms, application-code: 90ms)
+ GET /companion 200 in 174ms (next.js: 95ms, application-code: 79ms)
+ POST /api/chat 200 in 214ms (next.js: 178ms, application-code: 36ms)
+ POST /api/chat 200 in 16ms (next.js: 5ms, application-code: 11ms)
+ GET /?view=place&place=taihe-dian&route=ceremonial-axis 200 in 49ms (next.js: 5ms, application-code: 44ms)
+ GET /?view=map&route=ceremonial-axis 200 in 49ms (next.js: 6ms, application-code: 43ms)
+ GET /?view=place&place=tianyi-men&photo=tianyi-1&route=ceremonial-axis 200 in 84ms (next.js: 45ms, application-code: 39ms)
+ POST /api/chat 200 in 3.3s (next.js: 5ms, application-code: 3.3s)
+ GET /?view=place&place=tianyi-men&photo=tianyi-1&route=ceremonial-axis 200 in 59ms (next.js: 7ms, application-code: 52ms)
+ GET /?view=welcome&route=ceremonial-axis 200 in 76ms (next.js: 6ms, application-code: 70ms)
+ GET /?view=map&route=ceremonial-axis 200 in 43ms (next.js: 5ms, application-code: 38ms)
+ GET /?view=welcome&route=ceremonial-axis 200 in 43ms (next.js: 5ms, application-code: 38ms)
+ GET /3d-view 200 in 84ms (next.js: 5ms, application-code: 79ms)
+ GET / 200 in 39ms (next.js: 4ms, application-code: 35ms)
+ GET /3d-view 200 in 64ms (next.js: 5ms, application-code: 59ms)
+✓ Compiled in 212ms
+✓ Compiled in 165ms
+✓ Compiled in 198ms
+✓ Compiled in 206ms
+✓ Compiled in 181ms
+ GET /3d-view 200 in 950ms (next.js: 461ms, application-code: 489ms)
+ GET /3d-view 200 in 121ms (next.js: 12ms, application-code: 109ms)
+ GET /3d-view 200 in 1574ms (next.js: 413ms, application-code: 1161ms)
+ GET /3d-view 200 in 979ms (next.js: 7ms, application-code: 972ms)
+✓ Compiled in 343ms
+✓ Compiled in 512ms
+✓ Compiled in 774ms
+ GET /3d-view 200 in 876ms (next.js: 157ms, application-code: 719ms)
+ GET /3d-view 200 in 3.5s (next.js: 2.4s, application-code: 1167ms)
+ GET /3d-view 200 in 886ms (next.js: 503ms, application-code: 383ms)
+ GET /3d-view 200 in 1019ms (next.js: 7ms, application-code: 1012ms)
+ GET /3d-view 200 in 891ms (next.js: 81ms, application-code: 810ms)
+ GET /3d-view 200 in 925ms (next.js: 9ms, application-code: 917ms)
+✓ Compiled in 289ms
+✓ Compiled in 275ms
+ GET /3d-view 200 in 504ms (next.js: 151ms, application-code: 353ms)
+ GET /3d-view 200 in 246ms (next.js: 4ms, application-code: 242ms)
+ GET /3d-view 200 in 151ms (next.js: 58ms, application-code: 93ms)
+ GET /3d-view 200 in 153ms (next.js: 4ms, application-code: 149ms)
+ GET /3d-view 200 in 588ms (next.js: 282ms, application-code: 305ms)
+ GET /3d-view 200 in 120ms (next.js: 7ms, application-code: 114ms)
+✓ Compiled in 308ms
+✓ Compiled in 164ms
+✓ Compiled in 371ms
+✓ Compiled in 168ms
+✓ Compiled in 218ms
+✓ Compiled in 164ms
+ GET /3d-view 200 in 490ms (next.js: 275ms, application-code: 215ms)
+✓ Compiled in 140ms
+✓ Compiled in 282ms
+✓ Compiled in 161ms
+✓ Compiled in 151ms
+✓ Compiled in 145ms
+[?25h

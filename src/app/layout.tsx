@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { FloatingAIAssistant } from "@/components/layout/floating-ai-assistant";
 import { Cormorant_Garamond, Inter } from "next/font/google";
+import { GlobalAccessibilityControl } from "@/components/preferences/global-accessibility-control";
 import { AccessibilityPreferencesBridge } from "@/components/preferences/accessibility-preferences-bridge";
 import { SitePreferencesProvider } from "@/components/preferences/site-preferences-provider";
 import { GlobalMusicToggle } from "@/components/media/global-music-toggle";
@@ -96,6 +97,7 @@ export default async function RootLayout({
               </main>
               <SiteFooter />
             </div>
+            <GlobalAccessibilityControl />
             <GlobalMusicToggle />
             <Suspense fallback={null}>
               <FloatingAIAssistant />

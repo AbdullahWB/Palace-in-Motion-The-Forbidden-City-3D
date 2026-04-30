@@ -73,6 +73,98 @@ function buildLearningTags(
   ];
 }
 
+type LocalizedQuizCopy = {
+  question: string;
+  correct: string;
+  wrongA: string;
+  wrongB: string;
+  explanation: string;
+  stampLabel: string;
+};
+
+const zhQuizCopyById: Record<string, LocalizedQuizCopy> = {
+  "tianyi-threshold": {
+    question: "天一门在这段旅程中承担什么作用？",
+    correct: "它是进入宫殿路线前的安静门槛。",
+    wrongA: "它被呈现为最后的礼制大殿。",
+    wrongB: "它只是一个装饰性屋顶研究点。",
+    explanation: "本地导览把天一门描述为从园林氛围进入建筑秩序的过渡。",
+    stampLabel: "园林门槛",
+  },
+  "taihe-order": {
+    question: "太和殿在本体验中最强烈地代表什么？",
+    correct: "外朝礼制秩序与等级。",
+    wrongA: "隐藏的居住花园。",
+    wrongB: "现代展览空间。",
+    explanation: "它的尺度、屋顶等级和高台基让它成为最清晰的礼制核心。",
+    stampLabel: "中轴礼制探索者",
+  },
+  "zhonghe-sequence": {
+    question: "为什么中和殿有助于理解路线？",
+    correct: "它帮助说明大殿之间的序列和过渡。",
+    wrongA: "它取消了中轴线概念。",
+    wrongB: "它与宫殿动线无关。",
+    explanation: "导览用中和殿展示礼制路线在主要停点之间如何改变节奏。",
+    stampLabel: "序列阅读者",
+  },
+  "baohe-closure": {
+    question: "保和殿在这里的路线作用是什么？",
+    correct: "它是外朝序列中的正式收束大殿。",
+    wrongA: "它只开启园林路线。",
+    wrongB: "它只用于自拍模式。",
+    explanation: "路线把保和殿视为向内廷移动前更开阔的最后礼制停点。",
+    stampLabel: "外朝收束者",
+  },
+  "qianqing-threshold": {
+    question: "在乾清门首先应该观察什么？",
+    correct: "红色门阈和被压缩的通行感。",
+    wrongA: "大型园林水池。",
+    wrongB: "独立的山景。",
+    explanation: "本地场景让乾清门通过门扇与红墙呈现强烈的通行节点。",
+    stampLabel: "门阈守望者",
+  },
+  "yangxin-life": {
+    question: "哪个主题最适合本体验中的养心殿？",
+    correct: "更近尺度下的内廷生活与治理。",
+    wrongA: "只有园林景观。",
+    wrongB: "只是没有故事的地图标记。",
+    explanation: "养心殿用于把体验从正式礼制转向日常宫廷生活。",
+    stampLabel: "内廷观察者",
+  },
+  "jingren-court": {
+    question: "景仁宫与宏大的礼制大殿有什么不同？",
+    correct: "它更安静，更接近居住院落生活。",
+    wrongA: "它被呈现为最大的外朝大殿。",
+    wrongB: "它只是一座跨水桥。",
+    explanation: "本地导览用景仁宫展示更平缓、更小尺度的宫廷节奏。",
+    stampLabel: "静院印记",
+  },
+  "fengxian-ritual": {
+    question: "奉先殿为内廷起居路线增加了什么层次？",
+    correct: "祭祀与祖先记忆的层次。",
+    wrongA: "只属于轻松园林停点。",
+    wrongB: "现代商业街区。",
+    explanation: "导览把奉先殿放在居住与祭祀记忆共同构成的路线主题中。",
+    stampLabel: "礼仪记忆印记",
+  },
+  "huangji-bright": {
+    question: "皇极殿在这里营造了怎样的视觉氛围？",
+    correct: "明亮、稳定、有秩序的前场氛围。",
+    wrongA: "黑暗隐蔽的通道。",
+    wrongB: "水下园林场景。",
+    explanation: "本地内容强调宽阔前场、立面、柱列和阳光下的屋顶构图。",
+    stampLabel: "寿康宫苑印记",
+  },
+  "shoukang-calm": {
+    question: "为什么寿康宫适合出现在路线后段？",
+    correct: "它以更安静的居住院落放慢体验节奏。",
+    wrongA: "它回到最宏大的外朝礼制。",
+    wrongB: "它去除了所有院落氛围。",
+    explanation: "导览把寿康宫描述为安静、日照充足的居住收束片段。",
+    stampLabel: "静居印记",
+  },
+};
+
 function quiz(
   id: string,
   question: string,
@@ -82,42 +174,44 @@ function quiz(
   explanation: string,
   stampLabel: string
 ): PalaceKnowledgeQuizQuestion {
+  const zhCopy = zhQuizCopyById[id];
+
   return {
     id,
     question: {
-      zh: question,
+      zh: zhCopy?.question ?? question,
       en: question,
     },
     options: [
       {
         id: "a",
         text: {
-          zh: correct,
+          zh: zhCopy?.correct ?? correct,
           en: correct,
         },
       },
       {
         id: "b",
         text: {
-          zh: wrongA,
+          zh: zhCopy?.wrongA ?? wrongA,
           en: wrongA,
         },
       },
       {
         id: "c",
         text: {
-          zh: wrongB,
+          zh: zhCopy?.wrongB ?? wrongB,
           en: wrongB,
         },
       },
     ],
     correctOptionId: "a",
     explanation: {
-      zh: explanation,
+      zh: zhCopy?.explanation ?? explanation,
       en: explanation,
     },
     stampLabel: {
-      zh: stampLabel,
+      zh: zhCopy?.stampLabel ?? stampLabel,
       en: stampLabel,
     },
   };
