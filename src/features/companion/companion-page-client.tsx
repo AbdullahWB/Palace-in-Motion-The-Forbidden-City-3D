@@ -37,6 +37,7 @@ import {
   getExplorePlaceBySlug,
   getUnlockedPassportSealIds,
 } from "@/data/panorama";
+import { requestStaticGuideResponse } from "@/lib/ai-guide/static-guide";
 import { pickLocalizedText } from "@/lib/i18n";
 import { HERITAGE_SCENE_ID } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -468,18 +469,7 @@ export function CompanionPageClient() {
         timeBudget: options.timeBudget,
         interests: options.interests,
       });
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-      const data = (await response.json()) as GuideResponse & { error?: string };
-
-      if (!response.ok) {
-        throw new Error(data.error ?? copy.error);
-      }
+      const data = await requestStaticGuideResponse(payload);
 
       if (data.customTour) {
         saveCustomTour(data.customTour);

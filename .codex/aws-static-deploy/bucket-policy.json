@@ -1,0 +1,19 @@
+{
+    "Version":  "2012-10-17",
+    "Statement":  [
+                      {
+                          "Sid":  "AllowCloudFrontServicePrincipalReadOnly",
+                          "Effect":  "Allow",
+                          "Principal":  {
+                                            "Service":  "cloudfront.amazonaws.com"
+                                        },
+                          "Action":  "s3:GetObject",
+                          "Resource":  "arn:aws:s3:::palace-in-motion-demo-180703226679-20260502/*",
+                          "Condition":  {
+                                            "StringEquals":  {
+                                                                 "AWS:SourceArn":  "arn:aws:cloudfront::180703226679:distribution/E1Y6T0H9WSG9PJ"
+                                                             }
+                                        }
+                      }
+                  ]
+}

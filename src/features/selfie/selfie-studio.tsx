@@ -23,15 +23,12 @@ import {
 import { extractForegroundFromSelfie } from "@/lib/selfie/remove-background";
 import { DemoBadgePanel } from "@/components/ui/demo-badge-panel";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
+import { requestStaticGuideResponse } from "@/lib/ai-guide/static-guide";
 import { HERITAGE_SCENE_ID } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/use-app-store";
-import type { GuideRequest, GuideResponse } from "@/types/ai-guide";
-import type {
-  AiEnhancedScene,
-  SelfieEnhanceRequest,
-  SelfieEnhanceResponse,
-} from "@/types/selfie";
+import type { GuideRequest } from "@/types/ai-guide";
+import type { AiEnhancedScene } from "@/types/selfie";
 import type { ExploreJourneyRouteId } from "@/types/content";
 
 type StepId = "capture" | "adjust" | "compose";
@@ -136,20 +133,6 @@ function readFileAsDataUrl(file: File) {
     reader.onerror = () => reject(new Error("The selected image could not be read."));
     reader.readAsDataURL(file);
   });
-}
-
-async function ensureDataUrl(src: string) {
-  if (src.startsWith("data:")) {
-    return src;
-  }
-
-  const response = await fetch(src);
-  if (!response.ok) {
-    throw new Error("Failed to load the backdrop image for AI enhancement.");
-  }
-
-  const blob = await response.blob();
-  return readFileAsDataUrl(new File([blob], "backdrop-image"));
 }
 
 export function SelfieStudio({
@@ -451,50 +434,10 @@ export function SelfieStudio({
     setIsEnhancing(true);
 
     try {
-      const backgroundReferenceDataUrl = await ensureDataUrl(activeBackdrop.imageUrl);
-      const payload: SelfieEnhanceRequest = {
-        baseSceneDataUrl: manualSceneDataUrl,
-        subjectReferenceDataUrl: preparedForeground.imageSrc,
-        backgroundReferenceDataUrl,
-        placeTitle: title.trim() || activeFrame.defaultTitle || activeFrame.title,
-        focusLabel: activeFocus.label,
-        language,
-      };
-      const response = await fetch("/api/selfie/enhance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = (await response.json()) as SelfieEnhanceResponse;
-
-      if (!response.ok || !data.enhancedSceneDataUrl) {
-        throw new Error(data.error ?? "AI enhancement failed.");
-      }
-
-      const enhancedResult = await composePostcard({
-        photoSrc: preparedForeground.imageSrc,
-        photoIsCutout: preparedForeground.wasBackgroundRemoved,
-        backdropSrc: activeBackdrop.imageUrl,
-        backdropLabel: activeBackdrop.label,
-        subjectTransform,
-        frame: activeFrame,
-        title: title.trim() || activeFrame.defaultTitle || activeFrame.title,
-        caption: caption.trim() || activeFocus.description,
-        focusLabel: activeFocus.label,
-        journeyLabel: journey?.title ?? null,
-        journeySealLabel: journey?.isCompleted ? journey.sealLabel ?? journey.title : null,
-        sceneOverrideSrc: data.enhancedSceneDataUrl,
-      });
-
-      setAiEnhancedScene({
-        dataUrl: data.enhancedSceneDataUrl,
-        provider: data.provider,
-        model: data.model,
-      });
-      setAiComposition(enhancedResult);
-      setPreviewMode("ai");
-      setIsAiResultStale(false);
-      setActiveStep("compose");
+      setPreviewMode("manual");
+      setEnhanceError(
+        "AI enhancement needs a server API. This static demo keeps manual postcard generation available."
+      );
     } catch (error) {
       setPreviewMode("manual");
       setEnhanceError(
@@ -544,13 +487,7 @@ export function SelfieStudio({
         postcardThemeId: activeFrame.id,
         title: title.trim() || null,
       };
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = (await response.json()) as GuideResponse & { error?: string };
-      if (!response.ok) throw new Error(data.error ?? "The AI guide could not suggest a caption.");
+      const data = await requestStaticGuideResponse(payload);
       const suggestedCaption = data.caption?.text?.trim() || data.answer.trim();
       if (!suggestedCaption) throw new Error("The AI guide returned an empty caption.");
       setCaption(suggestedCaption);

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { requestStaticGuideResponse } from "@/lib/ai-guide/static-guide";
 import { cn } from "@/lib/utils";
 import type { GuideMode, GuideRequest, GuideResponse } from "@/types/ai-guide";
 import type { HeritageZoneId } from "@/types/content";
@@ -81,19 +82,7 @@ export function GuidePanel({
         intent: mode === "quiz" ? "quiz" : "answer",
       };
 
-      const result = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = (await result.json()) as GuideResponse & { error?: string };
-
-      if (!result.ok) {
-        throw new Error(data.error ?? "The AI guide could not answer right now.");
-      }
+      const data = await requestStaticGuideResponse(payload);
 
       setResponse(data);
     } catch (submissionError) {

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { FloatingAIAssistant } from "@/components/layout/floating-ai-assistant";
 import { Cormorant_Garamond, Inter } from "next/font/google";
@@ -14,10 +13,7 @@ import { APP_DESCRIPTION, APP_NAME } from "@/lib/constants";
 import {
   DEFAULT_APP_LANGUAGE,
   DEFAULT_APP_THEME,
-  SITE_LANGUAGE_STORAGE_KEY,
-  SITE_THEME_STORAGE_KEY,
-  isAppLanguage,
-  isAppTheme,
+  getPreferenceBootScript,
 } from "@/lib/site-preferences";
 import "./globals.css";
 
@@ -54,20 +50,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const languageCookie = cookieStore.get(SITE_LANGUAGE_STORAGE_KEY)?.value;
-  const themeCookie = cookieStore.get(SITE_THEME_STORAGE_KEY)?.value;
-  const initialLanguage = isAppLanguage(languageCookie)
-    ? languageCookie
-    : DEFAULT_APP_LANGUAGE;
-  const initialTheme = isAppTheme(themeCookie)
-    ? themeCookie
-    : DEFAULT_APP_THEME;
+  const initialLanguage = DEFAULT_APP_LANGUAGE;
+  const initialTheme = DEFAULT_APP_THEME;
 
   return (
     <html
@@ -77,6 +66,11 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${cormorant.variable} h-full`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{ __html: getPreferenceBootScript() }}
+        />
+      </head>
       <body className="min-h-full bg-background text-foreground font-sans antialiased">
         <SitePreferencesProvider
           initialLanguage={initialLanguage}
