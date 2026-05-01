@@ -50,6 +50,7 @@ import {
   buildAchievementMissionCards,
   createAchievementMissionInput,
 } from "@/lib/achievement-missions";
+import { requestStaticGuideResponse } from "@/lib/ai-guide/static-guide";
 import { pickLocalizedText } from "@/lib/i18n";
 import { buildTravelDiaryText } from "@/lib/travel-diary";
 import { cn } from "@/lib/utils";
@@ -64,7 +65,6 @@ import type {
 import type {
   CustomTourState,
   GuideQuizPayload,
-  GuideResponse,
   GuideSiteActionPayload,
   PassportMissionState,
   TourBuilderInterest,
@@ -1988,28 +1988,22 @@ export function PanoramaExperience({
             );
 
       try {
-        const response = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            mode: "detailed",
-            intent: "answer",
-            language,
-            question: narrationQuestion ?? question,
-            title: activeJourney && routeTitle ? `${routeTitle} - ${placeTitle}` : placeTitle,
-            journeyRouteId: activeJourney?.id ?? null,
-            journeyTitle: routeTitle,
-            journeyDescription: routeDescription,
-            journeyStopIndex: activeJourney ? autoTourPlaceIndex + 1 : null,
-            journeyStopTotal: activeJourney ? totalTourPlaces : null,
-            frameCaption: photoCaption,
-          }),
+        const data = await requestStaticGuideResponse({
+          mode: "detailed",
+          intent: "answer",
+          language,
+          question: narrationQuestion ?? question,
+          title: activeJourney && routeTitle ? `${routeTitle} - ${placeTitle}` : placeTitle,
+          journeyRouteId: activeJourney?.id ?? null,
+          journeyTitle: routeTitle,
+          journeyDescription: routeDescription,
+          journeyStopIndex: activeJourney ? autoTourPlaceIndex + 1 : null,
+          journeyStopTotal: activeJourney ? totalTourPlaces : null,
+          frameCaption: photoCaption,
         });
 
-        const data = (await response.json()) as { answer?: string; error?: string };
-
-        if (!response.ok || !data.answer) {
-          throw new Error(data.error ?? "Failed to generate narration.");
+        if (!data.answer) {
+          throw new Error("Failed to generate narration.");
         }
 
         if (cancelled) {
@@ -2264,22 +2258,17 @@ export function PanoramaExperience({
     setCustomTourError(null);
 
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mode: "tourist",
-          intent: "tour_builder",
-          language,
-          question: "Build a personalized palace tour.",
-          timeBudget: selectedTourTimeBudget,
-          interests: selectedTourInterests,
-        }),
+      const data = await requestStaticGuideResponse({
+        mode: "tourist",
+        intent: "tour_builder",
+        language,
+        question: "Build a personalized palace tour.",
+        timeBudget: selectedTourTimeBudget,
+        interests: selectedTourInterests,
       });
-      const data = (await response.json()) as GuideResponse & { error?: string };
 
-      if (!response.ok || !data.customTour) {
-        throw new Error(data.error ?? tourBuilderCopy[language].fallbackError);
+      if (!data.customTour) {
+        throw new Error(tourBuilderCopy[language].fallbackError);
       }
 
       saveCustomTour(data.customTour);

@@ -1,0 +1,77 @@
+{
+    "CallerReference":  "palace-in-motion-180703226679-20260502-20260502043431",
+    "Comment":  "Palace in Motion university static demo",
+    "Enabled":  true,
+    "IsIPV6Enabled":  true,
+    "DefaultRootObject":  "index.html",
+    "Origins":  {
+                    "Quantity":  1,
+                    "Items":  [
+                                  {
+                                      "Id":  "s3-palace-in-motion-demo-180703226679-20260502",
+                                      "DomainName":  "palace-in-motion-demo-180703226679-20260502.s3.ap-southeast-1.amazonaws.com",
+                                      "OriginAccessControlId":  "EW1RFSU9AM7VJ",
+                                      "S3OriginConfig":  {
+                                                             "OriginAccessIdentity":  ""
+                                                         }
+                                  }
+                              ]
+                },
+    "DefaultCacheBehavior":  {
+                                 "TargetOriginId":  "s3-palace-in-motion-demo-180703226679-20260502",
+                                 "ViewerProtocolPolicy":  "redirect-to-https",
+                                 "Compress":  true,
+                                 "AllowedMethods":  {
+                                                        "Quantity":  2,
+                                                        "Items":  [
+                                                                      "GET",
+                                                                      "HEAD"
+                                                                  ],
+                                                        "CachedMethods":  {
+                                                                              "Quantity":  2,
+                                                                              "Items":  [
+                                                                                            "GET",
+                                                                                            "HEAD"
+                                                                                        ]
+                                                                          }
+                                                    },
+                                 "CachePolicyId":  "658327ea-f89d-4fab-a63d-7e88639e58f6",
+                                 "FunctionAssociations":  {
+                                                              "Quantity":  1,
+                                                              "Items":  [
+                                                                            {
+                                                                                "EventType":  "viewer-request",
+                                                                                "FunctionARN":  "arn:aws:cloudfront::180703226679:function/palace-in-motion-rewrite-20260502"
+                                                                            }
+                                                                        ]
+                                                          }
+                             },
+    "CustomErrorResponses":  {
+                                 "Quantity":  2,
+                                 "Items":  [
+                                               {
+                                                   "ErrorCode":  403,
+                                                   "ResponsePagePath":  "/404.html",
+                                                   "ResponseCode":  "404",
+                                                   "ErrorCachingMinTTL":  10
+                                               },
+                                               {
+                                                   "ErrorCode":  404,
+                                                   "ResponsePagePath":  "/404.html",
+                                                   "ResponseCode":  "404",
+                                                   "ErrorCachingMinTTL":  10
+                                               }
+                                           ]
+                             },
+    "PriceClass":  "PriceClass_All",
+    "ViewerCertificate":  {
+                              "CloudFrontDefaultCertificate":  true
+                          },
+    "Restrictions":  {
+                         "GeoRestriction":  {
+                                                "RestrictionType":  "none",
+                                                "Quantity":  0
+                                            }
+                     },
+    "HttpVersion":  "http2"
+}

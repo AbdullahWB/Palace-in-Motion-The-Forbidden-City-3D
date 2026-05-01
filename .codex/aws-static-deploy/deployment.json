@@ -1,0 +1,11 @@
+{
+  "siteUrl": "https://d347pclml3jq0c.cloudfront.net/",
+  "s3Bucket": "palace-in-motion-demo-180703226679-20260502",
+  "s3Region": "ap-southeast-1",
+  "cloudFrontDistributionId": "E1Y6T0H9WSG9PJ",
+  "cloudFrontDomain": "d347pclml3jq0c.cloudfront.net",
+  "s3WebsiteUrl": "http://palace-in-motion-demo-180703226679-20260502.s3-website-ap-southeast-1.amazonaws.com/",
+  "cloudFrontFunction": "palace-in-motion-rewrite-20260502",
+  "originAccessControlId": "EW1RFSU9AM7VJ",
+  "createdFor": "Palace in Motion university static demo"
+}
