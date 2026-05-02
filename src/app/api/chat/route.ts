@@ -158,7 +158,7 @@ function buildVerificationPayload({
 }: {
   context: ReturnType<typeof resolveGuideContext>;
   language: "zh" | "en";
-} {
+},) {
   return buildGuideVerificationPayload({ context, language });
   /*
   if (context.placeKnowledge) {

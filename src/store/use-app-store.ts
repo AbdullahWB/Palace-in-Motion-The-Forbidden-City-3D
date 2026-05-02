@@ -313,7 +313,7 @@ function migratePersistedAppState(value: unknown): PersistedAppStoreState {
 
 export const useAppStore = create<AppStoreState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       isNavOpen: false,
       ...initialPersistedState,
       setNavOpen: (isOpen) => set({ isNavOpen: isOpen }),
@@ -471,7 +471,7 @@ export const useAppStore = create<AppStoreState>()(
           classroomReports: [],
         }),
       exportJourneyBackup: () => {
-        const state = useAppStore.getState();
+        const state = get();
 
         return {
           visitedExplorePlaceSlugs: state.visitedExplorePlaceSlugs,
