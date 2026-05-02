@@ -80,7 +80,7 @@ type PanoramaExperienceProps = {
   initialState: ExploreSearchState;
 };
 
-type ExploreUiCopy = (typeof exploreUiCopy)[keyof typeof exploreUiCopy];
+type ExploreUiCopy = Record<keyof typeof exploreUiCopy.en, string>;
 type JourneyProgress = {
   visitedStops: number;
   totalStops: number;
@@ -319,6 +319,144 @@ const journeyOnboardingSteps: Record<AppLanguage, JourneyOnboardingStep[]> = {
   ],
 };
 
+const localizedExploreUiCopy: Record<AppLanguage, ExploreUiCopy> = {
+  ...exploreUiCopy,
+  zh: {
+    brandTitle: "全景故宫",
+    brandSubtitle: "全景故宫博物馆",
+    home: "首页",
+    preparedPlaces: "已准备场景",
+    welcome: "欢迎",
+    palaceMap: "宫城地图",
+    mapInstruction: "拖动或缩放地图，然后点击一个场所进入视图。",
+    mappedPlaces: "地点已映射",
+    closeMap: "关闭宫城地图",
+    zoomOut: "缩小地图",
+    zoomIn: "放大地图",
+    backToWelcome: "返回欢迎",
+    placeView: "场所视图",
+    backToMap: "返回地图",
+    close: "关闭",
+    selfie: "合影",
+    sceneFrames: "场景序列",
+    views: "张视图",
+    activeFrame: "当前画面",
+    closeSelfieModal: "关闭合影弹窗",
+    threeDView: "3D 视图",
+    autoTour: "自动导览",
+    tourPaused: "暂停中",
+    tourNarrating: "讲解中",
+    tourLoading: "生成讲解...",
+    tourResume: "继续",
+    tourPause: "暂停",
+    tourNext: "下一处",
+    tourBack: "上一处",
+    tourExit: "退出导览",
+    tourVoiceOn: "语音开",
+    tourVoiceOff: "语音关",
+    tourStopTitle: "导览进度",
+    tourPhotoLabel: "画面",
+  },
+};
+
+const localizedJourneyUiCopy = {
+  ...journeyUiCopy,
+  zh: {
+    passport: "行旅簿",
+    startJourney: "开始路线",
+    journeyRoutes: "推荐路线",
+    journeyReady: "已选路线",
+    journeyStops: "站点",
+    startRoute: "开始路线",
+    clearRoute: "清除路线",
+    nextStop: "下一站",
+    routeMap: "路线地图",
+    freePalace: "全宫浏览",
+  },
+} as const;
+
+const localizedPassportActionCopy = {
+  ...passportActionCopy,
+  zh: {
+    openPlace: "打开场所",
+    continueRoute: "继续路线",
+    nextUnvisited: "下一站",
+    mapFallback: "地图图像加载延迟，场所标记仍可使用。",
+  },
+} as const;
+
+const localizedTourBuilderCopy = {
+  ...tourBuilderCopy,
+  zh: {
+    eyebrow: "智能路线规划",
+    title: "规划我的路线",
+    body: "选择时间和兴趣，系统会用本地导览内容与现有宫殿站点生成一条短路线。",
+    timeLabel: "时间",
+    interestLabel: "兴趣",
+    build: "生成路线",
+    building: "生成中...",
+    start: "开始自定义路线",
+    continue: "继续自定义路线",
+    active: "当前自定义路线",
+    saved: "已保存智能路线",
+    fallbackError: "AI 暂不可用，已使用本地导览内容生成路线。",
+  },
+} as const;
+
+const localizedPassportMissionCopy = {
+  ...passportMissionCopy,
+  zh: {
+    completion: "完成度",
+    quizStamps: "问答印记",
+    continueLast: "从上次位置继续",
+    missionTitle: "行旅簿问答任务",
+    missionBody:
+      "回答一个基于导览内容的问题即可解锁问答印记；到访场所也会解锁到访印记。",
+    correct: "回答正确，印记已解锁。",
+    incorrect: "还不正确。可以先阅读导览提示，再尝试其他场所。",
+    source: "导览来源",
+    earned: "已获印记",
+    locked: "未盖印",
+  },
+} as const;
+
+const localizedTourBuilderInterestOptions = tourBuilderInterestOptions.map(
+  (option) => ({
+    ...option,
+    label:
+      option.value === "architecture"
+        ? { zh: "建筑", en: option.label.en }
+        : option.value === "history"
+          ? { zh: "历史", en: option.label.en }
+          : option.value === "gardens"
+            ? { zh: "园林", en: option.label.en }
+            : option.value === "photography"
+              ? { zh: "摄影", en: option.label.en }
+              : { zh: "快速总览", en: option.label.en },
+  })
+);
+
+const localizedJourneyOnboardingSteps: Record<
+  AppLanguage,
+  JourneyOnboardingStep[]
+> = {
+  ...journeyOnboardingSteps,
+  zh: [
+    {
+      title: "选择路线",
+      body: "先选一条旅程，地图会突出显示主要站点。",
+    },
+    {
+      title: "进入地图",
+      body: "可以手动打开标记，也可以从地图开始路线。",
+    },
+    {
+      title: "收集印记",
+      body: "每到访一个场所，行旅簿都会更新并推进路线徽记。",
+    },
+  ],
+};
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
@@ -371,21 +509,27 @@ function formatJourneyProgressLabel(
   journeyStopsLabel: string,
   language: AppLanguage
 ) {
+  if (language === "zh") {
+    if (progress.isCompleted) {
+      return `已完成 · ${progress.visitedStops}/${progress.totalStops} ${journeyStopsLabel}`;
+    }
+
+    if (progress.visitedStops > 0) {
+      return `${progress.visitedStops}/${progress.totalStops} 已访站点`;
+    }
+
+    return `${progress.totalStops} 站待探索`;
+  }
+
   if (progress.isCompleted) {
-    return `${
-      language === "zh" ? "已完成" : "Completed"
-    } · ${progress.visitedStops}/${progress.totalStops} ${journeyStopsLabel}`;
+    return `Completed · ${progress.visitedStops}/${progress.totalStops} ${journeyStopsLabel}`;
   }
 
   if (progress.visitedStops > 0) {
-    return `${progress.visitedStops}/${progress.totalStops} ${
-      language === "zh" ? "已访站点" : "stops visited"
-    }`;
+    return `${progress.visitedStops}/${progress.totalStops} stops visited`;
   }
 
-  return `${progress.totalStops} ${
-    language === "zh" ? "站待探索" : "stops to explore"
-  }`;
+  return `${progress.totalStops} stops to explore`;
 }
 
 function getMissionForPlace(
@@ -678,7 +822,7 @@ function PersonalizedTourBuilder({
   onStartTour,
 }: PersonalizedTourBuilderProps) {
   const isDarkTheme = theme === "dark";
-  const copy = tourBuilderCopy[language];
+  const copy = localizedTourBuilderCopy[language];
 
   return (
     <section
@@ -757,7 +901,7 @@ function PersonalizedTourBuilder({
             {copy.interestLabel}
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
-            {tourBuilderInterestOptions.map((option) => {
+            {localizedTourBuilderInterestOptions.map((option) => {
               const isActive = selectedInterests.includes(option.value);
 
               return (
@@ -913,8 +1057,8 @@ function PassportDrawer({
 }: PassportDrawerProps) {
   const isDarkTheme = theme === "dark";
   const passport = exploreExperience.passport;
-  const actionCopy = passportActionCopy[language];
-  const missionCopy = passportMissionCopy[language];
+  const actionCopy = localizedPassportActionCopy[language];
+  const missionCopy = localizedPassportMissionCopy[language];
   const visitedSet = new Set(visitedPlaceSlugs);
   const completedSet = new Set(completedRouteIds);
   const unlockedSealSet = new Set(unlockedSealIds);
@@ -1464,7 +1608,7 @@ function PassportDrawer({
                                 : "border-border/70 bg-background/80 text-foreground hover:bg-background"
                             )}
                           >
-                            {journeyUiCopy[language].routeMap}
+                    {localizedJourneyUiCopy[language].routeMap}
                           </button>
                         </div>
                       </div>
@@ -1503,8 +1647,8 @@ export function PanoramaExperience({
   const searchParams = useSearchParams();
   const prefersReducedMotion = useReducedMotion() ?? false;
   const { language, theme } = useSitePreferences();
-  const ui = exploreUiCopy[language];
-  const journeyUi = journeyUiCopy[language];
+  const ui = localizedExploreUiCopy[language];
+  const journeyUi = localizedJourneyUiCopy[language];
   const isDarkTheme = theme === "dark";
 
   const visitedExplorePlaceSlugs = useAppStore(
@@ -2279,7 +2423,7 @@ export function PanoramaExperience({
       const data = (await response.json()) as GuideResponse & { error?: string };
 
       if (!response.ok || !data.customTour) {
-        throw new Error(data.error ?? tourBuilderCopy[language].fallbackError);
+        throw new Error(data.error ?? localizedTourBuilderCopy[language].fallbackError);
       }
 
       saveCustomTour(data.customTour);
@@ -2293,7 +2437,7 @@ export function PanoramaExperience({
       setCustomTourError(
         error instanceof Error
           ? error.message
-          : tourBuilderCopy[language].fallbackError
+          : localizedTourBuilderCopy[language].fallbackError
       );
     } finally {
       setIsBuildingCustomTour(false);
@@ -2928,7 +3072,7 @@ export function PanoramaExperience({
               </p>
 
               <div className="mx-auto mt-7 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
-                {journeyOnboardingSteps[language].map((step, index) => (
+                {localizedJourneyOnboardingSteps[language].map((step, index) => (
                   <div
                     key={step.title}
                     className={cn(
@@ -3410,7 +3554,7 @@ export function PanoramaExperience({
                             key={marker.placeSlug}
                             type="button"
                             onClick={() => openPlace(marker.placeSlug)}
-                            aria-label={`${passportActionCopy[language].openPlace}: ${localize(marker.label)}`}
+                            aria-label={`${localizedPassportActionCopy[language].openPlace}: ${localize(marker.label)}`}
                             className={cn(
                               "absolute -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-[1.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#d6b071]",
                               hasMapRouteFocus && !isInRoute ? "opacity-45" : "opacity-100"
@@ -3469,7 +3613,7 @@ export function PanoramaExperience({
                         : "border-border/80 bg-[rgba(255,248,240,0.9)] text-accent-strong"
                     )}
                   >
-                    {passportActionCopy[language].mapFallback}
+                    {localizedPassportActionCopy[language].mapFallback}
                   </div>
                 ) : null}
 

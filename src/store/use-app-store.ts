@@ -17,6 +17,7 @@ import type {
   ClassroomReportState,
 } from "@/types/competition";
 import type { AccessibilityPreferences } from "@/types/preferences";
+import type { JourneyBackupInput } from "@/lib/journey-backup";
 
 type PersistedAppStoreState = Pick<
   AppStoreState,
@@ -71,6 +72,8 @@ export type AppStoreState = {
   saveClassroomAssignment: (assignment: ClassroomAssignmentState) => void;
   saveClassroomReport: (report: ClassroomReportState) => void;
   resetClassroomData: () => void;
+  exportJourneyBackup: () => JourneyBackupInput;
+  importJourneyBackup: (backup: JourneyBackupInput) => void;
   resetExploreProgress: () => void;
   setSelectedPostcardFrame: (frameId: PostcardFrame["id"]) => void;
   setHasCompletedTour: (value: boolean) => void;
@@ -467,6 +470,39 @@ export const useAppStore = create<AppStoreState>()(
           classroomAssignments: [],
           classroomReports: [],
         }),
+      exportJourneyBackup: () => {
+        const state = useAppStore.getState();
+
+        return {
+          visitedExplorePlaceSlugs: state.visitedExplorePlaceSlugs,
+          passportMissions: state.passportMissions,
+          customTours: state.customTours,
+          activeCustomTourId: state.activeCustomTourId,
+          activeExploreRouteId: state.activeExploreRouteId,
+          achievementMissions: state.achievementMissions,
+          classroomAssignments: state.classroomAssignments,
+          classroomReports: state.classroomReports,
+          accessibilityPreferences: state.accessibilityPreferences,
+        };
+      },
+      importJourneyBackup: (backup) =>
+        set((state) => ({
+          visitedExplorePlaceSlugs: backup.visitedExplorePlaceSlugs,
+          passportMissions: backup.passportMissions,
+          customTours: backup.customTours,
+          activeCustomTourId: backup.activeCustomTourId,
+          activeExploreRouteId:
+            typeof backup.activeExploreRouteId === "string"
+              ? (backup.activeExploreRouteId as ExploreJourneyRouteId)
+              : null,
+          achievementMissions: backup.achievementMissions,
+          classroomAssignments: backup.classroomAssignments,
+          classroomReports: backup.classroomReports,
+          accessibilityPreferences: {
+            ...state.accessibilityPreferences,
+            ...backup.accessibilityPreferences,
+          },
+        })),
       resetExploreProgress: () =>
         set((state) => ({
           ...initialPersistedState,

@@ -11,14 +11,12 @@ import {
   DEFAULT_APP_LANGUAGE,
   isAppLanguage,
 } from "@/lib/site-preferences";
-import { pickLocalizedText } from "@/lib/i18n";
+import { buildGuideVerificationPayload } from "@/lib/guide-verification";
 import type {
   GuideIntent,
   GuideMode,
   GuideRequest,
   GuideResponse,
-  GuideSourceCard,
-  GuideVerification,
   TourBuilderInterest,
 } from "@/types/ai-guide";
 import type { ExploreJourneyRouteId, HeritageZoneId } from "@/types/content";
@@ -160,10 +158,9 @@ function buildVerificationPayload({
 }: {
   context: ReturnType<typeof resolveGuideContext>;
   language: "zh" | "en";
-}): {
-  sourceCards: GuideSourceCard[];
-  verification: GuideVerification;
 } {
+  return buildGuideVerificationPayload({ context, language });
+  /*
   if (context.placeKnowledge) {
     const knowledge = context.placeKnowledge;
 
@@ -252,6 +249,7 @@ function buildVerificationPayload({
           : "The local guide content does not yet provide enough specific source material; treat the answer as conservative orientation only.",
     },
   };
+  */
 }
 
 export async function POST(request: Request) {

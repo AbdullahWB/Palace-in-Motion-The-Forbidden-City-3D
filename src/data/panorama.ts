@@ -1,4 +1,5 @@
 import exploreExperienceJson from "@/data/explore-experience.json";
+import { exploreExperienceSchema } from "@/data/explore-experience.schema";
 import type {
   ExploreExperienceData,
   ExploreJourneyRoute,
@@ -9,7 +10,9 @@ import type {
   ExploreSearchState,
 } from "@/types/content";
 
-export const exploreExperience = exploreExperienceJson as ExploreExperienceData;
+export const exploreExperience = exploreExperienceSchema.parse(
+  exploreExperienceJson
+) as ExploreExperienceData;
 
 const placeSlugSet = new Set<ExplorePlaceSlug>(
   exploreExperience.places.map((place) => place.slug)

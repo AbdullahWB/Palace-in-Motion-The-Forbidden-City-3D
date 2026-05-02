@@ -1,8 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
+import { useEscapeKey } from "@/hooks/use-escape-key";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/use-app-store";
 import type { AccessibilityPreferences } from "@/types/preferences";
@@ -112,9 +114,12 @@ export function GlobalAccessibilityControl() {
     (state) => state.updateAccessibilityPreferences
   );
   const [isOpen, setIsOpen] = useState(false);
+  const panelRef = useRef<HTMLElement | null>(null);
   const copy = accessibilityCopy[language];
   const isDarkTheme = theme === "dark";
   const isImmersive3D = pathname === "/3d-view";
+  useEscapeKey(() => setIsOpen(false), isOpen);
+  useFocusTrap(panelRef, isOpen);
 
   return (
     <div
@@ -127,6 +132,8 @@ export function GlobalAccessibilityControl() {
     >
       {isOpen ? (
         <section
+          ref={panelRef}
+          tabIndex={-1}
           className={cn(
             "pointer-events-auto mb-3 w-[min(22rem,calc(100vw-2rem))] rounded-[1.35rem] border p-4 shadow-[0_20px_70px_rgba(0,0,0,0.22)] backdrop-blur-xl",
             isDarkTheme
@@ -134,6 +141,7 @@ export function GlobalAccessibilityControl() {
               : "border-[#7c5b35]/20 bg-[#fff8ee]/94 text-[#241811]"
           )}
           role="dialog"
+          aria-modal="true"
           aria-label={copy.title}
         >
           <div className="flex items-start justify-between gap-3">

@@ -5,6 +5,7 @@ import {
   getExplorePlaceBySlug,
   normalizeExploreSearchState,
 } from "@/data/panorama";
+import { appRoutes } from "@/lib/app-routes";
 import { pickLocalizedText } from "@/lib/i18n";
 import type {
   GuideIntent,
@@ -217,7 +218,7 @@ export function buildRouteContextFromUrl(
   searchParams: SearchParamsLike,
   language: AppLanguage
 ): CompanionRouteContext {
-  if (pathname === "/3d-view") {
+  if (pathname === appRoutes.threeD) {
     return {
       key: "three-d-view",
       kind: "model",
@@ -230,7 +231,7 @@ export function buildRouteContextFromUrl(
     };
   }
 
-  if (pathname === "/companion") {
+  if (pathname === appRoutes.companion) {
     return {
       key: "companion",
       kind: "companion",
@@ -243,7 +244,7 @@ export function buildRouteContextFromUrl(
     };
   }
 
-  if (pathname === "/" || pathname === "/explore") {
+  if (pathname === appRoutes.home || pathname === appRoutes.explore) {
     const searchState = normalizeExploreSearchState({
       view: searchParams.get("view") ?? undefined,
       place: searchParams.get("place") ?? undefined,
@@ -396,14 +397,13 @@ export function getSiteActionHref(
   fallbackRouteId?: ExploreJourneyRouteId | null
 ) {
   const routeId = action.routeId ?? fallbackRouteId ?? null;
-  const routeQuery = routeId ? `&route=${routeId}` : "";
 
   if (action.command === "open_map") {
-    return routeId ? `/?view=map&route=${routeId}` : "/?view=map";
+    return appRoutes.map(routeId);
   }
 
   if (action.command === "open_place" && action.placeSlug) {
-    return `/?view=place&place=${action.placeSlug}${routeQuery}`;
+    return appRoutes.place(action.placeSlug, { routeId });
   }
 
   if (
@@ -411,7 +411,7 @@ export function getSiteActionHref(
     action.command === "continue_route" ||
     action.command === "next_stop"
   ) {
-    return routeId ? `/?view=map&route=${routeId}` : "/?view=map";
+    return appRoutes.map(routeId);
   }
 
   return null;

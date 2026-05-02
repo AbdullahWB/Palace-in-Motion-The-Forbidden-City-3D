@@ -20,6 +20,7 @@ import { ThemeToggleButton } from "@/components/preferences/theme-toggle-button"
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
 import { ForbiddenCityPlaceholderScene } from "@/features/three-d-view/forbidden-city-placeholder-scene";
 import { createAchievementMissionInput } from "@/lib/achievement-missions";
+import { appRoutes } from "@/lib/app-routes";
 import { pickLocalizedText } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/use-app-store";
@@ -52,6 +53,8 @@ type ViewerSceneProps = {
   qualityMode: ThreeDQualityMode;
   onSelectHotspot: (hotspot: ThreeDHotspot) => void;
 };
+
+type FlythroughSpeed = "slow" | "normal" | "fast";
 
 const shellCopy = {
   zh: {
@@ -197,7 +200,13 @@ class ModelErrorBoundary extends Component<
   }
 }
 
-function RealModelLayer({ src }: { src: string }) {
+function RealModelLayer({
+  src,
+  transform,
+}: {
+  src: string;
+  transform: ThreeDViewerConfig["modelTransform"];
+}) {
   const { scene } = useGLTF(src);
 
   useEffect(() => {
@@ -217,7 +226,14 @@ function RealModelLayer({ src }: { src: string }) {
     });
   }, [scene]);
 
-  return <primitive object={scene} />;
+  return (
+    <primitive
+      object={scene}
+      position={transform.position}
+      rotation={transform.rotation}
+      scale={transform.scale}
+    />
+  );
 }
 
 function SceneLighting({
@@ -538,7 +554,10 @@ function ViewerScene({
         <ModelErrorBoundary fallback={<ForbiddenCityPlaceholderScene />}>
           <Suspense fallback={null}>
             <group position={[0, 0, 0]}>
-              <RealModelLayer src={config.modelSrc} />
+              <RealModelLayer
+                src={config.modelSrc}
+                transform={config.modelTransform}
+              />
             </group>
           </Suspense>
         </ModelErrorBoundary>
@@ -920,6 +939,14 @@ export function ThreeDViewShell({
             <p className="mt-2 text-xs leading-5 text-white/60">
               {pickLocalizedText(config.modelImport.hotspotAlignmentNote, language)}
             </p>
+            {config.modelManifestSrc ? (
+              <p className="mt-2 text-xs leading-5 text-white/60">
+                Manifest:{" "}
+                <span className="font-semibold text-white">
+                  {config.modelManifestSrc}
+                </span>
+              </p>
+            ) : null}
             {!hasModelAsset ? (
               <p className="mt-2 text-xs leading-5 text-white/54">
                 {pickLocalizedText(config.modelImport.fallbackNote, language)}
@@ -973,7 +1000,7 @@ export function ThreeDViewShell({
           {copy.resetView}
         </button>
         <Link
-          href="/"
+          href={appRoutes.home}
           className="inline-flex rounded-full border border-[#d5b27a]/28 bg-[#d5b27a]/16 px-4 py-3 text-sm font-semibold text-[#f3dcb3] outline-none backdrop-blur-xl transition hover:bg-[#d5b27a]/24 focus-visible:ring-2 focus-visible:ring-[#f7cf7c]"
         >
           {copy.backHome}
@@ -1075,13 +1102,15 @@ export function ThreeDViewShell({
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Link
-                      href={`/?view=place&place=${selectedHotspot.placeSlug}&route=${selectedHotspot.routeId}`}
+                      href={appRoutes.place(selectedHotspot.placeSlug, {
+                        routeId: selectedHotspot.routeId,
+                      })}
                       className="rounded-full bg-[#f1c76f] px-4 py-2 text-xs font-bold text-black outline-none transition hover:bg-[#ffd987] focus-visible:ring-2 focus-visible:ring-[#f7cf7c]"
                     >
                       {copy.openPlace}
                     </Link>
                     <Link
-                      href="/companion"
+                      href={appRoutes.companion}
                       className="rounded-full border border-white/12 bg-white/10 px-4 py-2 text-xs font-bold text-white outline-none transition hover:bg-white/16 focus-visible:ring-2 focus-visible:ring-[#f7cf7c]"
                     >
                       {copy.askCompanion}
@@ -1139,13 +1168,15 @@ export function ThreeDViewShell({
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link
-                    href={`/?view=place&place=${selectedHotspot.placeSlug}&route=${selectedHotspot.routeId}`}
+                    href={appRoutes.place(selectedHotspot.placeSlug, {
+                      routeId: selectedHotspot.routeId,
+                    })}
                     className="rounded-full bg-[#f1c76f] px-4 py-2 text-xs font-bold text-black outline-none transition hover:bg-[#ffd987] focus-visible:ring-2 focus-visible:ring-[#f7cf7c]"
                   >
                     {copy.openPlace}
                   </Link>
                   <Link
-                    href="/companion"
+                    href={appRoutes.companion}
                     className="rounded-full border border-white/12 bg-white/10 px-4 py-2 text-xs font-bold text-white outline-none transition hover:bg-white/16 focus-visible:ring-2 focus-visible:ring-[#f7cf7c]"
                   >
                     {copy.askCompanion}

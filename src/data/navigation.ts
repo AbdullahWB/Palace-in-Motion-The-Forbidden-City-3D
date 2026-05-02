@@ -1,24 +1,25 @@
 import type { NavItem } from "@/types/content";
+import { appRoutes } from "@/lib/app-routes";
 
 export const navigationItems: NavItem[] = [
   {
     label: "Home",
-    href: "/",
+    href: appRoutes.home,
     description: "Fullscreen palace route with map, DeepSeek guidance, and integrated selfie mode.",
   },
   {
     label: "Companion",
-    href: "/companion",
+    href: appRoutes.companion,
     description: "Full AI Palace Companion chat with Passport, route, quiz, and tour controls.",
   },
   {
     label: "3D View",
-    href: "/3d-view",
+    href: appRoutes.threeD,
     description: "Fullscreen orbitable Forbidden City showcase with a model-ready viewer shell.",
   },
   {
     label: "Classroom",
-    href: "/classroom",
+    href: appRoutes.classroom,
     description: "Teacher toolkit with route assignments, quiz prompts, and printable diary tasks.",
   },
 ];

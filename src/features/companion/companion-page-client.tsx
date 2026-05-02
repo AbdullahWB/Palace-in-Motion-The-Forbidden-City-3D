@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import Image from "@/components/ui/hydration-safe-image";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
 import {
@@ -37,10 +38,20 @@ import {
   getExplorePlaceBySlug,
   getUnlockedPassportSealIds,
 } from "@/data/panorama";
+import { appRoutes } from "@/lib/app-routes";
 import { pickLocalizedText } from "@/lib/i18n";
 import { HERITAGE_SCENE_ID } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { buildTravelDiaryText } from "@/lib/travel-diary";
+import {
+  createJourneyBackup,
+  parseJourneyBackup,
+} from "@/lib/journey-backup";
+import {
+  createDatedFilename,
+  downloadJsonFile,
+  downloadTextFile,
+} from "@/lib/download-file";
 import { useAppStore } from "@/store/use-app-store";
 import type {
   GuideIntent,
@@ -67,13 +78,11 @@ function routePlaceHref(
   placeSlug: ExplorePlaceSlug,
   routeId?: ExploreJourneyRouteId | null
 ) {
-  return routeId
-    ? `/?view=place&place=${placeSlug}&route=${routeId}`
-    : `/?view=place&place=${placeSlug}`;
+  return appRoutes.place(placeSlug, { routeId });
 }
 
 function routeMapHref(routeId?: ExploreJourneyRouteId | null) {
-  return routeId ? `/?view=map&route=${routeId}` : "/?view=map";
+  return appRoutes.map(routeId);
 }
 
 function getFirstUnvisitedPlace(
@@ -121,6 +130,8 @@ export function CompanionPageClient() {
   const saveCustomTour = useAppStore((state) => state.saveCustomTour);
   const setActiveCustomTour = useAppStore((state) => state.setActiveCustomTour);
   const resetExploreProgress = useAppStore((state) => state.resetExploreProgress);
+  const exportJourneyBackup = useAppStore((state) => state.exportJourneyBackup);
+  const importJourneyBackup = useAppStore((state) => state.importJourneyBackup);
   const setActiveExploreRoute = useAppStore((state) => state.setActiveExploreRoute);
   const accessibilityPreferences = useAppStore(
     (state) => state.accessibilityPreferences
@@ -163,6 +174,10 @@ export function CompanionPageClient() {
   const [diaryCopyStatus, setDiaryCopyStatus] = useState<"idle" | "copied" | "error">(
     "idle"
   );
+  const [backupStatus, setBackupStatus] = useState<"idle" | "imported" | "error">(
+    "idle"
+  );
+  const backupInputRef = useRef<HTMLInputElement | null>(null);
   const [builderTimeBudget, setBuilderTimeBudget] = useState<5 | 10 | 20>(10);
   const [builderInterests, setBuilderInterests] = useState<TourBuilderInterest[]>([
     "overview",
@@ -176,7 +191,11 @@ export function CompanionPageClient() {
     accessibilityPreferences.simplified ||
     accessibilityPreferences.readableLabels ||
     accessibilityPreferences.keyboardFocus;
-  const routeContext = buildRouteContextFromUrl("/companion", new URLSearchParams(), language);
+  const routeContext = buildRouteContextFromUrl(
+    appRoutes.companion,
+    new URLSearchParams(),
+    language
+  );
   const starterPrompts = getStarterPrompts(routeContext).map((starter) =>
     pickLocalizedText(starter, language)
   );
@@ -602,6 +621,43 @@ export function CompanionPageClient() {
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
+  }
+
+  function downloadTravelDiary() {
+    downloadTextFile(
+      createDatedFilename("palace-in-motion-travel-diary", "txt"),
+      travelDiaryText
+    );
+    const mission = createAchievementMissionInput("diary-generated", language);
+
+    if (mission) {
+      completeAchievementMission(mission);
+    }
+  }
+
+  function exportJourney() {
+    downloadJsonFile(
+      createDatedFilename("palace-in-motion-journey-backup", "json"),
+      createJourneyBackup(exportJourneyBackup())
+    );
+  }
+
+  async function importJourney(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const backup = parseJourneyBackup(JSON.parse(await file.text()));
+      importJourneyBackup(backup);
+      setBackupStatus("imported");
+    } catch {
+      setBackupStatus("error");
+    } finally {
+      event.target.value = "";
+    }
   }
 
   function speakLatestAnswer() {
@@ -1061,7 +1117,7 @@ export function CompanionPageClient() {
           <p className="mt-2 line-clamp-5 whitespace-pre-wrap text-xs font-semibold leading-6 opacity-76">
             {travelDiaryText}
           </p>
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="mt-3 grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={copyTravelDiary}
@@ -1075,6 +1131,13 @@ export function CompanionPageClient() {
               className="rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
             >
               Print
+            </button>
+            <button
+              type="button"
+              onClick={downloadTravelDiary}
+              className="rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
+            >
+              Download diary
             </button>
             <button
               type="button"
@@ -1094,10 +1157,43 @@ export function CompanionPageClient() {
             >
               Refresh
             </button>
+            <button
+              type="button"
+              onClick={exportJourney}
+              className="rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
+            >
+              Export journey
+            </button>
+            <button
+              type="button"
+              onClick={() => backupInputRef.current?.click()}
+              className="rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
+            >
+              Import backup
+            </button>
+            <input
+              ref={backupInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="sr-only"
+              onChange={importJourney}
+            />
           </div>
           {diaryCopyStatus === "error" ? (
             <p className="mt-2 text-xs font-semibold text-[#ff858a]">
               Copy failed. Use Print to save the diary as PDF.
+            </p>
+          ) : null}
+          {backupStatus !== "idle" ? (
+            <p
+              className={cn(
+                "mt-2 text-xs font-semibold",
+                backupStatus === "imported" ? "text-[#e8bd73]" : "text-[#ff858a]"
+              )}
+            >
+              {backupStatus === "imported"
+                ? "Journey backup imported."
+                : "Import failed. Choose a valid Palace journey backup JSON file."}
             </p>
           ) : null}
         </div>
@@ -1229,20 +1325,20 @@ export function CompanionPageClient() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
-              href="/?view=map"
+              href={appRoutes.map()}
               className="rounded-full border border-[#e8bd73]/35 bg-[#e8bd73]/14 px-5 py-3 text-sm font-black text-[#e8bd73]"
             >
               Open map
             </Link>
             <Link
-              href="/3d-view"
+              href={appRoutes.threeD}
               prefetch={false}
               className="rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-black"
             >
               3D view
             </Link>
             <Link
-              href="/classroom"
+              href={appRoutes.classroom}
               className="rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-black"
             >
               Classroom

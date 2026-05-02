@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0",
+  "file": "/models/forbidden-city.glb",
+  "license": "user-supplied-asset-required",
+  "coordinateSystem": "central-axis-origin",
+  "optimizedFor": ["desktop", "tablet", "mobile"],
+  "lastOptimized": null,
+  "notes": "Add a licensed optimized GLB at public/models/forbidden-city.glb. The procedural fallback remains active when the file is missing."
+}

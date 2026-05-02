@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { PageContainer } from "@/components/layout/page-container";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
+import { appRoutes } from "@/lib/app-routes";
+import {
+  createDatedFilename,
+  downloadJsonFile,
+  downloadTextFile,
+} from "@/lib/download-file";
 import {
   buildAchievementMissionCards,
   countCompletedAchievementMissions,
@@ -81,15 +87,15 @@ function getRouteIntro(routeChoice: ClassroomRouteChoice, language: "zh" | "en")
 
 function getRouteStartHref(routeChoice: ClassroomRouteChoice) {
   if (routeChoice === "full-palace") {
-    return "/?view=map";
+    return appRoutes.map();
   }
 
   const route = getExploreJourneyById(routeChoice);
   const firstStop = route?.placeOrder[0];
 
   return firstStop
-    ? `/?view=place&place=${firstStop}&route=${routeChoice}`
-    : `/?view=map&route=${routeChoice}`;
+    ? appRoutes.place(firstStop, { routeId: routeChoice })
+    : appRoutes.map(routeChoice);
 }
 
 function escapeHtml(value: string) {
@@ -362,6 +368,47 @@ export function ClassroomToolkitPage() {
     ]
   );
 
+  const routeFileSlug = routeChoice.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+  const studentChecklist = useMemo(
+    () =>
+      [
+        "Palace in Motion Student Checklist",
+        `Route: ${getRouteTitle(routeChoice, language)}`,
+        `Difficulty: ${difficultyCopy[difficulty].label}`,
+        "",
+        ...selectedPlaces.map(
+          (place, index) =>
+            `[ ] ${index + 1}. ${pickLocalizedText(place.title, language)} - visit, answer the Passport quiz, and read the preservation note.`
+        ),
+        "",
+        "[ ] Generate or refresh the Travel Diary.",
+        "[ ] Submit one learning reflection to your teacher.",
+      ].join("\n"),
+    [difficulty, language, routeChoice, selectedPlaces]
+  );
+  const answerKey = useMemo(
+    () =>
+      [
+        "Palace in Motion Answer Key",
+        `Route: ${getRouteTitle(routeChoice, language)}`,
+        "",
+        ...selectedPlaces.map((place, index) => {
+          const quiz = getQuizQuestionForPlace(place.slug);
+          const answer = quiz?.options.find(
+            (option) => option.id === quiz.correctOptionId
+          );
+
+          return [
+            `${index + 1}. ${pickLocalizedText(place.title, language)}`,
+            `Question: ${pickLocalizedText(quiz?.question, language) || "No local quiz yet."}`,
+            `Answer: ${answer ? `${answer.id.toUpperCase()}. ${pickLocalizedText(answer.text, language)}` : "Not available."}`,
+            `Explanation: ${pickLocalizedText(quiz?.explanation, language) || "Not available."}`,
+          ].join("\n");
+        }),
+      ].join("\n\n"),
+    [language, routeChoice, selectedPlaces]
+  );
+
   async function copyTaskSheet() {
     try {
       await window.navigator.clipboard.writeText(taskSheet);
@@ -409,6 +456,52 @@ export function ClassroomToolkitPage() {
     };
 
     saveClassroomAssignment(assignment);
+  }
+
+  function downloadWorksheet() {
+    downloadTextFile(
+      createDatedFilename(
+        `palace-classroom-${routeFileSlug}-worksheet`,
+        "txt"
+      ),
+      taskSheet
+    );
+  }
+
+  function downloadStudentChecklist() {
+    downloadTextFile(
+      createDatedFilename(
+        `palace-classroom-${routeFileSlug}-student-checklist`,
+        "txt"
+      ),
+      studentChecklist
+    );
+  }
+
+  function downloadAnswerKey() {
+    downloadTextFile(
+      createDatedFilename(
+        `palace-classroom-${routeFileSlug}-answer-key`,
+        "txt"
+      ),
+      answerKey
+    );
+  }
+
+  function downloadAssignment() {
+    downloadJsonFile(
+      createDatedFilename(`palace-classroom-${routeFileSlug}-assignment`, "json"),
+      {
+        title: getRouteTitle(routeChoice, language),
+        routeId: routeChoice,
+        difficulty,
+        requiredPlaceSlugs: selectedPlaces.map((place) => place.slug),
+        worksheetText: taskSheet,
+        checklistText: studentChecklist,
+        answerKeyText: answerKey,
+        exportedAt: Date.now(),
+      }
+    );
   }
 
   function saveReport() {
@@ -463,6 +556,16 @@ export function ClassroomToolkitPage() {
     printWindow.print();
   }
 
+  function downloadReport() {
+    downloadTextFile(
+      createDatedFilename(
+        `palace-classroom-${routeFileSlug}-progress-report`,
+        "txt"
+      ),
+      reportText
+    );
+  }
+
   return (
     <section
       className={cn(
@@ -495,7 +598,7 @@ export function ClassroomToolkitPage() {
                   Start assigned route
                 </Link>
                 <Link
-                  href="/companion"
+                  href={appRoutes.companion}
                   className="rounded-full border border-white/14 bg-white/10 px-5 py-3 text-sm font-black"
                 >
                   Open Companion
@@ -513,6 +616,13 @@ export function ClassroomToolkitPage() {
                   className="rounded-full border border-[#e8bd73]/35 bg-[#e8bd73]/14 px-5 py-3 text-sm font-black text-[#e8bd73]"
                 >
                   Save assignment
+                </button>
+                <button
+                  type="button"
+                  onClick={downloadAssignment}
+                  className="rounded-full border border-white/14 bg-white/10 px-5 py-3 text-sm font-black"
+                >
+                  Download assignment
                 </button>
                 <button
                   type="button"
@@ -662,6 +772,27 @@ export function ClassroomToolkitPage() {
                   </button>
                   <button
                     type="button"
+                    onClick={downloadWorksheet}
+                    className="rounded-full border border-white/14 bg-white/10 px-4 py-2 text-sm font-black"
+                  >
+                    Download worksheet
+                  </button>
+                  <button
+                    type="button"
+                    onClick={downloadStudentChecklist}
+                    className="rounded-full border border-white/14 bg-white/10 px-4 py-2 text-sm font-black"
+                  >
+                    Student checklist
+                  </button>
+                  <button
+                    type="button"
+                    onClick={downloadAnswerKey}
+                    className="rounded-full border border-white/14 bg-white/10 px-4 py-2 text-sm font-black"
+                  >
+                    Answer key
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => {
                       setGeneratedAt(Date.now());
                       setCopyStatus("idle");
@@ -711,6 +842,13 @@ export function ClassroomToolkitPage() {
                     className="rounded-full border border-white/14 bg-white/10 px-4 py-2 text-sm font-black"
                   >
                     Print report
+                  </button>
+                  <button
+                    type="button"
+                    onClick={downloadReport}
+                    className="rounded-full border border-white/14 bg-white/10 px-4 py-2 text-sm font-black"
+                  >
+                    Download report
                   </button>
                   <button
                     type="button"

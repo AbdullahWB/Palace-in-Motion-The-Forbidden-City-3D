@@ -18,6 +18,9 @@ import {
   getStarterPrompts,
   inferGuideIntent,
 } from "@/features/companion/companion-shared";
+import { useEscapeKey } from "@/hooks/use-escape-key";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { appRoutes } from "@/lib/app-routes";
 import { pickLocalizedText } from "@/lib/i18n";
 import { HERITAGE_SCENE_ID } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -63,6 +66,7 @@ export function FloatingAIAssistant() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeLensId, setActiveLensId] = useState<CompanionLensId>("palace");
+  const panelRef = useRef<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const routeContext = useMemo(
     () => buildRouteContextFromUrl(pathname, searchParams, language),
@@ -89,8 +93,10 @@ export function FloatingAIAssistant() {
 
     inputRef.current?.focus();
   }, [isOpen]);
+  useEscapeKey(() => setIsOpen(false), isOpen);
+  useFocusTrap(panelRef, isOpen);
 
-  if (pathname === "/companion") {
+  if (pathname === appRoutes.companion) {
     return null;
   }
 
@@ -105,7 +111,7 @@ export function FloatingAIAssistant() {
       return;
     }
 
-    if (pathname === "/" || pathname === "/explore") {
+    if (pathname === appRoutes.home || pathname === appRoutes.explore) {
       window.dispatchEvent(
         new CustomEvent("palace:site-action", {
           detail: action,
@@ -115,7 +121,7 @@ export function FloatingAIAssistant() {
     }
 
     const href = getSiteActionHref(action, routeContext.routeId ?? null);
-    router.push(href ?? "/?view=map");
+    router.push(href ?? appRoutes.map());
   }
 
   async function submitQuestion(nextQuestion: string) {
@@ -150,7 +156,7 @@ export function FloatingAIAssistant() {
         journeyStopTotal: routeContext.journeyStopTotal ?? null,
         frameCaption: routeContext.frameCaption ?? null,
       };
-      const response = await fetch("/api/chat", {
+      const response = await fetch(appRoutes.apiChat, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -191,6 +197,8 @@ export function FloatingAIAssistant() {
       <AnimatePresence>
         {isOpen ? (
           <motion.section
+            ref={panelRef}
+            tabIndex={-1}
             initial={reduceMotion ? false : { opacity: 0, y: 18, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduceMotion ? undefined : { opacity: 0, y: 14, scale: 0.96 }}
@@ -206,6 +214,7 @@ export function FloatingAIAssistant() {
                 : "border-[#8a6a42]/30 bg-[#fff8ef]/96 text-[#241811]"
             )}
             role="dialog"
+            aria-modal="true"
             aria-label={copy.miniTitle}
           >
             <div className="relative border-b border-white/10 p-4">
@@ -241,7 +250,7 @@ export function FloatingAIAssistant() {
               </div>
 
               <Link
-                href="/companion"
+                href={appRoutes.companion}
                 className="relative mt-4 inline-flex w-full items-center justify-center rounded-full border border-[#e8bd73]/40 bg-[#e8bd73]/16 px-4 py-3 text-sm font-black text-[#e8bd73]"
               >
                 {copy.openFull}

@@ -63,6 +63,12 @@ export type ThreeDViewerConfig = {
   subtitle: BilingualText;
   description: BilingualText;
   modelSrc: string | null;
+  modelManifestSrc?: string | null;
+  modelTransform: {
+    position: [number, number, number];
+    rotation: [number, number, number];
+    scale: number;
+  };
   fallbackMode: "placeholder";
   modelImport: {
     targetPath: string;
@@ -101,6 +107,12 @@ export const forbiddenCityViewerConfig: ThreeDViewerConfig = {
     en: "This viewer is ready for a real GLB asset. Drop an optimized `forbidden-city.glb` into `public/models/` and the hotspots, route overlays, lighting modes, layers, and challenge tools continue to work.",
   },
   modelSrc: "/models/forbidden-city.glb",
+  modelManifestSrc: "/models/forbidden-city.manifest.json",
+  modelTransform: {
+    position: [0, 0, 0],
+    rotation: [0, 0, 0],
+    scale: 1,
+  },
   fallbackMode: "placeholder",
   modelImport: {
     targetPath: "public/models/forbidden-city.glb",
