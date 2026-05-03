@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { navigationItems } from "@/data/navigation";
+import { shouldDisableRoutePrefetch } from "@/lib/app-routes";
 import { cn } from "@/lib/utils";
 
 type MobileNavProps = {
@@ -27,7 +28,7 @@ export function MobileNav({ pathname, isOpen, onNavigate }: MobileNavProps) {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    prefetch={item.href === "/3d-view" ? false : undefined}
+                    prefetch={shouldDisableRoutePrefetch(item.href) ? false : undefined}
                     onClick={onNavigate}
                     aria-current={isActive ? "page" : undefined}
                     className={cn(

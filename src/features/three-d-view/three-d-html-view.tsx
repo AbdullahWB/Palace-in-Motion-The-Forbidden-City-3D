@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
 import { ImmersiveAssetLoadingOverlay } from "@/components/ui/app-status-screens";
+import { appRoutes } from "@/lib/app-routes";
 import { cn } from "@/lib/utils";
 
 const SCENE_READY_MESSAGE = "forbidden-city-scene-ready";
@@ -96,7 +97,7 @@ export function ThreeDHtmlView() {
       <div className="absolute inset-0">
         {shouldMountScene ? (
           <iframe
-            src="/3d-view/scene"
+            src={appRoutes.threeDScene}
             title="Forbidden City 3D View"
             className={cn(
               "block h-full w-full border-0 transition-opacity duration-700",

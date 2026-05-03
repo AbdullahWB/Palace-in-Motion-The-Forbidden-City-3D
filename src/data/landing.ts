@@ -7,6 +7,7 @@ import type {
   LandingFeaturePreview,
   LandingHero,
 } from "@/types/content";
+import { appRoutes } from "@/lib/app-routes";
 
 export const landingHero: LandingHero = {
   eyebrow: "全景故宫 Panorama-driven heritage experience",
@@ -18,12 +19,12 @@ export const landingHero: LandingHero = {
 export const landingHeroActions: HeroAction[] = [
   {
     label: "Enter Explore",
-    href: "/explore",
+    href: appRoutes.explore,
     variant: "primary",
   },
   {
     label: "Selfie In Explore",
-    href: "/explore",
+    href: appRoutes.explore,
     variant: "secondary",
   },
   {
@@ -39,7 +40,7 @@ export const landingFeaturePreviews: LandingFeaturePreview[] = [
     title: "One route for scenic viewing, guidance, and selfie capture",
     description:
       "A fullscreen panorama shell now blends beautiful place viewing, cultural hotspots, DeepSeek chat help, and an in-place selfie studio.",
-    href: "/explore",
+    href: appRoutes.explore,
     ctaLabel: "Open Explore",
   },
   {
@@ -47,7 +48,7 @@ export const landingFeaturePreviews: LandingFeaturePreview[] = [
     title: "Capture your postcard without leaving the palace route",
     description:
       "Open any mapped place, launch the integrated selfie modal, and turn that exact location into a keepsake postcard scene.",
-    href: "/explore",
+    href: appRoutes.explore,
     ctaLabel: "Open Place Selfie",
   },
   {
@@ -92,7 +93,7 @@ export const demoFlowSteps: DemoFlowStep[] = [
     id: "explore",
     label: "Explore",
     description: "Open the fullscreen panorama, map, and place views inside the main palace route.",
-    href: "/explore",
+    href: appRoutes.explore,
   },
   {
     id: "ai-guide",
@@ -103,7 +104,7 @@ export const demoFlowSteps: DemoFlowStep[] = [
     id: "selfie",
     label: "Selfie In Explore",
     description: "Generate a souvenir postcard directly from any mapped place inside Explore.",
-    href: "/explore",
+    href: appRoutes.explore,
   },
 ];
 

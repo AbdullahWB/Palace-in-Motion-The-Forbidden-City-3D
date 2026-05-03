@@ -5,7 +5,7 @@ import {
   getExplorePlaceBySlug,
   normalizeExploreSearchState,
 } from "@/data/panorama";
-import { appRoutes } from "@/lib/app-routes";
+import { appRoutes, exploreSearchParamKeys } from "@/lib/app-routes";
 import { pickLocalizedText } from "@/lib/i18n";
 import type {
   GuideIntent,
@@ -246,10 +246,10 @@ export function buildRouteContextFromUrl(
 
   if (pathname === appRoutes.home || pathname === appRoutes.explore) {
     const searchState = normalizeExploreSearchState({
-      view: searchParams.get("view") ?? undefined,
-      place: searchParams.get("place") ?? undefined,
-      photo: searchParams.get("photo") ?? undefined,
-      route: searchParams.get("route") ?? undefined,
+      view: searchParams.get(exploreSearchParamKeys.view) ?? undefined,
+      place: searchParams.get(exploreSearchParamKeys.place) ?? undefined,
+      photo: searchParams.get(exploreSearchParamKeys.photo) ?? undefined,
+      route: searchParams.get(exploreSearchParamKeys.route) ?? undefined,
     });
     const activeJourney = getExploreJourneyById(searchState.routeId);
     const activePlace = getExplorePlaceBySlug(searchState.placeSlug);

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "@/components/ui/hydration-safe-image";
 import {
   AnimatePresence,
@@ -50,6 +50,12 @@ import {
   buildAchievementMissionCards,
   createAchievementMissionInput,
 } from "@/lib/achievement-missions";
+import {
+  appRoutes,
+  buildExploreHref,
+  exploreSearchParamKeys,
+  exploreViewValues,
+} from "@/lib/app-routes";
 import { pickLocalizedText } from "@/lib/i18n";
 import { buildTravelDiaryText } from "@/lib/travel-diary";
 import { cn } from "@/lib/utils";
@@ -459,26 +465,6 @@ const localizedJourneyOnboardingSteps: Record<
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
-}
-
-function toSearchString(searchState: ExploreSearchState) {
-  const params = new URLSearchParams();
-
-  params.set("view", searchState.view);
-
-  if (searchState.placeSlug) {
-    params.set("place", searchState.placeSlug);
-  }
-
-  if (searchState.photoId) {
-    params.set("photo", searchState.photoId);
-  }
-
-  if (searchState.routeId) {
-    params.set("route", searchState.routeId);
-  }
-
-  return params.toString();
 }
 
 function truncateText(value: string, maxLength: number) {
@@ -1643,7 +1629,6 @@ export function PanoramaExperience({
   initialState,
 }: PanoramaExperienceProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const prefersReducedMotion = useReducedMotion() ?? false;
   const { language, theme } = useSitePreferences();
@@ -1727,10 +1712,10 @@ export function PanoramaExperience({
 
   const searchKey = searchParams.toString();
   const liveSearchState = normalizeExploreSearchState({
-    view: searchParams.get("view") ?? undefined,
-    place: searchParams.get("place") ?? undefined,
-    photo: searchParams.get("photo") ?? undefined,
-    route: searchParams.get("route") ?? undefined,
+    view: searchParams.get(exploreSearchParamKeys.view) ?? undefined,
+    place: searchParams.get(exploreSearchParamKeys.place) ?? undefined,
+    photo: searchParams.get(exploreSearchParamKeys.photo) ?? undefined,
+    route: searchParams.get(exploreSearchParamKeys.route) ?? undefined,
   });
   const searchState = searchKey ? liveSearchState : initialState;
 
@@ -2132,7 +2117,7 @@ export function PanoramaExperience({
             );
 
       try {
-        const response = await fetch("/api/chat", {
+        const response = await fetch(appRoutes.apiChat, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -2369,8 +2354,7 @@ export function PanoramaExperience({
   }
 
   function navigate(nextState: ExploreSearchState) {
-    const nextSearch = toSearchString(nextState);
-    const nextHref = nextSearch ? `${pathname}?${nextSearch}` : pathname;
+    const nextHref = buildExploreHref(nextState);
     setIsPassportOpen(false);
 
     startTransition(() => {
@@ -2408,7 +2392,7 @@ export function PanoramaExperience({
     setCustomTourError(null);
 
     try {
-      const response = await fetch("/api/chat", {
+      const response = await fetch(appRoutes.apiChat, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2492,7 +2476,7 @@ export function PanoramaExperience({
   function openWelcome() {
     setIsSelfieModalOpen(false);
     navigate({
-      view: "welcome",
+      view: exploreViewValues.welcome,
       placeSlug: null,
       photoId: null,
       routeId: activeJourney?.id ?? null,
@@ -2504,7 +2488,7 @@ export function PanoramaExperience({
     setMapScale(exploreExperience.map.initialScale);
     setMapOffset({ x: 0, y: 0 });
     navigate({
-      view: "map",
+      view: exploreViewValues.map,
       placeSlug: null,
       photoId: null,
       routeId: activeJourney?.id ?? null,
@@ -2516,7 +2500,7 @@ export function PanoramaExperience({
     setMapScale(exploreExperience.map.initialScale);
     setMapOffset({ x: 0, y: 0 });
     navigate({
-      view: "map",
+      view: exploreViewValues.map,
       placeSlug: null,
       photoId: null,
       routeId,
@@ -2530,9 +2514,16 @@ export function PanoramaExperience({
 
     setActiveCustomTour(null);
     navigate({
-      view: searchState.view === "place" ? "map" : searchState.view,
-      placeSlug: searchState.view === "place" ? null : searchState.placeSlug,
-      photoId: searchState.view === "place" ? null : searchState.photoId,
+      view:
+        searchState.view === exploreViewValues.place
+          ? exploreViewValues.map
+          : searchState.view,
+      placeSlug:
+        searchState.view === exploreViewValues.place
+          ? null
+          : searchState.placeSlug,
+      photoId:
+        searchState.view === exploreViewValues.place ? null : searchState.photoId,
       routeId: null,
     });
   }
@@ -2577,7 +2568,7 @@ export function PanoramaExperience({
     }
 
     navigate({
-      view: "place",
+      view: exploreViewValues.place,
       placeSlug: place.slug,
       photoId: placePhoto.id,
       routeId: activeJourney?.id ?? null,
@@ -2601,7 +2592,7 @@ export function PanoramaExperience({
     }
 
     navigate({
-      view: "place",
+      view: exploreViewValues.place,
       placeSlug: place.slug,
       photoId: placePhoto.id,
       routeId,
@@ -2784,6 +2775,13 @@ export function PanoramaExperience({
   }
 
   function handleMapPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (
+      event.target instanceof Element &&
+      event.target.closest("[data-map-marker-action]")
+    ) {
+      return;
+    }
+
     event.currentTarget.setPointerCapture(event.pointerId);
     mapDragRef.current = {
       pointerId: event.pointerId,
@@ -3124,7 +3122,7 @@ export function PanoramaExperience({
                 </button>
 
                 <Link
-                  href="/3d-view"
+                  href={appRoutes.threeD}
                   prefetch={false}
                   className={cn(
                     "inline-flex items-center justify-center rounded-full border px-7 py-4 text-center shadow-[0_18px_40px_rgba(14,10,6,0.18)]",
@@ -3553,10 +3551,12 @@ export function PanoramaExperience({
                           <button
                             key={marker.placeSlug}
                             type="button"
+                            data-map-marker-action
+                            onPointerDown={(event) => event.stopPropagation()}
                             onClick={() => openPlace(marker.placeSlug)}
                             aria-label={`${localizedPassportActionCopy[language].openPlace}: ${localize(marker.label)}`}
                             className={cn(
-                              "absolute -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-[1.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#d6b071]",
+                              "group absolute flex min-h-16 min-w-36 -translate-x-1/2 -translate-y-1/2 cursor-pointer flex-col items-center justify-center transition-transform hover:scale-[1.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#d6b071]",
                               hasMapRouteFocus && !isInRoute ? "opacity-45" : "opacity-100"
                             )}
                             style={{
@@ -3566,7 +3566,7 @@ export function PanoramaExperience({
                           >
                             <span
                               className={cn(
-                                "relative inline-flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-semibold text-white shadow-[0_12px_24px_rgba(45,24,14,0.28)]",
+                                "relative z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border text-xs font-black text-white shadow-[0_12px_24px_rgba(45,24,14,0.28)] ring-4 ring-white/38 group-hover:ring-[#ffdf9c]/70",
                                 hasMapRouteFocus && isInRoute
                                   ? "border-white bg-[#d2ae6d]"
                                   : "border-white/70 bg-[#ff7c41]"
@@ -3576,7 +3576,7 @@ export function PanoramaExperience({
                             </span>
                             <span
                               className={cn(
-                                "absolute left-1/2 top-full mt-2 min-w-28 -translate-x-1/2 rounded-xl border px-3 py-2 text-center shadow-[0_12px_28px_rgba(45,24,14,0.18)]",
+                                "mt-1.5 min-w-32 rounded-xl border px-3 py-2 text-center shadow-[0_12px_28px_rgba(45,24,14,0.18)] group-hover:-translate-y-0.5 group-hover:shadow-[0_18px_34px_rgba(45,24,14,0.24)]",
                                 hasMapRouteFocus && isInRoute
                                   ? "border-[#d6b071]/40 bg-[rgba(255,248,240,0.96)]"
                                   : "border-[#d6b071]/24 bg-white/92"
@@ -3584,6 +3584,9 @@ export function PanoramaExperience({
                             >
                               <span className="block text-xs font-semibold text-[#8e4c1d]">
                                 {localize(marker.label)}
+                              </span>
+                              <span className="mt-0.5 block text-[9px] font-black uppercase tracking-[0.16em] text-[#b86a36]/75">
+                                {localizedPassportActionCopy[language].openPlace}
                               </span>
                             </span>
                           </button>

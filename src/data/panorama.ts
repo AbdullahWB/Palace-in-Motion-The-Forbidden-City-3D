@@ -1,5 +1,6 @@
 import exploreExperienceJson from "@/data/explore-experience.json";
 import { exploreExperienceSchema } from "@/data/explore-experience.schema";
+import { exploreSearchParamKeys, exploreViewValues } from "@/lib/app-routes";
 import type {
   ExploreExperienceData,
   ExploreJourneyRoute,
@@ -123,27 +124,30 @@ export function getExplorePhotoById(
 export function normalizeExploreSearchState(
   searchParams: Record<string, string | string[] | undefined>
 ): ExploreSearchState {
-  const requestedView = firstString(searchParams.view);
-  const requestedPlace = firstString(searchParams.place);
-  const requestedPhoto = firstString(searchParams.photo);
-  const requestedRoute = firstString(searchParams.route);
+  const requestedView = firstString(searchParams[exploreSearchParamKeys.view]);
+  const requestedPlace = firstString(searchParams[exploreSearchParamKeys.place]);
+  const requestedPhoto = firstString(searchParams[exploreSearchParamKeys.photo]);
+  const requestedRoute = firstString(searchParams[exploreSearchParamKeys.route]);
   const routeId = isExploreJourneyRouteId(requestedRoute) ? requestedRoute : null;
 
-  if (requestedView === "map") {
+  if (requestedView === exploreViewValues.map) {
     return {
-      view: "map",
+      view: exploreViewValues.map,
       placeSlug: null,
       photoId: null,
       routeId,
     };
   }
 
-  if (requestedView === "place" && isExplorePlaceSlug(requestedPlace)) {
+  if (
+    requestedView === exploreViewValues.place &&
+    isExplorePlaceSlug(requestedPlace)
+  ) {
     const place = getExplorePlaceBySlug(requestedPlace);
     const activePhoto = getExplorePhotoById(place, requestedPhoto);
 
     return {
-      view: "place",
+      view: exploreViewValues.place,
       placeSlug: place?.slug ?? null,
       photoId: activePhoto?.id ?? null,
       routeId,
@@ -151,7 +155,7 @@ export function normalizeExploreSearchState(
   }
 
   return {
-    view: "welcome",
+    view: exploreViewValues.welcome,
     placeSlug: null,
     photoId: null,
     routeId,

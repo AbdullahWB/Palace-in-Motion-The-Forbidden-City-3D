@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { DemoBadgePanel } from "@/components/ui/demo-badge-panel";
 import { siteOverview } from "@/data/heritage/site-overview";
+import { appRoutes } from "@/lib/app-routes";
 
 type TourCompletionProps = {
   onRestart: () => void;
@@ -62,14 +63,14 @@ export function TourCompletion({ onRestart }: TourCompletionProps) {
         </button>
 
         <Link
-          href="/explore"
+          href={appRoutes.explore}
           className="inline-flex items-center justify-center rounded-full border border-border bg-white/82 px-4 py-3 text-sm font-semibold text-foreground hover:-translate-y-0.5 hover:bg-white"
         >
           Back to explore
         </Link>
 
         <Link
-          href="/explore"
+          href={appRoutes.explore}
           className="inline-flex items-center justify-center rounded-full border border-border bg-white/82 px-4 py-3 text-sm font-semibold text-foreground hover:-translate-y-0.5 hover:bg-white"
         >
           Open explore selfie

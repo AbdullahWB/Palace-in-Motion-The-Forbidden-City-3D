@@ -45,6 +45,7 @@ import { cn } from "@/lib/utils";
 import { buildTravelDiaryText } from "@/lib/travel-diary";
 import {
   createJourneyBackup,
+  JOURNEY_BACKUP_ERROR_MESSAGE,
   parseJourneyBackup,
 } from "@/lib/journey-backup";
 import {
@@ -74,17 +75,6 @@ const tourInterestOptions: Array<{
   { value: "overview", label: "Quick overview" },
 ];
 
-function routePlaceHref(
-  placeSlug: ExplorePlaceSlug,
-  routeId?: ExploreJourneyRouteId | null
-) {
-  return appRoutes.place(placeSlug, { routeId });
-}
-
-function routeMapHref(routeId?: ExploreJourneyRouteId | null) {
-  return appRoutes.map(routeId);
-}
-
 function getFirstUnvisitedPlace(
   placeOrder: ExplorePlaceSlug[],
   visitedPlaceSlugs: ExplorePlaceSlug[]
@@ -104,10 +94,10 @@ function getRouteStopHref({
   placeSlug: ExplorePlaceSlug | null;
 }) {
   if (!placeSlug) {
-    return routeMapHref(routeId);
+    return appRoutes.map(routeId);
   }
 
-  return routePlaceHref(placeSlug, routeId);
+  return appRoutes.place(placeSlug, { routeId });
 }
 
 export function CompanionPageClient() {
@@ -487,7 +477,7 @@ export function CompanionPageClient() {
         timeBudget: options.timeBudget,
         interests: options.interests,
       });
-      const response = await fetch("/api/chat", {
+      const response = await fetch(appRoutes.apiChat, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -768,7 +758,7 @@ export function CompanionPageClient() {
 
         <div className="mt-4 grid grid-cols-2 gap-2">
           <Link
-            href={routeMapHref(selectedRoute?.id ?? null)}
+            href={appRoutes.map(selectedRoute?.id ?? null)}
             className="rounded-full border border-[#e8bd73]/35 bg-[#e8bd73]/14 px-4 py-2 text-center text-sm font-black text-[#d69b54]"
           >
             Open map
@@ -1193,7 +1183,7 @@ export function CompanionPageClient() {
             >
               {backupStatus === "imported"
                 ? "Journey backup imported."
-                : "Import failed. Choose a valid Palace journey backup JSON file."}
+                : JOURNEY_BACKUP_ERROR_MESSAGE}
             </p>
           ) : null}
         </div>

@@ -13,6 +13,8 @@ The project is designed around four competition strengths:
 - **Preservation awareness:** Each place can surface preservation notes about roof care, painted surfaces, courtyard paving, visitor flow, low-impact tourism, and cultural responsibility.
 - **Engagement:** Passport stamps, achievement missions, challenge badges, AI Companion prompts, scene-frame explanations, and Auto Tour controls encourage deeper exploration.
 
+For next-stage competition feedback and implementation priorities, see [Feedback and Recommended Improvements](docs/feedback-and-roadmap.md).
+
 ## Core Features
 
 - **Preservation notes in place views:** Palace locations include conservation-aware notes that explain why fragile heritage spaces need care.

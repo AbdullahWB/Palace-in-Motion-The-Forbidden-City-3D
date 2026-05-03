@@ -6,18 +6,16 @@ import { PageContainer } from "@/components/layout/page-container";
 import { DemoBadgePanel } from "@/components/ui/demo-badge-panel";
 import { footerThemes } from "@/data/landing";
 import { navigationItems } from "@/data/navigation";
+import {
+  isFooterlessPathname,
+  shouldDisableRoutePrefetch,
+} from "@/lib/app-routes";
 import { APP_DESCRIPTION, APP_NAME, APP_TAGLINE } from "@/lib/constants";
 
 export function SiteFooter() {
   const pathname = usePathname();
 
-  if (
-    pathname === "/" ||
-    pathname === "/selfie" ||
-    pathname === "/explore" ||
-    pathname === "/companion" ||
-    pathname === "/3d-view"
-  ) {
+  if (isFooterlessPathname(pathname)) {
     return null;
   }
 
@@ -52,7 +50,9 @@ export function SiteFooter() {
                       <li key={item.href}>
                         <Link
                           href={item.href}
-                          prefetch={item.href === "/3d-view" ? false : undefined}
+                          prefetch={
+                            shouldDisableRoutePrefetch(item.href) ? false : undefined
+                          }
                           className="font-semibold text-foreground hover:text-accent"
                         >
                           {item.label}

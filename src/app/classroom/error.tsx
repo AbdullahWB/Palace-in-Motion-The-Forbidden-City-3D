@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { ForbiddenCityErrorScreen } from "@/components/ui/forbidden-city-status-screens";
+import { appRoutes } from "@/lib/app-routes";
 
 export default function ClassroomError({
   error,
@@ -28,13 +29,13 @@ export default function ClassroomError({
             Retry
           </button>
           <Link
-            href="/classroom"
+            href={appRoutes.classroom}
             className="rounded-full border border-[rgba(100,50,30,0.3)] bg-transparent px-5 py-2 text-xs font-medium tracking-wide text-[#5a2818] outline-none transition hover:bg-[#eadfce] focus-visible:ring-2 focus-visible:ring-[#c49010]"
           >
             Classroom
           </Link>
           <Link
-            href="/"
+            href={appRoutes.home}
             className="rounded-full border border-[rgba(100,50,30,0.3)] bg-transparent px-5 py-2 text-xs font-medium tracking-wide text-[#5a2818] outline-none transition hover:bg-[#eadfce] focus-visible:ring-2 focus-visible:ring-[#c49010]"
           >
             Home

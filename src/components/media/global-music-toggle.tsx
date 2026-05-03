@@ -2,11 +2,12 @@
 
 import { usePathname } from "next/navigation";
 import { MusicToggleButton } from "@/components/media/music-toggle-button";
+import { isGlobalMusicHiddenPathname } from "@/lib/app-routes";
 
 export function GlobalMusicToggle() {
   const pathname = usePathname();
 
-  if (pathname === "/" || pathname === "/explore" || pathname === "/3d-view") {
+  if (isGlobalMusicHiddenPathname(pathname)) {
     return null;
   }
 

@@ -1,15 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import { PageContainer } from "@/components/layout/page-container";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
 import { appRoutes } from "@/lib/app-routes";
 import {
-  createDatedFilename,
+  createDatedFilenameFromParts,
   downloadJsonFile,
   downloadTextFile,
 } from "@/lib/download-file";
+import {
+  createJourneyBackup,
+  JOURNEY_BACKUP_ERROR_MESSAGE,
+  parseJourneyBackup,
+} from "@/lib/journey-backup";
 import {
   buildAchievementMissionCards,
   countCompletedAchievementMissions,
@@ -210,6 +216,8 @@ export function ClassroomToolkitPage() {
   );
   const saveClassroomReport = useAppStore((state) => state.saveClassroomReport);
   const resetClassroomData = useAppStore((state) => state.resetClassroomData);
+  const exportJourneyBackup = useAppStore((state) => state.exportJourneyBackup);
+  const importJourneyBackup = useAppStore((state) => state.importJourneyBackup);
   const [routeChoice, setRouteChoice] =
     useState<ClassroomRouteChoice>("ceremonial-axis");
   const [difficulty, setDifficulty] =
@@ -221,6 +229,10 @@ export function ClassroomToolkitPage() {
   const [reportCopyStatus, setReportCopyStatus] = useState<
     "idle" | "copied" | "error"
   >("idle");
+  const [backupStatus, setBackupStatus] = useState<"idle" | "imported" | "error">(
+    "idle"
+  );
+  const backupInputRef = useRef<HTMLInputElement | null>(null);
 
   const routeChoices = useMemo(
     () => [
@@ -368,7 +380,7 @@ export function ClassroomToolkitPage() {
     ]
   );
 
-  const routeFileSlug = routeChoice.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+  const exportRouteName = getRouteTitle(routeChoice, "en");
   const studentChecklist = useMemo(
     () =>
       [
@@ -460,8 +472,8 @@ export function ClassroomToolkitPage() {
 
   function downloadWorksheet() {
     downloadTextFile(
-      createDatedFilename(
-        `palace-classroom-${routeFileSlug}-worksheet`,
+      createDatedFilenameFromParts(
+        ["palace-classroom", exportRouteName, "worksheet"],
         "txt"
       ),
       taskSheet
@@ -470,8 +482,8 @@ export function ClassroomToolkitPage() {
 
   function downloadStudentChecklist() {
     downloadTextFile(
-      createDatedFilename(
-        `palace-classroom-${routeFileSlug}-student-checklist`,
+      createDatedFilenameFromParts(
+        ["palace-classroom", exportRouteName, "student-checklist"],
         "txt"
       ),
       studentChecklist
@@ -480,8 +492,8 @@ export function ClassroomToolkitPage() {
 
   function downloadAnswerKey() {
     downloadTextFile(
-      createDatedFilename(
-        `palace-classroom-${routeFileSlug}-answer-key`,
+      createDatedFilenameFromParts(
+        ["palace-classroom", exportRouteName, "answer-key"],
         "txt"
       ),
       answerKey
@@ -490,9 +502,13 @@ export function ClassroomToolkitPage() {
 
   function downloadAssignment() {
     downloadJsonFile(
-      createDatedFilename(`palace-classroom-${routeFileSlug}-assignment`, "json"),
+      createDatedFilenameFromParts(
+        ["palace-classroom", exportRouteName, "assignment"],
+        "json"
+      ),
       {
         title: getRouteTitle(routeChoice, language),
+        exportRouteName,
         routeId: routeChoice,
         difficulty,
         requiredPlaceSlugs: selectedPlaces.map((place) => place.slug),
@@ -558,12 +574,41 @@ export function ClassroomToolkitPage() {
 
   function downloadReport() {
     downloadTextFile(
-      createDatedFilename(
-        `palace-classroom-${routeFileSlug}-progress-report`,
+      createDatedFilenameFromParts(
+        ["palace-classroom", exportRouteName, "progress-report"],
         "txt"
       ),
       reportText
     );
+  }
+
+  function exportProgressBackup() {
+    downloadJsonFile(
+      createDatedFilenameFromParts(
+        ["palace-classroom", exportRouteName, "journey-backup"],
+        "json"
+      ),
+      createJourneyBackup(exportJourneyBackup())
+    );
+    setBackupStatus("idle");
+  }
+
+  async function importProgressBackup(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const backup = parseJourneyBackup(JSON.parse(await file.text()));
+      importJourneyBackup(backup);
+      setBackupStatus("imported");
+    } catch {
+      setBackupStatus("error");
+    } finally {
+      event.target.value = "";
+    }
   }
 
   return (
@@ -622,7 +667,7 @@ export function ClassroomToolkitPage() {
                   onClick={downloadAssignment}
                   className="rounded-full border border-white/14 bg-white/10 px-5 py-3 text-sm font-black"
                 >
-                  Download assignment
+                  Download assignment .json
                 </button>
                 <button
                   type="button"
@@ -631,7 +676,42 @@ export function ClassroomToolkitPage() {
                 >
                   Save report
                 </button>
+                <button
+                  type="button"
+                  onClick={exportProgressBackup}
+                  className="rounded-full border border-white/14 bg-white/10 px-5 py-3 text-sm font-black"
+                >
+                  Export progress backup
+                </button>
+                <button
+                  type="button"
+                  onClick={() => backupInputRef.current?.click()}
+                  className="rounded-full border border-white/14 bg-white/10 px-5 py-3 text-sm font-black"
+                >
+                  Import progress backup
+                </button>
+                <input
+                  ref={backupInputRef}
+                  type="file"
+                  accept="application/json,.json"
+                  className="sr-only"
+                  onChange={importProgressBackup}
+                />
               </div>
+              {backupStatus !== "idle" ? (
+                <p
+                  className={cn(
+                    "mt-3 text-sm font-semibold",
+                    backupStatus === "imported"
+                      ? "text-[#e8bd73]"
+                      : "text-[#ff858a]"
+                  )}
+                >
+                  {backupStatus === "imported"
+                    ? "Journey backup imported into this browser."
+                    : JOURNEY_BACKUP_ERROR_MESSAGE}
+                </p>
+              ) : null}
             </div>
 
             <div className="grid grid-cols-3 gap-3">
@@ -775,21 +855,21 @@ export function ClassroomToolkitPage() {
                     onClick={downloadWorksheet}
                     className="rounded-full border border-white/14 bg-white/10 px-4 py-2 text-sm font-black"
                   >
-                    Download worksheet
+                    Download worksheet .txt
                   </button>
                   <button
                     type="button"
                     onClick={downloadStudentChecklist}
                     className="rounded-full border border-white/14 bg-white/10 px-4 py-2 text-sm font-black"
                   >
-                    Student checklist
+                    Download student checklist
                   </button>
                   <button
                     type="button"
                     onClick={downloadAnswerKey}
                     className="rounded-full border border-white/14 bg-white/10 px-4 py-2 text-sm font-black"
                   >
-                    Answer key
+                    Download answer key
                   </button>
                   <button
                     type="button"
@@ -848,7 +928,7 @@ export function ClassroomToolkitPage() {
                     onClick={downloadReport}
                     className="rounded-full border border-white/14 bg-white/10 px-4 py-2 text-sm font-black"
                   >
-                    Download report
+                    Download progress report .txt
                   </button>
                   <button
                     type="button"

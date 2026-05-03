@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
 import { useEscapeKey } from "@/hooks/use-escape-key";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { isThreeDPathname } from "@/lib/app-routes";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/use-app-store";
 import type { AccessibilityPreferences } from "@/types/preferences";
@@ -117,7 +118,7 @@ export function GlobalAccessibilityControl() {
   const panelRef = useRef<HTMLElement | null>(null);
   const copy = accessibilityCopy[language];
   const isDarkTheme = theme === "dark";
-  const isImmersive3D = pathname === "/3d-view";
+  const isImmersive3D = isThreeDPathname(pathname);
   useEscapeKey(() => setIsOpen(false), isOpen);
   useFocusTrap(panelRef, isOpen);
 

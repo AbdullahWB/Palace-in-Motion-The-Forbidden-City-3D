@@ -8,6 +8,10 @@ import { pickLocalizedText } from "@/lib/i18n";
 import { requestDeepSeekAnswer } from "@/lib/ai-guide/deepseek";
 import { buildFallbackGuideResult } from "@/lib/ai-guide/fallback";
 import { buildGuideMessages } from "@/lib/ai-guide/prompt";
+import {
+  buildMissingGuideContentAnswer,
+  canUseExternalGuideProvider,
+} from "@/lib/guide-verification";
 import type {
   CustomTourState,
   GuideCaptionPayload,
@@ -43,7 +47,7 @@ export type AIGuideProviderAdapter = {
 };
 
 export const AI_GENERATED_LABEL =
-  "AI-generated explanation based on palace guide content.";
+  "AI guide response with source status shown.";
 
 function normalizeCaptionText(input: string) {
   const noQuotes = input.replace(/^["'`]+|["'`]+$/g, "");
@@ -52,6 +56,18 @@ function normalizeCaptionText(input: string) {
 }
 
 async function requestProviderText({ context, request }: GroundedGuideInput) {
+  const language = getLanguage(request);
+
+  if (!canUseExternalGuideProvider(context)) {
+    return {
+      answer: context.hasSpecificContext
+        ? buildFallbackGuideResult({ context, request }).trim()
+        : buildMissingGuideContentAnswer(language),
+      provider: "fallback" as const,
+      fallback: true,
+    };
+  }
+
   const messages = buildGuideMessages({
     context,
     request,

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { appRoutes } from "@/lib/app-routes";
 import { cn } from "@/lib/utils";
 import type { GuideMode, GuideRequest, GuideResponse } from "@/types/ai-guide";
 import type { HeritageZoneId } from "@/types/content";
@@ -81,7 +82,7 @@ export function GuidePanel({
         intent: mode === "quiz" ? "quiz" : "answer",
       };
 
-      const result = await fetch("/api/chat", {
+      const result = await fetch(appRoutes.apiChat, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

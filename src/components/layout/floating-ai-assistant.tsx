@@ -32,6 +32,9 @@ import type {
 } from "@/types/ai-guide";
 import type { CompanionLensId } from "@/features/companion/companion-shared";
 
+const ASSISTANT_NUDGE_INTERVAL_MS = 14000;
+const ASSISTANT_NUDGE_VISIBLE_MS = 7200;
+
 function SendIcon() {
   return (
     <svg
@@ -66,6 +69,9 @@ export function FloatingAIAssistant() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeLensId, setActiveLensId] = useState<CompanionLensId>("palace");
+  const [nudgeIndex, setNudgeIndex] = useState(0);
+  const [isNudgeVisible, setIsNudgeVisible] = useState(false);
+  const [isNudgeDismissed, setIsNudgeDismissed] = useState(false);
   const panelRef = useRef<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const routeContext = useMemo(
@@ -80,6 +86,21 @@ export function FloatingAIAssistant() {
         .map((starter) => pickLocalizedText(starter, language)),
     [language, routeContext]
   );
+  const nudgePrompts = useMemo(
+    () =>
+      language === "zh"
+        ? [
+            "需要我讲清楚这个空间吗？",
+            "我可以帮你选下一站。",
+            "点我，直接问地图、路线或印章。",
+          ]
+        : [
+            "Need context for this palace stop?",
+            "I can suggest the next place to visit.",
+            "Ask me about the map, route, or stamps.",
+          ],
+    [language]
+  );
 
   useEffect(() => {
     setActiveLensId(getDefaultLensId(routeContext));
@@ -93,6 +114,28 @@ export function FloatingAIAssistant() {
 
     inputRef.current?.focus();
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen || isNudgeDismissed || reduceMotion) {
+      setIsNudgeVisible(false);
+      return;
+    }
+
+    const showNudge = () => {
+      setNudgeIndex((currentIndex) => (currentIndex + 1) % nudgePrompts.length);
+      setIsNudgeVisible(true);
+      window.setTimeout(() => setIsNudgeVisible(false), ASSISTANT_NUDGE_VISIBLE_MS);
+    };
+
+    const initialTimer = window.setTimeout(showNudge, 3800);
+    const interval = window.setInterval(showNudge, ASSISTANT_NUDGE_INTERVAL_MS);
+
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(interval);
+    };
+  }, [isNudgeDismissed, isOpen, nudgePrompts.length, reduceMotion]);
+
   useEscapeKey(() => setIsOpen(false), isOpen);
   useFocusTrap(panelRef, isOpen);
 
@@ -374,26 +417,88 @@ export function FloatingAIAssistant() {
       </AnimatePresence>
 
       {!isOpen ? (
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          className={cn(
-            "pointer-events-auto relative ml-auto inline-flex h-[4.25rem] w-[4.25rem] items-center justify-center overflow-hidden rounded-full border-[4px] hover:scale-[1.03]",
-            isDarkTheme
-              ? "border-[#ff777d] bg-[#14090c] shadow-[0_18px_42px_rgba(123,21,36,0.28)]"
-              : "border-[#ff777d] bg-[rgba(255,243,240,0.95)] shadow-[0_18px_42px_rgba(143,38,56,0.16)]"
-          )}
-          aria-expanded={false}
-          aria-label={copy.miniTitle}
-        >
-          <Image
-            src="/assistant/avatar.jpg"
-            alt=""
-            fill
-            sizes="68px"
-            className="object-cover"
-          />
-        </button>
+        <div className="flex items-end gap-3">
+          <AnimatePresence>
+            {isNudgeVisible ? (
+              <motion.div
+                initial={reduceMotion ? false : { opacity: 0, x: 12, y: 8 }}
+                animate={{ opacity: 1, x: 0, y: 0 }}
+                exit={reduceMotion ? undefined : { opacity: 0, x: 10, y: 6 }}
+                transition={
+                  reduceMotion
+                    ? undefined
+                    : { duration: 0.22, ease: [0.22, 1, 0.36, 1] }
+                }
+                className={cn(
+                  "pointer-events-auto mb-2 max-w-[17rem] rounded-[1.35rem] border px-4 py-3 shadow-[0_18px_52px_rgba(0,0,0,0.22)] backdrop-blur-xl",
+                  isDarkTheme
+                    ? "border-[#e8bd73]/28 bg-[#14100d]/92 text-white"
+                    : "border-[#8a6a42]/22 bg-[#fff8ef]/94 text-[#241811]"
+                )}
+                role="status"
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsNudgeVisible(false);
+                    setIsOpen(true);
+                  }}
+                  className="block text-left text-sm font-black leading-5"
+                >
+                  {nudgePrompts[nudgeIndex]}
+                </button>
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsNudgeVisible(false);
+                      setIsOpen(true);
+                    }}
+                    className="text-[10px] font-black uppercase tracking-[0.18em] text-[#e8bd73]"
+                  >
+                    {language === "zh" ? "打开助手" : "Ask now"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsNudgeVisible(false);
+                      setIsNudgeDismissed(true);
+                    }}
+                    className="rounded-full border border-current/15 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] opacity-70"
+                    aria-label={copy.close}
+                  >
+                    {copy.close}
+                  </button>
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsNudgeVisible(false);
+              setIsOpen(true);
+            }}
+            className={cn(
+              "pointer-events-auto relative ml-auto inline-flex h-[4.25rem] w-[4.25rem] items-center justify-center overflow-hidden rounded-full border-[4px] hover:scale-[1.03]",
+              !reduceMotion && "animate-[assistantPulse_3.8s_ease-in-out_infinite]",
+              isDarkTheme
+                ? "border-[#ff777d] bg-[#14090c] shadow-[0_18px_42px_rgba(123,21,36,0.28)]"
+                : "border-[#ff777d] bg-[rgba(255,243,240,0.95)] shadow-[0_18px_42px_rgba(143,38,56,0.16)]"
+            )}
+            aria-expanded={false}
+            aria-label={copy.miniTitle}
+          >
+            <Image
+              src="/assistant/avatar.jpg"
+              alt=""
+              fill
+              sizes="68px"
+              className="object-cover"
+            />
+          </button>
+        </div>
       ) : null}
     </div>
   );

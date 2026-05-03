@@ -8,6 +8,7 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { PageContainer } from "@/components/layout/page-container";
 import { ThemeToggleButton } from "@/components/preferences/theme-toggle-button";
 import { APP_NAME } from "@/lib/constants";
+import { appRoutes, isImmersiveShellPathname } from "@/lib/app-routes";
 import { useAppStore } from "@/store/use-app-store";
 
 export function SiteHeader() {
@@ -19,12 +20,7 @@ export function SiteHeader() {
     setNavOpen(false);
   }, [pathname, setNavOpen]);
 
-  if (
-    pathname === "/" ||
-    pathname === "/explore" ||
-    pathname === "/companion" ||
-    pathname === "/3d-view"
-  ) {
+  if (isImmersiveShellPathname(pathname)) {
     return null;
   }
 
@@ -32,7 +28,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/80 backdrop-blur-xl">
       <PageContainer>
         <div className="flex h-20 items-center justify-between gap-4">
-          <Link href="/" className="min-w-0" aria-label={`${APP_NAME} home`}>
+          <Link href={appRoutes.home} className="min-w-0" aria-label={`${APP_NAME} home`}>
             <p className="font-display text-2xl leading-none text-foreground md:text-3xl">
               {APP_NAME}
             </p>

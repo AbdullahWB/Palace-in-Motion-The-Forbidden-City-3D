@@ -3,6 +3,7 @@ import { PageContainer } from "@/components/layout/page-container";
 import { MotionReveal } from "@/components/ui/motion-reveal";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { aiGuidePreview, aiGuidePreviewPoints } from "@/data/landing";
+import { appRoutes } from "@/lib/app-routes";
 
 export function AIGuidePreviewSection() {
   return (
@@ -19,7 +20,7 @@ export function AIGuidePreviewSection() {
             <p className="mt-6 max-w-xl text-sm leading-7 text-muted">{aiGuidePreview.summary}</p>
 
             <Link
-              href="/explore"
+              href={appRoutes.explore}
               className="mt-8 inline-flex items-center justify-center rounded-full border border-accent/18 bg-white/75 px-6 py-3 text-sm font-semibold text-foreground hover:border-accent/30 hover:bg-white"
             >
               Open the panorama route

@@ -24,6 +24,7 @@ import { extractForegroundFromSelfie } from "@/lib/selfie/remove-background";
 import { DemoBadgePanel } from "@/components/ui/demo-badge-panel";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
 import { HERITAGE_SCENE_ID } from "@/lib/constants";
+import { appRoutes } from "@/lib/app-routes";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/use-app-store";
 import type { GuideRequest, GuideResponse } from "@/types/ai-guide";
@@ -460,7 +461,7 @@ export function SelfieStudio({
         focusLabel: activeFocus.label,
         language,
       };
-      const response = await fetch("/api/selfie/enhance", {
+      const response = await fetch(appRoutes.apiSelfieEnhance, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -544,7 +545,7 @@ export function SelfieStudio({
         postcardThemeId: activeFrame.id,
         title: title.trim() || null,
       };
-      const response = await fetch("/api/chat", {
+      const response = await fetch(appRoutes.apiChat, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

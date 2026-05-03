@@ -1,11 +1,15 @@
+import type { appRoutePaths } from "@/lib/app-routes";
+
+type AppRoutePaths = typeof appRoutePaths;
+
 export type AppRoute =
-  | "/"
-  | "/explore"
-  | "/tour"
-  | "/selfie"
-  | "/3d-view"
-  | "/companion"
-  | "/classroom";
+  | AppRoutePaths["home"]
+  | AppRoutePaths["explore"]
+  | AppRoutePaths["tour"]
+  | AppRoutePaths["selfie"]
+  | AppRoutePaths["threeD"]
+  | AppRoutePaths["companion"]
+  | AppRoutePaths["classroom"];
 export type HomeAnchor = "#ai-guide";
 export type LandingHref = AppRoute | HomeAnchor;
 
