@@ -745,8 +745,6 @@ export function ThreeDViewShell({
   const isDarkTheme = theme === "dark";
   const copy = shellCopy[language];
   const localizedTitle = pickLocalizedText(config.title, language);
-  const localizedSubtitle = pickLocalizedText(config.subtitle, language);
-  const localizedDescription = pickLocalizedText(config.description, language);
   const cameraView =
     config.cameraPresets.find((preset) => preset.id === activeCameraId) ??
     config.initialCamera;
@@ -848,6 +846,7 @@ export function ThreeDViewShell({
         isDarkTheme ? "bg-[#04070d] text-white" : "bg-[#f0e6d5] text-foreground"
       )}
     >
+      <h1 className="sr-only">{localizedTitle}</h1>
       <div className="absolute inset-0">
         <Canvas
           key={`${viewerVersion}:${cameraView.id}:${qualityMode}`}
@@ -878,81 +877,6 @@ export function ThreeDViewShell({
 
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(249,214,155,0.22),transparent_24%),radial-gradient(circle_at_82%_18%,rgba(95,138,189,0.2),transparent_28%),linear-gradient(180deg,rgba(3,7,12,0.08),rgba(3,7,12,0.18)_40%,rgba(3,7,12,0.52)_100%)]" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[34%] bg-[linear-gradient(180deg,rgba(4,7,13,0),rgba(4,7,13,0.72))]" />
-
-      <div className="absolute left-3 top-3 z-20 w-[min(28rem,calc(100vw-1.5rem))] pointer-events-auto sm:left-4 sm:top-4 md:left-6 md:top-6">
-        <div
-          className={cn(
-            "max-h-[50svh] overflow-y-auto rounded-[1.5rem] border p-4 shadow-[0_24px_90px_rgba(0,0,0,0.22)] backdrop-blur-xl sm:rounded-[1.9rem] sm:p-5",
-            isDarkTheme
-              ? "border-white/12 bg-[rgba(7,10,16,0.66)] text-white"
-              : "border-white/55 bg-[rgba(255,248,238,0.84)] text-foreground"
-          )}
-        >
-          <div className="flex flex-wrap items-center gap-3">
-            <span
-              className={cn(
-                "rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em]",
-                isDarkTheme
-                  ? "border-[#d5b27a]/26 bg-[#d5b27a]/14 text-[#f3dcb3]"
-                  : "border-accent/18 bg-accent/8 text-accent-soft"
-              )}
-            >
-              {copy.eyebrow}
-            </span>
-            <span
-              className={cn(
-                "rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em]",
-                hasModelAsset
-                  ? "border-emerald-400/28 bg-emerald-400/12 text-emerald-200"
-                  : "border-[#d5b27a]/26 bg-[#d5b27a]/14 text-[#f3dcb3]"
-              )}
-            >
-              {hasModelAsset ? copy.readyLabel : copy.fallbackLabel}
-            </span>
-          </div>
-
-          <p className="mt-5 font-display text-3xl leading-none text-white md:text-5xl">
-            {localizedTitle}
-          </p>
-          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/60">
-            {localizedSubtitle}
-          </p>
-          <p className="mt-5 max-w-2xl text-sm leading-7 text-white/78">
-            {localizedDescription}
-          </p>
-
-          <div className="mt-5 rounded-[1.2rem] border border-white/10 bg-black/24 p-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#f1c76f]">
-              {copy.modelAsset}
-            </p>
-            <p className="mt-2 text-sm leading-6 text-white/74">
-              <span className="font-semibold text-white">
-                {config.modelImport.targetPath}
-              </span>{" "}
-              - {pickLocalizedText(config.modelImport.optimizationNote, language)}
-            </p>
-            <p className="mt-2 text-xs leading-5 text-white/60">
-              {pickLocalizedText(config.modelImport.coordinateSpace, language)}
-            </p>
-            <p className="mt-2 text-xs leading-5 text-white/60">
-              {pickLocalizedText(config.modelImport.hotspotAlignmentNote, language)}
-            </p>
-            {config.modelManifestSrc ? (
-              <p className="mt-2 text-xs leading-5 text-white/60">
-                Manifest:{" "}
-                <span className="font-semibold text-white">
-                  {config.modelManifestSrc}
-                </span>
-              </p>
-            ) : null}
-            {!hasModelAsset ? (
-              <p className="mt-2 text-xs leading-5 text-white/54">
-                {pickLocalizedText(config.modelImport.fallbackNote, language)}
-              </p>
-            ) : null}
-          </div>
-        </div>
-      </div>
 
       <div className="absolute right-3 top-3 z-20 flex max-w-[calc(100vw-1.5rem)] flex-wrap items-start justify-end gap-2 pointer-events-auto sm:right-4 sm:top-4 md:right-6 md:top-6">
         <span className="hidden rounded-full border border-white/12 bg-black/44 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-white/72 backdrop-blur-xl sm:inline-flex">

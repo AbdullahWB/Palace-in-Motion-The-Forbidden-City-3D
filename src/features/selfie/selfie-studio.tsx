@@ -21,7 +21,6 @@ import {
   type SubjectTransform,
 } from "@/lib/selfie/compose-postcard";
 import { extractForegroundFromSelfie } from "@/lib/selfie/remove-background";
-import { DemoBadgePanel } from "@/components/ui/demo-badge-panel";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
 import { HERITAGE_SCENE_ID } from "@/lib/constants";
 import { appRoutes } from "@/lib/app-routes";
@@ -964,7 +963,6 @@ export function SelfieStudio({
                     {visibleComposition ? <a href={visibleComposition.downloadUrl} download={`${activeFrame.id}-${previewMode === "ai" && !isAiResultStale ? "ai" : "manual"}-postcard.png`} className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/12 px-5 py-3 text-sm font-semibold text-white hover:bg-white/20">Download PNG</a> : null}
                   </div>
                   <button type="button" onClick={() => setActiveStep("adjust")} className="rounded-full border border-white/35 bg-white/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-white/20">Back</button>
-                  <DemoBadgePanel announce compact className="bg-white/12" title="Completion badge" description="Unlock by finishing the Explore route and postcard steps." />
                 </>
               ) : null}
             </div>

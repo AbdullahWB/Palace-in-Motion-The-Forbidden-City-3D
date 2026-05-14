@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { Menu, X } from "lucide-react";
 import { MainNav } from "@/components/layout/main-nav";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { PageContainer } from "@/components/layout/page-container";
@@ -48,6 +49,11 @@ export function SiteHeader() {
               aria-controls="mobile-nav"
               aria-label={isNavOpen ? "Close navigation menu" : "Open navigation menu"}
             >
+              {isNavOpen ? (
+                <X className="mr-2 h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Menu className="mr-2 h-4 w-4" aria-hidden="true" />
+              )}
               {isNavOpen ? "Close" : "Menu"}
             </button>
           </div>

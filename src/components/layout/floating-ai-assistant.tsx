@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { SendHorizontal } from "lucide-react";
 import Image from "@/components/ui/hydration-safe-image";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
 import {
@@ -34,24 +35,6 @@ import type { CompanionLensId } from "@/features/companion/companion-shared";
 
 const ASSISTANT_NUDGE_INTERVAL_MS = 14000;
 const ASSISTANT_NUDGE_VISIBLE_MS = 7200;
-
-function SendIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="h-5 w-5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.3"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M5 12h11" />
-      <path d="M11 6l6 6-6 6" />
-    </svg>
-  );
-}
 
 export function FloatingAIAssistant() {
   const pathname = usePathname();
@@ -408,7 +391,7 @@ export function FloatingAIAssistant() {
                   className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#ff777d] bg-[#ff777d] text-black disabled:cursor-wait disabled:opacity-60"
                   aria-label={copy.send}
                 >
-                  <SendIcon />
+                  <SendHorizontal className="h-5 w-5" aria-hidden="true" />
                 </button>
               </form>
             </div>

@@ -11,6 +11,19 @@ import {
   useSpring,
 } from "framer-motion";
 import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  Camera,
+  Map as MapIcon,
+  Pause,
+  Play,
+  Route,
+  Volume2,
+  VolumeX,
+  X,
+} from "lucide-react";
+import {
   startTransition,
   useDeferredValue,
   useEffect,
@@ -2063,6 +2076,35 @@ export function PanoramaExperience({
         : null;
       const isFirstPhoto = autoTourPhotoIndex === 0;
       const isFirstStop = autoTourPlaceIndex === 0;
+      const buildLocalNarration = () => {
+        const fallbackNarration = language === "zh"
+          ? isFirstPhoto
+            ? `${placeTitle}。${shortDesc}。当前画面为：${photoCaption}。${longDesc}`
+            : `当前画面为：${photoCaption}。${shortDesc}。${longDesc}`
+          : isFirstPhoto
+            ? `${placeTitle}. ${shortDesc}. Current frame: ${photoCaption}. ${longDesc}`
+            : `Current frame: ${photoCaption}. ${shortDesc}. ${longDesc}`;
+
+        if (!activeJourney || !isFirstPhoto) {
+          return fallbackNarration;
+        }
+
+        return language === "zh"
+          ? `${
+              routeTitle && routeDescription
+                ? isFirstStop
+                  ? `路线「${routeTitle}」从这一站展开，重点是${routeDescription}。`
+                  : `现在继续「${routeTitle}」路线的下一站。`
+                : ""
+            }${placeTitle}。${shortDesc}。当前子场景为：${photoCaption}。${longDesc}`
+          : `${
+              routeTitle && routeDescription
+                ? isFirstStop
+                  ? `The journey "${routeTitle}" begins here and focuses on ${routeDescription}. `
+                  : `This stop continues the journey "${routeTitle}". `
+                : ""
+            }${placeTitle}. ${shortDesc}. Current sub-scene: ${photoCaption}. ${longDesc}`;
+      };
 
       const question =
         language === "zh"
@@ -2116,6 +2158,7 @@ export function PanoramaExperience({
             language,
             question: narrationQuestion ?? question,
             title: activeJourney && routeTitle ? `${routeTitle} - ${placeTitle}` : placeTitle,
+            placeSlug: activeTourPlace.slug,
             journeyRouteId: activeJourney?.id ?? null,
             journeyTitle: routeTitle,
             journeyDescription: routeDescription,
@@ -2125,7 +2168,7 @@ export function PanoramaExperience({
           }),
         });
 
-        const data = (await response.json()) as { answer?: string; error?: string };
+        const data = (await response.json()) as GuideResponse & { error?: string };
 
         if (!response.ok || !data.answer) {
           throw new Error(data.error ?? "Failed to generate narration.");
@@ -2135,45 +2178,24 @@ export function PanoramaExperience({
           return;
         }
 
-        narrationCacheRef.current.set(key, data.answer);
-        setAutoTourNarration(data.answer);
+        const shouldUseLocalNarration =
+          data.verification?.status === "missing" ||
+          data.answer.startsWith("Not available in guide content yet");
+        const narration = shouldUseLocalNarration
+          ? buildLocalNarration()
+          : data.answer;
+
+        narrationCacheRef.current.set(key, narration);
+        setAutoTourNarration(narration);
+        setAutoTourError("");
         setIsAutoTourLoading(false);
-      } catch (error) {
+      } catch {
         if (cancelled) {
           return;
         }
 
-        const fallbackNarration = language === "zh"
-          ? isFirstPhoto
-            ? `${placeTitle}。${shortDesc}。当前画面为：${photoCaption}。${longDesc}`
-            : `当前画面为：${photoCaption}。${shortDesc}。${longDesc}`
-          : isFirstPhoto
-            ? `${placeTitle}. ${shortDesc}. Current frame: ${photoCaption}. ${longDesc}`
-            : `Current frame: ${photoCaption}. ${shortDesc}. ${longDesc}`;
-
-        const routeAwareFallbackNarration =
-          activeJourney && isFirstPhoto
-            ? language === "zh"
-              ? `${
-                  routeTitle && routeDescription
-                    ? isFirstStop
-                      ? `路线「${routeTitle}」从这一站展开，重点是${routeDescription}。`
-                      : `现在继续「${routeTitle}」路线的下一站。`
-                    : ""
-                }${placeTitle}。${shortDesc}。当前子场景为：${photoCaption}。${longDesc}`
-              : `${
-                  routeTitle && routeDescription
-                    ? isFirstStop
-                      ? `The journey "${routeTitle}" begins here and focuses on ${routeDescription}. `
-                      : `This stop continues the journey "${routeTitle}". `
-                    : ""
-                }${placeTitle}. ${shortDesc}. Current sub-scene: ${photoCaption}. ${longDesc}`
-            : fallbackNarration;
-
-        setAutoTourNarration(routeAwareFallbackNarration);
-        setAutoTourError(
-          error instanceof Error ? error.message : "Narration unavailable."
-        );
+        setAutoTourNarration(buildLocalNarration());
+        setAutoTourError("");
         setIsAutoTourLoading(false);
       }
     }
@@ -3257,12 +3279,13 @@ export function PanoramaExperience({
                       type="button"
                       onClick={startAutoTour}
                       className={cn(
-                        "rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em]",
+                        "inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em]",
                         isDarkTheme
                           ? "border-[#d6b071]/28 bg-[#d6b071]/14 text-[#f5ddb4] hover:bg-[#d6b071]/22"
                           : "border-accent-soft/30 bg-accent-soft/14 text-accent-strong hover:bg-accent-soft/22"
                       )}
                     >
+                      <Route className="h-3.5 w-3.5" aria-hidden="true" />
                       {ui.autoTour}
                     </button>
                     <button
@@ -3270,12 +3293,13 @@ export function PanoramaExperience({
                       onClick={openPassport}
                       aria-label={journeyUi.passport}
                       className={cn(
-                        "rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em]",
+                        "inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em]",
                         isDarkTheme
                           ? "border-white/16 bg-white/10 text-white hover:bg-white/16"
                           : "border-border/70 bg-background/82 text-foreground hover:bg-background"
                       )}
                     >
+                      <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
                       {journeyUi.passport}
                     </button>
                   </div>
@@ -3382,36 +3406,39 @@ export function PanoramaExperience({
                         type="button"
                         onClick={startRoute}
                         className={cn(
-                          "rounded-full border px-4 py-3 text-sm font-semibold",
+                          "inline-flex items-center justify-center gap-2 rounded-full border px-4 py-3 text-sm font-semibold",
                           isDarkTheme
                             ? "border-[#d6b071]/28 bg-[#d6b071]/14 text-[#f5ddb4] hover:bg-[#d6b071]/22"
                             : "border-accent-soft/30 bg-accent-soft/14 text-accent-strong hover:bg-accent-soft/22"
                         )}
                       >
+                        <Route className="h-4 w-4" aria-hidden="true" />
                         {journeyUi.startRoute}
                       </button>
                       <button
                         type="button"
                         onClick={startAutoTour}
                         className={cn(
-                          "rounded-full border px-4 py-3 text-sm font-semibold",
+                          "inline-flex items-center justify-center gap-2 rounded-full border px-4 py-3 text-sm font-semibold",
                           isDarkTheme
                             ? "border-white/16 bg-white/10 text-white hover:bg-white/16"
                             : "border-border/80 bg-background/82 text-foreground hover:bg-background"
                         )}
                       >
+                        <Play className="h-4 w-4" aria-hidden="true" />
                         {ui.autoTour}
                       </button>
                       <button
                         type="button"
                         onClick={clearJourney}
                         className={cn(
-                          "rounded-full border px-4 py-3 text-sm font-semibold",
+                          "inline-flex items-center justify-center gap-2 rounded-full border px-4 py-3 text-sm font-semibold",
                           isDarkTheme
                             ? "border-white/16 bg-white/10 text-white hover:bg-white/16"
                             : "border-border/80 bg-background/82 text-foreground hover:bg-background"
                         )}
                       >
+                        <X className="h-4 w-4" aria-hidden="true" />
                         {journeyUi.clearRoute}
                       </button>
                     </div>
@@ -3756,12 +3783,13 @@ export function PanoramaExperience({
                 type="button"
                 onClick={openMap}
                 className={cn(
-                    "shrink-0 rounded-full border px-4 py-3 text-sm font-semibold",
+                    "inline-flex shrink-0 items-center justify-center gap-2 rounded-full border px-4 py-3 text-sm font-semibold",
                   isDarkTheme
                     ? "border-white/16 bg-[rgba(8,12,20,0.56)] text-white hover:bg-[rgba(8,12,20,0.68)]"
                     : "border-border/80 bg-background/82 text-foreground hover:bg-background"
                 )}
               >
+                <MapIcon className="h-4 w-4" aria-hidden="true" />
                 {activeJourney ? journeyUi.routeMap : ui.backToMap}
               </button>
               {activeJourney ? (
@@ -3773,12 +3801,13 @@ export function PanoramaExperience({
                     activeJourneyStopIndex + 1 >= activeJourney.placeOrder.length
                   }
                   className={cn(
-                    "shrink-0 rounded-full border px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45",
+                    "inline-flex shrink-0 items-center justify-center gap-2 rounded-full border px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45",
                     isDarkTheme
                       ? "border-[#d6b071]/30 bg-[#d6b071]/14 text-[#f5ddb4] hover:bg-[#d6b071]/22"
                       : "border-accent-soft/30 bg-accent-soft/14 text-accent-strong hover:bg-accent-soft/22"
                   )}
                 >
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
                   {journeyUi.nextStop}
                 </button>
               ) : null}
@@ -3786,24 +3815,26 @@ export function PanoramaExperience({
                 type="button"
                 onClick={openWelcome}
                 className={cn(
-                  "shrink-0 rounded-full border px-4 py-3 text-sm font-semibold",
+                  "inline-flex shrink-0 items-center justify-center gap-2 rounded-full border px-4 py-3 text-sm font-semibold",
                   isDarkTheme
                     ? "border-white/16 bg-[rgba(8,12,20,0.56)] text-white hover:bg-[rgba(8,12,20,0.68)]"
                     : "border-border/80 bg-background/82 text-foreground hover:bg-background"
                 )}
               >
+                <X className="h-4 w-4" aria-hidden="true" />
                 {ui.close}
               </button>
               <button
                 type="button"
                 onClick={startAutoTour}
                 className={cn(
-                  "shrink-0 rounded-full border px-4 py-3 text-sm font-semibold",
+                  "inline-flex shrink-0 items-center justify-center gap-2 rounded-full border px-4 py-3 text-sm font-semibold",
                   isDarkTheme
                     ? "border-[#f5ddb4]/30 bg-[#f5ddb4]/14 text-[#f5ddb4] hover:bg-[#f5ddb4]/22"
                     : "border-accent-soft/30 bg-accent-soft/14 text-accent-strong hover:bg-accent-soft/22"
                 )}
               >
+                <Route className="h-4 w-4" aria-hidden="true" />
                 {ui.autoTour}
               </button>
               <button
@@ -3813,12 +3844,13 @@ export function PanoramaExperience({
                   setIsSelfieModalOpen(true);
                 }}
                 className={cn(
-                  "shrink-0 rounded-full border px-4 py-3 text-sm font-semibold",
+                  "inline-flex shrink-0 items-center justify-center gap-2 rounded-full border px-4 py-3 text-sm font-semibold",
                   isDarkTheme
                     ? "border-[#d6b071]/30 bg-[#d6b071]/14 text-[#f5ddb4] hover:bg-[#d6b071]/22"
                     : "border-accent-soft/30 bg-accent-soft/14 text-accent-strong hover:bg-accent-soft/22"
                 )}
               >
+                <Camera className="h-4 w-4" aria-hidden="true" />
                 {ui.selfie}
               </button>
               <button
@@ -3826,12 +3858,13 @@ export function PanoramaExperience({
                 onClick={openPassport}
                 aria-label={journeyUi.passport}
                 className={cn(
-                  "shrink-0 rounded-full border px-4 py-3 text-sm font-semibold",
+                  "inline-flex shrink-0 items-center justify-center gap-2 rounded-full border px-4 py-3 text-sm font-semibold",
                   isDarkTheme
                     ? "border-white/16 bg-[rgba(8,12,20,0.56)] text-white hover:bg-[rgba(8,12,20,0.68)]"
                     : "border-border/80 bg-background/82 text-foreground hover:bg-background"
                 )}
               >
+                <BookOpen className="h-4 w-4" aria-hidden="true" />
                 {journeyUi.passport}
               </button>
               <MusicToggleButton tone={isDarkTheme ? "dark" : "light"} compact />
@@ -3956,60 +3989,73 @@ export function PanoramaExperience({
                 type="button"
                 onClick={() => setIsAutoTourPaused((current) => !current)}
                 className={cn(
-                  "rounded-full border px-3 py-2 text-xs font-semibold",
+                  "inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold",
                   isDarkTheme
                     ? "border-white/16 bg-white/10 text-white hover:bg-white/16"
                     : "border-border/80 bg-background/82 text-foreground hover:bg-background"
                 )}
               >
+                {isAutoTourPaused ? (
+                  <Play className="h-3.5 w-3.5" aria-hidden="true" />
+                ) : (
+                  <Pause className="h-3.5 w-3.5" aria-hidden="true" />
+                )}
                 {isAutoTourPaused ? ui.tourResume : ui.tourPause}
               </button>
               <button
                 type="button"
                 onClick={() => advanceAutoTour(-1)}
                 className={cn(
-                  "rounded-full border px-3 py-2 text-xs font-semibold",
+                  "inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold",
                   isDarkTheme
                     ? "border-white/16 bg-white/10 text-white hover:bg-white/16"
                     : "border-border/80 bg-background/82 text-foreground hover:bg-background"
                 )}
               >
+                <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
                 {ui.tourBack}
               </button>
               <button
                 type="button"
                 onClick={() => advanceAutoTour(1)}
                 className={cn(
-                  "rounded-full border px-3 py-2 text-xs font-semibold",
+                  "inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold",
                   isDarkTheme
                     ? "border-white/16 bg-white/10 text-white hover:bg-white/16"
                     : "border-border/80 bg-background/82 text-foreground hover:bg-background"
                 )}
               >
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
                 {ui.tourNext}
               </button>
               <button
                 type="button"
                 onClick={() => setVoiceEnabled((current) => !current)}
                 className={cn(
-                  "rounded-full border px-3 py-2 text-xs font-semibold",
+                  "inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold",
                   isDarkTheme
                     ? "border-[#d6b071]/30 bg-[#d6b071]/14 text-[#f5ddb4] hover:bg-[#d6b071]/22"
                     : "border-accent-soft/30 bg-accent-soft/14 text-accent-strong hover:bg-accent-soft/22"
                 )}
               >
+                {voiceEnabled ? (
+                  <Volume2 className="h-3.5 w-3.5" aria-hidden="true" />
+                ) : (
+                  <VolumeX className="h-3.5 w-3.5" aria-hidden="true" />
+                )}
                 {voiceEnabled ? ui.tourVoiceOn : ui.tourVoiceOff}
               </button>
               <button
                 type="button"
                 onClick={stopAutoTour}
                 className={cn(
-                  "rounded-full border px-3 py-2 text-xs font-semibold",
+                  "inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold",
                   isDarkTheme
                     ? "border-white/16 bg-white/10 text-white hover:bg-white/16"
                     : "border-border/80 bg-background/82 text-foreground hover:bg-background"
                 )}
               >
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
                 {ui.tourExit}
               </button>
             </div>

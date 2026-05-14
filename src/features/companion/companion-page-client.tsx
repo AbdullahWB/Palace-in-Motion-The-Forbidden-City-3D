@@ -4,6 +4,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
+import {
+  ArrowRight,
+  Box,
+  Copy,
+  Download,
+  Map as MapIcon,
+  Printer,
+  RefreshCw,
+  RotateCcw,
+  Route,
+  SendHorizontal,
+  Upload,
+  WandSparkles,
+} from "lucide-react";
 import Image from "@/components/ui/hydration-safe-image";
 import { useSitePreferences } from "@/components/preferences/site-preferences-provider";
 import {
@@ -753,14 +767,16 @@ export function CompanionPageClient() {
         <div className="mt-4 grid grid-cols-2 gap-2">
           <Link
             href={appRoutes.map(selectedRoute?.id ?? null)}
-            className="rounded-full border border-[#e8bd73]/35 bg-[#e8bd73]/14 px-4 py-2 text-center text-sm font-black text-[#d69b54]"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#e8bd73]/35 bg-[#e8bd73]/14 px-4 py-2 text-center text-sm font-black text-[#d69b54]"
           >
+            <MapIcon className="h-4 w-4" aria-hidden="true" />
             Open map
           </Link>
           <Link
             href={startRouteHref}
-            className="rounded-full border border-[#ff777d]/35 bg-[#ff777d]/16 px-4 py-2 text-center text-sm font-black text-[#ff7a80]"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#ff777d]/35 bg-[#ff777d]/16 px-4 py-2 text-center text-sm font-black text-[#ff7a80]"
           >
+            <Route className="h-4 w-4" aria-hidden="true" />
             Start route
           </Link>
         </div>
@@ -975,21 +991,24 @@ export function CompanionPageClient() {
         <div className="mt-5 flex flex-wrap gap-2">
           <Link
             href={continueHref}
-            className="rounded-full border border-[#e8bd73]/35 bg-[#e8bd73]/14 px-4 py-2 text-sm font-black text-[#d69b54]"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#e8bd73]/35 bg-[#e8bd73]/14 px-4 py-2 text-sm font-black text-[#d69b54]"
           >
+            <Route className="h-4 w-4" aria-hidden="true" />
             Continue
           </Link>
           <Link
             href={nextStopHref}
-            className="rounded-full border border-[#ff777d]/35 bg-[#ff777d]/16 px-4 py-2 text-sm font-black text-[#ff7a80]"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#ff777d]/35 bg-[#ff777d]/16 px-4 py-2 text-sm font-black text-[#ff7a80]"
           >
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
             Next stop
           </Link>
           <button
             type="button"
             onClick={resetExploreProgress}
-            className="rounded-full border border-white/15 bg-black/10 px-4 py-2 text-sm font-black opacity-72"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-black/10 px-4 py-2 text-sm font-black opacity-72"
           >
+            <RotateCcw className="h-4 w-4" aria-hidden="true" />
             Reset
           </button>
         </div>
@@ -1102,29 +1121,32 @@ export function CompanionPageClient() {
             {travelDiaryText}
           </p>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={copyTravelDiary}
-              className="rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
-            >
-              {diaryCopyStatus === "copied" ? "Copied" : "Copy"}
-            </button>
-            <button
-              type="button"
-              onClick={printTravelDiary}
-              className="rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
-            >
-              Print
-            </button>
-            <button
-              type="button"
-              onClick={downloadTravelDiary}
-              className="rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
-            >
-              Download diary
-            </button>
-            <button
-              type="button"
+              <button
+                type="button"
+                onClick={copyTravelDiary}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
+              >
+                <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+                {diaryCopyStatus === "copied" ? "Copied" : "Copy"}
+              </button>
+              <button
+                type="button"
+                onClick={printTravelDiary}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
+              >
+                <Printer className="h-3.5 w-3.5" aria-hidden="true" />
+                Print
+              </button>
+              <button
+                type="button"
+                onClick={downloadTravelDiary}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
+              >
+                <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                Download diary
+              </button>
+              <button
+                type="button"
               onClick={() => {
                 setDiaryGeneratedAt(Date.now());
                 setDiaryCopyStatus("idle");
@@ -1137,22 +1159,25 @@ export function CompanionPageClient() {
                   completeAchievementMission(mission);
                 }
               }}
-              className="rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
             >
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
               Refresh
             </button>
             <button
               type="button"
               onClick={exportJourney}
-              className="rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
             >
+              <Download className="h-3.5 w-3.5" aria-hidden="true" />
               Export journey
             </button>
             <button
               type="button"
               onClick={() => backupInputRef.current?.click()}
-              className="rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-black"
             >
+              <Upload className="h-3.5 w-3.5" aria-hidden="true" />
               Import backup
             </button>
             <input
@@ -1228,8 +1253,9 @@ export function CompanionPageClient() {
             type="button"
             onClick={buildTour}
             disabled={isSubmitting}
-            className="mt-4 w-full rounded-full border border-[#e8bd73] bg-[#e8bd73] px-4 py-3 text-sm font-black text-black disabled:cursor-wait disabled:opacity-60"
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#e8bd73] bg-[#e8bd73] px-4 py-3 text-sm font-black text-black disabled:cursor-wait disabled:opacity-60"
           >
+            <WandSparkles className="h-4 w-4" aria-hidden="true" />
             Build tour
           </button>
 
@@ -1310,15 +1336,17 @@ export function CompanionPageClient() {
           <div className="flex flex-wrap gap-2">
             <Link
               href={appRoutes.map()}
-              className="rounded-full border border-[#e8bd73]/35 bg-[#e8bd73]/14 px-5 py-3 text-sm font-black text-[#e8bd73]"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-[#e8bd73]/35 bg-[#e8bd73]/14 px-5 py-3 text-sm font-black text-[#e8bd73]"
             >
+              <MapIcon className="h-4 w-4" aria-hidden="true" />
               Open map
             </Link>
             <Link
               href={appRoutes.threeD}
               prefetch={false}
-              className="rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-black"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-black"
             >
+              <Box className="h-4 w-4" aria-hidden="true" />
               3D view
             </Link>
           </div>
@@ -1597,8 +1625,9 @@ export function CompanionPageClient() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="h-14 rounded-full border border-[#ff777d] bg-[#ff777d] px-6 text-sm font-black text-black disabled:cursor-wait disabled:opacity-60"
+                  className="inline-flex h-14 items-center justify-center gap-2 rounded-full border border-[#ff777d] bg-[#ff777d] px-6 text-sm font-black text-black disabled:cursor-wait disabled:opacity-60"
                 >
+                  <SendHorizontal className="h-4 w-4" aria-hidden="true" />
                   {copy.send}
                 </button>
               </div>
