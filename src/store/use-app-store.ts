@@ -13,8 +13,6 @@ import type {
 } from "@/types/ai-guide";
 import type {
   AchievementMissionState,
-  ClassroomAssignmentState,
-  ClassroomReportState,
 } from "@/types/competition";
 import type { AccessibilityPreferences } from "@/types/preferences";
 import type { JourneyBackupInput } from "@/lib/journey-backup";
@@ -33,8 +31,6 @@ type PersistedAppStoreState = Pick<
   | "activeCustomTourId"
   | "accessibilityPreferences"
   | "achievementMissions"
-  | "classroomAssignments"
-  | "classroomReports"
 >;
 
 export type AppStoreState = {
@@ -51,8 +47,6 @@ export type AppStoreState = {
   activeCustomTourId: string | null;
   accessibilityPreferences: AccessibilityPreferences;
   achievementMissions: AchievementMissionState[];
-  classroomAssignments: ClassroomAssignmentState[];
-  classroomReports: ClassroomReportState[];
   setNavOpen: (isOpen: boolean) => void;
   setSelectedExploreZoneId: (zoneId: ExploreZone["id"] | null) => void;
   markExploreZoneVisited: (zoneId: ExploreZone["id"]) => void;
@@ -69,9 +63,6 @@ export type AppStoreState = {
     mission: Omit<AchievementMissionState, "completed" | "completedAt"> &
       Partial<Pick<AchievementMissionState, "completedAt">>
   ) => void;
-  saveClassroomAssignment: (assignment: ClassroomAssignmentState) => void;
-  saveClassroomReport: (report: ClassroomReportState) => void;
-  resetClassroomData: () => void;
   exportJourneyBackup: () => JourneyBackupInput;
   importJourneyBackup: (backup: JourneyBackupInput) => void;
   resetExploreProgress: () => void;
@@ -102,8 +93,6 @@ const initialPersistedState: PersistedAppStoreState = {
   activeCustomTourId: null,
   accessibilityPreferences: defaultAccessibilityPreferences,
   achievementMissions: [],
-  classroomAssignments: [],
-  classroomReports: [],
 };
 
 function upsertCompletedAchievement(
@@ -133,6 +122,8 @@ function normalizeAchievementMissions(value: unknown) {
     return [];
   }
 
+  const validTypes = new Set(["route", "quiz", "preservation", "diary", "three-d"]);
+
   return value
     .filter(
       (mission): mission is AchievementMissionState =>
@@ -140,6 +131,7 @@ function normalizeAchievementMissions(value: unknown) {
         typeof mission === "object" &&
         typeof (mission as AchievementMissionState).id === "string" &&
         typeof (mission as AchievementMissionState).type === "string" &&
+        validTypes.has((mission as AchievementMissionState).type) &&
         typeof (mission as AchievementMissionState).title === "string" &&
         typeof (mission as AchievementMissionState).description === "string"
     )
@@ -157,74 +149,6 @@ function normalizeAchievementMissions(value: unknown) {
           ? mission.relatedPlaceSlug
           : null,
       routeId: typeof mission.routeId === "string" ? mission.routeId : null,
-    }));
-}
-
-function normalizeClassroomAssignments(value: unknown) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .filter(
-      (assignment): assignment is ClassroomAssignmentState =>
-        Boolean(assignment) &&
-        typeof assignment === "object" &&
-        typeof (assignment as ClassroomAssignmentState).id === "string" &&
-        typeof (assignment as ClassroomAssignmentState).title === "string" &&
-        typeof (assignment as ClassroomAssignmentState).routeId === "string" &&
-        Array.isArray((assignment as ClassroomAssignmentState).requiredPlaceSlugs)
-    )
-    .map((assignment) => ({
-      id: assignment.id,
-      title: assignment.title,
-      routeId: assignment.routeId,
-      difficulty: assignment.difficulty,
-      requiredPlaceSlugs: assignment.requiredPlaceSlugs.filter(
-        (placeSlug): placeSlug is ExplorePlaceSlug => typeof placeSlug === "string"
-      ),
-      worksheetText:
-        typeof assignment.worksheetText === "string"
-          ? assignment.worksheetText
-          : "",
-      createdAt: Number.isFinite(assignment.createdAt)
-        ? assignment.createdAt
-        : Date.now(),
-    }));
-}
-
-function normalizeClassroomReports(value: unknown) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .filter(
-      (report): report is ClassroomReportState =>
-        Boolean(report) &&
-        typeof report === "object" &&
-        typeof (report as ClassroomReportState).id === "string" &&
-        typeof (report as ClassroomReportState).assignmentId === "string" &&
-        typeof (report as ClassroomReportState).title === "string"
-    )
-    .map((report) => ({
-      id: report.id,
-      assignmentId: report.assignmentId,
-      title: report.title,
-      visitedCount: Number.isFinite(report.visitedCount)
-        ? report.visitedCount
-        : 0,
-      correctQuizCount: Number.isFinite(report.correctQuizCount)
-        ? report.correctQuizCount
-        : 0,
-      routeSealCount: Number.isFinite(report.routeSealCount)
-        ? report.routeSealCount
-        : 0,
-      completedMissionCount: Number.isFinite(report.completedMissionCount)
-        ? report.completedMissionCount
-        : 0,
-      reportText: typeof report.reportText === "string" ? report.reportText : "",
-      createdAt: Number.isFinite(report.createdAt) ? report.createdAt : Date.now(),
     }));
 }
 
@@ -304,10 +228,6 @@ function migratePersistedAppState(value: unknown): PersistedAppStoreState {
     achievementMissions: normalizeAchievementMissions(
       persisted.achievementMissions
     ),
-    classroomAssignments: normalizeClassroomAssignments(
-      persisted.classroomAssignments
-    ),
-    classroomReports: normalizeClassroomReports(persisted.classroomReports),
   };
 }
 
@@ -427,49 +347,6 @@ export const useAppStore = create<AppStoreState>()(
             mission
           ),
         })),
-      saveClassroomAssignment: (assignment) =>
-        set((state) => ({
-          classroomAssignments: [
-            assignment,
-            ...state.classroomAssignments.filter(
-              (existingAssignment) => existingAssignment.id !== assignment.id
-            ),
-          ].slice(0, 8),
-          achievementMissions: upsertCompletedAchievement(
-            state.achievementMissions,
-            {
-              id: "classroom-educator",
-              type: "classroom",
-              title: "Classroom Guide Builder",
-              description:
-                "Unlocked by creating a local route assignment for learners.",
-            }
-          ),
-        })),
-      saveClassroomReport: (report) =>
-        set((state) => ({
-          classroomReports: [
-            report,
-            ...state.classroomReports.filter(
-              (existingReport) => existingReport.id !== report.id
-            ),
-          ].slice(0, 8),
-          achievementMissions: upsertCompletedAchievement(
-            state.achievementMissions,
-            {
-              id: "classroom-report",
-              type: "classroom",
-              title: "Learning Report Ready",
-              description:
-                "Unlocked by generating a printable classroom progress report.",
-            }
-          ),
-        })),
-      resetClassroomData: () =>
-        set({
-          classroomAssignments: [],
-          classroomReports: [],
-        }),
       exportJourneyBackup: () => {
         const state = get();
 
@@ -480,8 +357,6 @@ export const useAppStore = create<AppStoreState>()(
           activeCustomTourId: state.activeCustomTourId,
           activeExploreRouteId: state.activeExploreRouteId,
           achievementMissions: state.achievementMissions,
-          classroomAssignments: state.classroomAssignments,
-          classroomReports: state.classroomReports,
           accessibilityPreferences: state.accessibilityPreferences,
         };
       },
@@ -496,8 +371,6 @@ export const useAppStore = create<AppStoreState>()(
               ? (backup.activeExploreRouteId as ExploreJourneyRouteId)
               : null,
           achievementMissions: backup.achievementMissions,
-          classroomAssignments: backup.classroomAssignments,
-          classroomReports: backup.classroomReports,
           accessibilityPreferences: {
             ...state.accessibilityPreferences,
             ...backup.accessibilityPreferences,
@@ -507,8 +380,6 @@ export const useAppStore = create<AppStoreState>()(
         set((state) => ({
           ...initialPersistedState,
           accessibilityPreferences: state.accessibilityPreferences,
-          classroomAssignments: state.classroomAssignments,
-          classroomReports: state.classroomReports,
         })),
       setSelectedPostcardFrame: (frameId) => set({ selectedPostcardFrame: frameId }),
       setHasCompletedTour: (value) => set({ hasCompletedTour: value }),
@@ -517,7 +388,7 @@ export const useAppStore = create<AppStoreState>()(
     {
       name: "palace-in-motion-app",
       storage: createJSONStorage(() => localStorage),
-      version: 5,
+      version: 6,
       migrate: migratePersistedAppState,
       partialize: (state) => ({
         selectedExploreZoneId: state.selectedExploreZoneId,
@@ -532,8 +403,6 @@ export const useAppStore = create<AppStoreState>()(
         activeCustomTourId: state.activeCustomTourId,
         accessibilityPreferences: state.accessibilityPreferences,
         achievementMissions: state.achievementMissions,
-        classroomAssignments: state.classroomAssignments,
-        classroomReports: state.classroomReports,
       }),
     }
   )

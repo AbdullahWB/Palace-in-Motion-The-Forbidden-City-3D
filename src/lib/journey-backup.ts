@@ -9,10 +9,6 @@ import type {
 import type {
   AchievementMissionState,
   AchievementMissionType,
-  ClassroomAssignmentState,
-  ClassroomDifficulty,
-  ClassroomReportState,
-  ClassroomRouteChoice,
 } from "@/types/competition";
 import type {
   ExploreJourneyRouteId,
@@ -41,8 +37,6 @@ export type JourneyBackupV1 = {
   activeCustomTourId: string | null;
   activeExploreRouteId: ExploreJourneyRouteId | null;
   achievementMissions: AchievementMissionState[];
-  classroomAssignments: ClassroomAssignmentState[];
-  classroomReports: ClassroomReportState[];
   accessibilityPreferences: AccessibilityPreferences;
 };
 
@@ -77,24 +71,16 @@ function readArray(value: unknown) {
   return Array.isArray(value) ? value : [];
 }
 
-function readRouteChoice(value: unknown): ClassroomRouteChoice | null {
-  if (value === "full-palace") {
-    return value;
-  }
-
-  const routeId = readString(value);
-
-  if (isExploreJourneyRouteId(routeId)) {
-    return routeId;
-  }
-
-  return null;
-}
-
-function readDifficulty(value: unknown): ClassroomDifficulty {
-  return value === "starter" || value === "standard" || value === "challenge"
-    ? value
-    : "standard";
+function isAchievementMissionType(
+  value: string | null
+): value is AchievementMissionType {
+  return (
+    value === "route" ||
+    value === "quiz" ||
+    value === "preservation" ||
+    value === "diary" ||
+    value === "three-d"
+  );
 }
 
 function readPlaceSlugs(value: unknown) {
@@ -172,7 +158,7 @@ function readAchievementMissions(value: unknown): AchievementMissionState[] {
       const title = readString(mission.title);
       const description = readString(mission.description);
 
-      if (!id || !type || !title || !description) {
+      if (!id || !isAchievementMissionType(type) || !title || !description) {
         return [];
       }
       const relatedPlaceSlug = readString(mission.relatedPlaceSlug);
@@ -180,7 +166,7 @@ function readAchievementMissions(value: unknown): AchievementMissionState[] {
 
       return [{
         id,
-        type: type as AchievementMissionType,
+        type,
         title,
         description,
         completed: readBoolean(mission.completed),
@@ -196,63 +182,6 @@ function readAchievementMissions(value: unknown): AchievementMissionState[] {
           : null,
       }];
     });
-}
-
-function readClassroomAssignments(value: unknown): ClassroomAssignmentState[] {
-  return readArray(value)
-    .filter(isObject)
-    .map((assignment) => {
-      const id = readString(assignment.id);
-      const title = readString(assignment.title);
-      const routeId = readRouteChoice(assignment.routeId);
-
-      if (!id || !title || !routeId) {
-        return null;
-      }
-
-      return {
-        id,
-        title,
-        routeId,
-        difficulty: readDifficulty(assignment.difficulty),
-        requiredPlaceSlugs: readPlaceSlugs(assignment.requiredPlaceSlugs),
-        worksheetText: readString(assignment.worksheetText) ?? "",
-        createdAt: readFiniteNumber(assignment.createdAt, Date.now()),
-      };
-    })
-    .filter(
-      (assignment): assignment is ClassroomAssignmentState => Boolean(assignment)
-    );
-}
-
-function readClassroomReports(value: unknown): ClassroomReportState[] {
-  return readArray(value)
-    .filter(isObject)
-    .map((report) => {
-      const id = readString(report.id);
-      const assignmentId = readString(report.assignmentId);
-      const title = readString(report.title);
-
-      if (!id || !assignmentId || !title) {
-        return null;
-      }
-
-      return {
-        id,
-        assignmentId,
-        title,
-        visitedCount: Math.max(0, readFiniteNumber(report.visitedCount)),
-        correctQuizCount: Math.max(0, readFiniteNumber(report.correctQuizCount)),
-        routeSealCount: Math.max(0, readFiniteNumber(report.routeSealCount)),
-        completedMissionCount: Math.max(
-          0,
-          readFiniteNumber(report.completedMissionCount)
-        ),
-        reportText: readString(report.reportText) ?? "",
-        createdAt: readFiniteNumber(report.createdAt, Date.now()),
-      };
-    })
-    .filter((report): report is ClassroomReportState => Boolean(report));
 }
 
 function readAccessibilityPreferences(value: unknown): AccessibilityPreferences {
@@ -283,8 +212,6 @@ export function createJourneyBackup(input: JourneyBackupInput): JourneyBackupV1 
     activeCustomTourId: input.activeCustomTourId,
     activeExploreRouteId: input.activeExploreRouteId,
     achievementMissions: input.achievementMissions,
-    classroomAssignments: input.classroomAssignments,
-    classroomReports: input.classroomReports,
     accessibilityPreferences: {
       ...defaultAccessibilityPreferences,
       ...input.accessibilityPreferences,
@@ -318,8 +245,6 @@ export function parseJourneyBackup(value: unknown): JourneyBackupV1 {
       ? activeExploreRouteId
       : null,
     achievementMissions: readAchievementMissions(value.achievementMissions),
-    classroomAssignments: readClassroomAssignments(value.classroomAssignments),
-    classroomReports: readClassroomReports(value.classroomReports),
     accessibilityPreferences: readAccessibilityPreferences(
       value.accessibilityPreferences
     ),

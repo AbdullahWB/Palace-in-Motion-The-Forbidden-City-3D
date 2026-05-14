@@ -8,8 +8,7 @@ export type AppRoute =
   | AppRoutePaths["tour"]
   | AppRoutePaths["selfie"]
   | AppRoutePaths["threeD"]
-  | AppRoutePaths["companion"]
-  | AppRoutePaths["classroom"];
+  | AppRoutePaths["companion"];
 export type HomeAnchor = "#ai-guide";
 export type LandingHref = AppRoute | HomeAnchor;
 

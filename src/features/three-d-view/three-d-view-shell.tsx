@@ -54,8 +54,6 @@ type ViewerSceneProps = {
   onSelectHotspot: (hotspot: ThreeDHotspot) => void;
 };
 
-type FlythroughSpeed = "slow" | "normal" | "fast";
-
 const shellCopy = {
   zh: {
     eyebrow: "三维模型导览",

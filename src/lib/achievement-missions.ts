@@ -1,7 +1,6 @@
 import {
   exploreExperience,
   getCompletedJourneyRouteIds,
-  getExploreJourneyById,
   getUnlockedPassportSealIds,
 } from "@/data/panorama";
 import { pickLocalizedText } from "@/lib/i18n";
@@ -9,8 +8,6 @@ import type { PassportMissionState } from "@/types/ai-guide";
 import type {
   AchievementMissionState,
   AchievementMissionType,
-  ClassroomAssignmentState,
-  ClassroomReportState,
 } from "@/types/competition";
 import type { ExplorePlaceSlug } from "@/types/content";
 import type { AppLanguage } from "@/types/preferences";
@@ -95,30 +92,6 @@ const coreAchievementDefinitions: AchievementDefinition[] = [
     },
   },
   {
-    id: "classroom-educator",
-    type: "classroom",
-    title: {
-      zh: "课堂导览设计者",
-      en: "Classroom Guide Builder",
-    },
-    description: {
-      zh: "创建一个本地课堂路线任务。",
-      en: "Create one local route assignment for learners.",
-    },
-  },
-  {
-    id: "classroom-report",
-    type: "classroom",
-    title: {
-      zh: "学习报告已生成",
-      en: "Learning Report Ready",
-    },
-    description: {
-      zh: "生成一份可打印的课堂进度报告。",
-      en: "Generate one printable classroom progress report.",
-    },
-  },
-  {
     id: "full-palace-scholar",
     type: "route",
     title: {
@@ -185,15 +158,11 @@ export function buildAchievementMissionCards({
   visitedPlaceSlugs,
   passportMissions,
   achievementMissions,
-  classroomAssignments = [],
-  classroomReports = [],
 }: {
   language: AppLanguage;
   visitedPlaceSlugs: ExplorePlaceSlug[];
   passportMissions: PassportMissionState[];
   achievementMissions: AchievementMissionState[];
-  classroomAssignments?: ClassroomAssignmentState[];
-  classroomReports?: ClassroomReportState[];
 }): AchievementMissionCard[] {
   const persistedMissionMap = getPersistedMissionMap(achievementMissions);
   const completedRouteIds = getCompletedJourneyRouteIds(visitedPlaceSlugs);
@@ -233,8 +202,6 @@ export function buildAchievementMissionCards({
       persisted?.completed === true ||
       (definition.id === "quiz-first-stamp" && stampedQuizCount > 0) ||
       (definition.id === "quiz-palace-scholar" && correctQuizCount >= 5) ||
-      (definition.id === "classroom-educator" && classroomAssignments.length > 0) ||
-      (definition.id === "classroom-report" && classroomReports.length > 0) ||
       (definition.id === "full-palace-scholar" &&
         visitedPlaceSlugs.length >= exploreExperience.places.length &&
         unlockedSealIds.length >= exploreExperience.journeys.length);
@@ -260,13 +227,3 @@ export function countCompletedAchievementMissions(
   return cards.filter((card) => card.completed).length;
 }
 
-export function getClassroomRouteTitle(
-  routeId: ClassroomAssignmentState["routeId"],
-  language: AppLanguage
-) {
-  if (routeId === "full-palace") {
-    return language === "zh" ? "完整故宫学习路线" : "Full Palace Learning Route";
-  }
-
-  return pickLocalizedText(getExploreJourneyById(routeId)?.title, language);
-}

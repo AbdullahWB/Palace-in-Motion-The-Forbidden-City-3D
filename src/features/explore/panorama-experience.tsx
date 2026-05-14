@@ -77,8 +77,6 @@ import type {
 } from "@/types/ai-guide";
 import type {
   AchievementMissionState,
-  ClassroomAssignmentState,
-  ClassroomReportState,
 } from "@/types/competition";
 import type { AppLanguage } from "@/types/preferences";
 
@@ -997,8 +995,6 @@ type PassportDrawerProps = {
   journeyProgressById: Map<ExploreJourneyRoute["id"], JourneyProgress>;
   missionStates: PassportMissionState[];
   achievementMissions: AchievementMissionState[];
-  classroomAssignments: ClassroomAssignmentState[];
-  classroomReports: ClassroomReportState[];
   activeCustomTour: CustomTourState | null;
   customTours: CustomTourState[];
   activeCustomTourId: string | null;
@@ -1025,8 +1021,6 @@ function PassportDrawer({
   journeyProgressById,
   missionStates,
   achievementMissions,
-  classroomAssignments,
-  classroomReports,
   activeCustomTour,
   customTours,
   activeCustomTourId,
@@ -1054,8 +1048,6 @@ function PassportDrawer({
     visitedPlaceSlugs,
     passportMissions: missionStates,
     achievementMissions,
-    classroomAssignments,
-    classroomReports,
   });
   const completedAchievementCount = achievementCards.filter(
     (mission) => mission.completed
@@ -1453,7 +1445,7 @@ function PassportDrawer({
             <p className={cn("mt-2 text-sm leading-7", isDarkTheme ? "text-white/72" : "text-foreground/70")}>
               {language === "zh"
                 ? `已完成 ${completedAchievementCount}/${achievementCards.length} 个路线、问答、保护、日记、三维与课堂任务。`
-                : `Completed ${completedAchievementCount}/${achievementCards.length} route, quiz, preservation, diary, 3D, and classroom missions.`}
+                : `Completed ${completedAchievementCount}/${achievementCards.length} route, quiz, preservation, diary, and 3D missions.`}
             </p>
             <div className="mt-4 grid gap-3">
               {achievementCards.slice(0, 9).map((mission) => (
@@ -1652,8 +1644,6 @@ export function PanoramaExperience({
   const completeAchievementMission = useAppStore(
     (state) => state.completeAchievementMission
   );
-  const classroomAssignments = useAppStore((state) => state.classroomAssignments);
-  const classroomReports = useAppStore((state) => state.classroomReports);
   const customTours = useAppStore((state) => state.customTours);
   const activeCustomTourId = useAppStore((state) => state.activeCustomTourId);
   const saveCustomTour = useAppStore((state) => state.saveCustomTour);
@@ -4063,8 +4053,6 @@ export function PanoramaExperience({
                 journeyProgressById={journeyProgressById}
                 missionStates={passportMissions}
                 achievementMissions={achievementMissions}
-                classroomAssignments={classroomAssignments}
-                classroomReports={classroomReports}
                 activeCustomTour={activeCustomTour}
                 customTours={customTours}
                 activeCustomTourId={activeCustomTourId}

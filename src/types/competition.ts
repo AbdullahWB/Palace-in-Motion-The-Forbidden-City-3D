@@ -8,8 +8,7 @@ export type AchievementMissionType =
   | "quiz"
   | "preservation"
   | "diary"
-  | "three-d"
-  | "classroom";
+  | "three-d";
 
 export type AchievementMissionState = {
   id: string;
@@ -20,29 +19,4 @@ export type AchievementMissionState = {
   completedAt: number | null;
   relatedPlaceSlug?: ExplorePlaceSlug | null;
   routeId?: ExploreJourneyRouteId | null;
-};
-
-export type ClassroomDifficulty = "starter" | "standard" | "challenge";
-export type ClassroomRouteChoice = ExploreJourneyRouteId | "full-palace";
-
-export type ClassroomAssignmentState = {
-  id: string;
-  title: string;
-  routeId: ClassroomRouteChoice;
-  difficulty: ClassroomDifficulty;
-  requiredPlaceSlugs: ExplorePlaceSlug[];
-  worksheetText: string;
-  createdAt: number;
-};
-
-export type ClassroomReportState = {
-  id: string;
-  assignmentId: string;
-  title: string;
-  visitedCount: number;
-  correctQuizCount: number;
-  routeSealCount: number;
-  completedMissionCount: number;
-  reportText: string;
-  createdAt: number;
 };

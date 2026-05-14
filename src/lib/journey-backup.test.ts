@@ -21,7 +21,7 @@ const baseInput: JourneyBackupInput = {
   customTours: [
     {
       id: "tour-1",
-      title: "Teacher route",
+      title: "Visitor route",
       timeBudget: 10,
       interests: ["overview"],
       orderedPlaceSlugs: ["taihe-dian", "baohe-dian"],
@@ -33,8 +33,6 @@ const baseInput: JourneyBackupInput = {
   activeCustomTourId: "tour-1",
   activeExploreRouteId: "ceremonial-axis",
   achievementMissions: [],
-  classroomAssignments: [],
-  classroomReports: [],
   accessibilityPreferences: {
     textScale: "large",
     contrast: "high",

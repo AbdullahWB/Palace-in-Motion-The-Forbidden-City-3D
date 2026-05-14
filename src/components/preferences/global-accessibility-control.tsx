@@ -29,7 +29,7 @@ const accessibilityCopy = {
   en: {
     open: "Access",
     title: "Accessibility and Comfort",
-    body: "These local preferences apply across Explore, map, Passport, 3D, Companion, and Classroom.",
+    body: "These local preferences apply across Explore, map, Passport, 3D, and Companion.",
     close: "Close accessibility settings",
     reset: "Reset",
     controls: [

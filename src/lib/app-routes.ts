@@ -23,7 +23,6 @@ type SearchParamsLike = AppSearchParams | Pick<URLSearchParams, "get">;
 export const appRoutePaths = {
   home: "/",
   companion: "/companion",
-  classroom: "/classroom",
   threeD: "/3d-view",
   explore: "/explore",
   selfie: "/selfie",

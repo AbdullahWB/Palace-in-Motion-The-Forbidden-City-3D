@@ -9,24 +9,24 @@ describe("download filename helpers", () => {
   const date = new Date("2026-05-04T12:00:00.000Z");
 
   it("creates filename-safe slugs", () => {
-    expect(createFilenameSlug("Inner Court Life: Teacher Route")).toBe(
-      "inner-court-life-teacher-route"
+    expect(createFilenameSlug("Inner Court Life: Visitor Route")).toBe(
+      "inner-court-life-visitor-route"
     );
   });
 
   it("creates dated filenames", () => {
-    expect(createDatedFilename("Full Palace worksheet", "txt", date)).toBe(
-      "full-palace-worksheet-2026-05-04.txt"
+    expect(createDatedFilename("Full Palace notes", "txt", date)).toBe(
+      "full-palace-notes-2026-05-04.txt"
     );
   });
 
   it("creates dated filenames from non-empty parts", () => {
     expect(
       createDatedFilenameFromParts(
-        ["palace-classroom", "Ceremonial Axis", null, "answer key"],
+        ["palace-journey", "Ceremonial Axis", null, "answer key"],
         "json",
         date
       )
-    ).toBe("palace-classroom-ceremonial-axis-answer-key-2026-05-04.json");
+    ).toBe("palace-journey-ceremonial-axis-answer-key-2026-05-04.json");
   });
 });

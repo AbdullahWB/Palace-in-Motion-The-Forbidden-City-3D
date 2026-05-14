@@ -108,8 +108,6 @@ export function CompanionPageClient() {
   const visitedPlaceSlugs = useAppStore((state) => state.visitedExplorePlaceSlugs);
   const passportMissions = useAppStore((state) => state.passportMissions);
   const achievementMissions = useAppStore((state) => state.achievementMissions);
-  const classroomAssignments = useAppStore((state) => state.classroomAssignments);
-  const classroomReports = useAppStore((state) => state.classroomReports);
   const activeExploreRouteId = useAppStore((state) => state.activeExploreRouteId);
   const customTours = useAppStore((state) => state.customTours);
   const activeCustomTourId = useAppStore((state) => state.activeCustomTourId);
@@ -204,13 +202,9 @@ export function CompanionPageClient() {
         visitedPlaceSlugs,
         passportMissions,
         achievementMissions,
-        classroomAssignments,
-        classroomReports,
       }),
     [
       achievementMissions,
-      classroomAssignments,
-      classroomReports,
       language,
       passportMissions,
       visitedPlaceSlugs,
@@ -1326,12 +1320,6 @@ export function CompanionPageClient() {
               className="rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-black"
             >
               3D view
-            </Link>
-            <Link
-              href={appRoutes.classroom}
-              className="rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-black"
-            >
-              Classroom
             </Link>
           </div>
         </header>

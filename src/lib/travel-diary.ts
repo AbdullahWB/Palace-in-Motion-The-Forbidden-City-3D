@@ -254,7 +254,7 @@ export function buildTravelDiaryText({
       : "Passport stamps: answer place quizzes to record stamp names here.",
     achievementTitles.length
       ? `Challenge badges: ${achievementTitles.join(", ")}.`
-      : "Challenge badges: complete routes, quizzes, preservation reading, 3D challenges, or classroom tasks to show them here.",
+      : "Challenge badges: complete routes, quizzes, preservation reading, or 3D challenges to show them here.",
     activeCustomTour
       ? `Active smart tour: ${activeCustomTour.title}. ${activeCustomTour.explanation}`
       : "Active smart tour: no custom route is active yet.",
